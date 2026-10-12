@@ -1,0 +1,20 @@
+; Feudal rush strategy: we want to get to the Feudal age as
+; fast as possible.
+(defconst g-feudal-rush-state 900)
+(defconst gv-not-started 0)
+(defconst gv-started 1)
+(defconst gv-done 2)
+
+; Wait for the mill to be build, then take over control.
+(defconst
+    (goal g-strategy gv-flush)
+    (goal g-feudal-rush-state gv-not-started)
+    (building-type-count mill > 0)
+    =>
+    (set-goal g-allow-building gv-no)
+    (set-goal g-allow-research gv-no)
+    (set-goal g-allow-training gv-no)
+    (set-goal g-enable-auto-resource-distribution gv-no)
+    (set-goal g-feudal-rush-state gv-started)
+    (disable-self)
+)

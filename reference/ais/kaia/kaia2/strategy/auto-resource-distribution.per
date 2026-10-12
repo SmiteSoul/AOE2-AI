@@ -1,0 +1,77 @@
+; Automatically change the villager distribution on the resources.
+(defrule
+    (goal g-enable-auto-resource-distribution gv-yes)
+    (current-age == dark-age)
+    (unit-type-count villager < 10)
+    (or
+        (or
+            (strategic-number sn-food-gatherer-percentage != 50)
+            (strategic-number sn-wood-gatherer-percentage != 0)
+        )
+        (or
+            (strategic-number sn-gold-gatherer-percentage != 0)
+            (strategic-number sn-stone-gatherer-percentage != 0)
+        )
+    )
+    =>
+    (set-strategic-number sn-food-gatherer-percentage 50)
+    (set-strategic-number sn-wood-gatherer-percentage 0)
+    (set-strategic-number sn-gold-gatherer-percentage 0)
+    (set-strategic-number sn-stone-gatherer-percentage 0)
+    (chat-local-to-self "Set gatherer distribution: 50 0 0 0")
+)
+
+(defrule
+    (goal g-enable-auto-resource-distribution gv-yes)
+    (current-age == dark-age)
+    (unit-type-count villager >= 10)
+    (or
+        (or
+            (strategic-number sn-food-gatherer-percentage != 50)
+            (strategic-number sn-wood-gatherer-percentage != 50)
+        )
+        (or
+            (strategic-number sn-gold-gatherer-percentage != 0)
+            (strategic-number sn-stone-gatherer-percentage != 0)
+        )
+    )
+    =>
+    (set-strategic-number sn-food-gatherer-percentage 50)
+    (set-strategic-number sn-wood-gatherer-percentage 50)
+    (set-strategic-number sn-gold-gatherer-percentage 0)
+    (set-strategic-number sn-stone-gatherer-percentage 0)
+    (chat-local-to-self "Set gatherer distribution: 50 50 0 0")
+)
+
+(defrule
+    (goal g-enable-auto-resource-distribution gv-yes)
+    (current-age == feudal-age)
+    =>
+    (set-strategic-number sn-food-gatherer-percentage 45)
+    (set-strategic-number sn-wood-gatherer-percentage 50)
+    (set-strategic-number sn-gold-gatherer-percentage 5)
+    (set-strategic-number sn-stone-gatherer-percentage 0)
+    (chat-local-to-self "Set gatherer distribution: 45 50 5 0")
+)
+
+(defrule
+    (goal g-enable-auto-resource-distribution gv-yes)
+    (current-age == castle-age)
+    =>
+    (set-strategic-number sn-food-gatherer-percentage 40)
+    (set-strategic-number sn-wood-gatherer-percentage 40)
+    (set-strategic-number sn-gold-gatherer-percentage 10)
+    (set-strategic-number sn-stone-gatherer-percentage 10)
+    (chat-local-to-self "Set gatherer distribution: 40 40 10 10")
+)
+
+(defrule
+    (goal g-enable-auto-resource-distribution gv-yes)
+    (current-age == imperial-age)
+    =>
+    (set-strategic-number sn-food-gatherer-percentage 35)
+    (set-strategic-number sn-wood-gatherer-percentage 45)
+    (set-strategic-number sn-gold-gatherer-percentage 15)
+    (set-strategic-number sn-stone-gatherer-percentage 5)
+    (chat-local-to-self "Set gatherer distribution: 35 45 15 5")
+)

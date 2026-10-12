@@ -1,0 +1,105 @@
+﻿(defrule
+	(true)
+=>
+	(set-strategic-number sn-home-exploration-time 600)
+	(disable-self)
+)
+
+#if timer-triggered ti-repeat-7
+
+	#if gl-scout != OFF
+	
+		var gl-exists
+		gl-exists = ObjectExists(gl-scout)
+		
+		#if gl-exists == NO
+		
+			gl-scout = OFF
+			
+		#end-if
+		
+	#end-if
+	
+	#if gl-scout == OFF
+		
+		up-full-reset-search
+		up-filter-include -1 -1 orderid-explore -1
+		up-find-local c: -1 c: 1
+		up-get-search-state gl-search-state
+		
+		#if gl-local-total > 0
+		
+			up-set-target-object search-local c: 0
+			up-get-object-data object-data-id gl-scout
+			
+			up-chat-data-to-self "New scout: %d" g: gl-scout
+			
+		#end-if
+		
+	#end-if
+	
+	#if gl-scout != OFF
+	
+		; get sighted livestock
+
+		sn-focus-player-number = 0
+		up-full-reset-search
+		up-find-remote c: livestock-class c: 10
+		up-get-search-state gl-search-state
+
+		; get scout and target sighted livestock
+	
+		#if (gl-remote-total > 0) (current-age <= feudal-age) ; if there is any sighted livestock
+	
+			up-set-target-object search-remote c: 0
+			up-get-point position-self gl-point1
+			up-set-target-point gl-point1
+			
+			var gl-distance
+			up-get-object-data object-data-distance gl-distance
+			
+			#if gl-distance < 35
+			
+				up-find-local c: scout-cavalry-line c: 10
+				up-find-local c: eagle-warrior-line c: 10
+				up-find-local c: cavalry-class c: 10
+				up-find-local c: infantry-class c: 10
+				up-remove-objects search-local object-data-id g:!= gl-scout
+				up-target-objects 1 action-move -1 -1
+		
+				chat-local-to-self "Sending scout to sighted sheep."
+				
+			#end-if
+		
+		#else
+			
+			var gl-time
+			up-get-fact game-time 0 gl-time
+			
+			#if (timer-triggered ti-repeat-31) (gl-time > sn-home-exploration-time)
+			
+				(defrule
+					(true)
+				=>
+					(up-send-scout group-type-land-explore scout-enemy)
+					(disable-self)
+				)
+				
+				sn-focus-player-number = sn-target-player-number
+				up-full-reset-search
+				up-find-remote c: town-center c: 1
+				up-get-search-state gl-search-state
+				
+				#if gl-remote-total == 0
+				
+					up-send-scout group-type-land-explore scout-enemy
+				
+				#end-if
+				
+			#end-if
+			
+		#end-if
+		
+	#end-if
+	
+#end-if

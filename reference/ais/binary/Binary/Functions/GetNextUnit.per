@@ -1,0 +1,25 @@
+﻿#function GetNextUnit gl-current-unit
+
+	var gl-found = NO
+	var gl-id = -1
+	
+	#while gl-found == NO
+	
+		gl-current-unit += 1
+		#if gl-current-unit >= 1000
+		
+			gl-current-unit = 0
+			
+		#end-if
+		
+		up-get-object-type-data g: gl-current-unit object-data-cmdid gl-id
+		
+		#if gl-id == cmdid-military
+		
+			gl-found = YES
+			
+		#end-if
+		
+	#end-while
+	
+#return gl-current-unit

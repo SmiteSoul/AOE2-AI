@@ -1,0 +1,219 @@
+; background settings
+; must be loaded at the very beginning
+
+(defrule
+	(true)
+=>
+	(set-goal gl-player-count 1)
+	(set-goal gl-player-ally-count 0)
+	(set-goal gl-player-enemy-count 0)
+	(set-goal gl-current-sighted-sheep 0)
+	(disable-self)
+)
+
+; 未组队玩家也是敌人
+(defrule
+	(player-valid 1)
+	(players-stance 1 ally)
+=>
+	(up-modify-goal gl-player-ally-count c:+ 1)
+	(up-modify-goal gl-player-count c:+ 1)
+	(disable-self)
+)
+(defrule
+	(player-valid 1)
+	(players-stance 1 enemy)
+=>
+	(up-modify-goal gl-player-enemy-count c:+ 1)
+	(up-modify-goal gl-player-count c:+ 1)
+	(disable-self)
+)
+(defrule
+	(player-valid 2)
+	(players-stance 2 ally)
+=>
+	(up-modify-goal gl-player-ally-count c:+ 1)
+	(up-modify-goal gl-player-count c:+ 1)
+	(disable-self)
+)
+(defrule
+	(player-valid 2)
+	(players-stance 2 enemy)
+=>
+	(up-modify-goal gl-player-enemy-count c:+ 1)
+	(up-modify-goal gl-player-count c:+ 1)
+	(disable-self)
+)
+(defrule
+	(player-valid 3)
+	(players-stance 3 ally)
+=>
+	(up-modify-goal gl-player-ally-count c:+ 1)
+	(up-modify-goal gl-player-count c:+ 1)
+	(disable-self)
+)
+(defrule
+	(player-valid 3)
+	(players-stance 3 enemy)
+=>
+	(up-modify-goal gl-player-enemy-count c:+ 1)
+	(up-modify-goal gl-player-count c:+ 1)
+	(disable-self)
+)
+(defrule
+	(player-valid 4)
+	(players-stance 4 ally)
+=>
+	(up-modify-goal gl-player-ally-count c:+ 1)
+	(up-modify-goal gl-player-count c:+ 1)
+	(disable-self)
+)
+(defrule
+	(player-valid 4)
+	(players-stance 4 enemy)
+=>
+	(up-modify-goal gl-player-enemy-count c:+ 1)
+	(up-modify-goal gl-player-count c:+ 1)
+	(disable-self)
+)
+(defrule
+	(player-valid 5)
+	(players-stance 5 ally)
+=>
+	(up-modify-goal gl-player-ally-count c:+ 1)
+	(up-modify-goal gl-player-count c:+ 1)
+	(disable-self)
+)
+(defrule
+	(player-valid 5)
+	(players-stance 5 enemy)
+=>
+	(up-modify-goal gl-player-enemy-count c:+ 1)
+	(up-modify-goal gl-player-count c:+ 1)
+	(disable-self)
+)
+(defrule
+	(player-valid 6)
+	(players-stance 6 ally)
+=>
+	(up-modify-goal gl-player-ally-count c:+ 1)
+	(up-modify-goal gl-player-count c:+ 1)
+	(disable-self)
+)
+(defrule
+	(player-valid 6)
+	(players-stance 6 enemy)
+=>
+	(up-modify-goal gl-player-enemy-count c:+ 1)
+	(up-modify-goal gl-player-count c:+ 1)
+	(disable-self)
+)
+(defrule
+	(player-valid 7)
+	(players-stance 7 ally)
+=>
+	(up-modify-goal gl-player-ally-count c:+ 1)
+	(up-modify-goal gl-player-count c:+ 1)
+	(disable-self)
+)
+(defrule
+	(player-valid 7)
+	(players-stance 7 enemy)
+=>
+	(up-modify-goal gl-player-enemy-count c:+ 1)
+	(up-modify-goal gl-player-count c:+ 1)
+	(disable-self)
+)
+(defrule
+	(player-valid 8)
+	(players-stance 8 ally)
+=>
+	(up-modify-goal gl-player-ally-count c:+ 1)
+	(up-modify-goal gl-player-count c:+ 1)
+	(disable-self)
+)
+(defrule
+	(player-valid 8)
+	(players-stance 8 enemy)
+=>
+	(up-modify-goal gl-player-enemy-count c:+ 1)
+	(up-modify-goal gl-player-count c:+ 1)
+	(disable-self)
+)
+
+
+(defrule
+	(true)
+=>
+	(up-chat-data-to-self "total player is %d" g: gl-player-count)
+	(up-chat-data-to-self "total ally player is %d" g: gl-player-ally-count)
+	(up-chat-data-to-self "total enemy player is %d" g: gl-player-enemy-count)
+	(disable-self)
+)
+
+
+(defrule
+	(up-gaia-type-count c: livestock-class == -1)
+=>
+	(set-goal gl-current-sighted-sheep -1)
+)
+(defrule
+	(up-gaia-type-count c: livestock-class == 0)
+=>
+	(set-goal gl-current-sighted-sheep 0)
+)
+(defrule
+	(up-gaia-type-count c: livestock-class == 1)
+=>
+	(set-goal gl-current-sighted-sheep 1)
+)
+(defrule
+	(up-gaia-type-count c: livestock-class == 2)
+=>
+	(set-goal gl-current-sighted-sheep 2)
+)
+(defrule
+	(up-gaia-type-count c: livestock-class == 3)
+=>
+	(set-goal gl-current-sighted-sheep 3)
+)
+(defrule
+	(up-gaia-type-count c: livestock-class == 4)
+=>
+	(set-goal gl-current-sighted-sheep 5)
+)
+(defrule
+	(up-gaia-type-count c: livestock-class == 5)
+=>
+	(set-goal gl-current-sighted-sheep 5)
+)
+(defrule
+	(up-gaia-type-count c: livestock-class == 6)
+=>
+	(set-goal gl-current-sighted-sheep 6)
+)
+(defrule
+	(up-gaia-type-count c: livestock-class == 7)
+=>
+	(set-goal gl-current-sighted-sheep 7)
+)
+(defrule
+	(up-gaia-type-count c: livestock-class == 8)
+=>
+	(set-goal gl-current-sighted-sheep 8)
+)
+(defrule
+	(up-gaia-type-count c: livestock-class == 9)
+=>
+	(set-goal gl-current-sighted-sheep 9)
+)
+(defrule
+	(up-gaia-type-count c: livestock-class == 10)
+=>
+	(set-goal gl-current-sighted-sheep 10)
+)
+(defrule
+	(up-gaia-type-count c: livestock-class == 11)
+=>
+	(set-goal gl-current-sighted-sheep 11)
+)

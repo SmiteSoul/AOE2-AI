@@ -1,0 +1,344 @@
+; Rebuild a Town Center if it is destroyed.
+(defrule
+   (current-age > dark-age)
+   (building-type-count-total town-center == 0)
+   (can-build town-center)
+   =>
+   (build town-center)
+   (chat-local-to-self "Building: Town Center (No more TCs)")
+)
+
+; Always build a house if this is required, except if we are Hun.
+#load-if-not-defined HUN-CIV
+
+(defrule
+   (housing-headroom < 4)
+   (population-headroom > 3)
+   (up-pending-objects c: house == 0)
+   (can-build house)
+   =>
+   (build house)
+)
+
+#end-if
+
+; Build the first three houses at the start
+#load-if-not-defined HUN-CIV
+
+(defrule
+   (building-type-count-total house < 3)
+   (up-pending-objects c: house < 3)
+   (can-build house)
+   =>
+   (build house)
+   (chat-local-to-self "Building: House")
+)
+
+#end-if
+
+; Build Farms
+
+(defrule
+   (current-age == dark-age)    
+   (building-type-count-total mill > 0)
+   (or
+      (building-type-count-total lumber-camp > 0)
+      (game-time > 120)
+   )
+   (unit-type-count-total villager > 10)
+   (building-type-count-total farm < 5)
+   (up-pending-objects c: farm < 2)
+   (can-build farm)
+   =>
+   (build farm)
+   (chat-local-to-self "Building: Farm (Dark age)")
+)
+
+(defrule
+   (or
+    (current-age > dark-age)
+    (goal g-age-status gv-advancing-to-feudal)
+   )
+   (idle-farm-count < 3)
+   (up-pending-objects c: farm < 1)
+   (can-build farm)
+   =>
+   (build farm)
+   (chat-local-to-self "Building: Farm")
+)
+
+; always maintain 8 farms in the Castle age and onward.
+(defrule
+   (current-age >= castle-age)
+   (building-type-count-total farm < 8)
+   (up-pending-objects c: farm < 1)
+   (can-build farm)
+   =>
+   (build farm)
+)
+
+; Build a Mill
+(defrule
+    (resource-found food)
+    (building-type-count-total mill == 0)
+    =>
+    (build mill)
+    (chat-local-to-self "Building: Mill")
+)
+
+; Build a Lumber Camp
+(defrule 
+    (resource-found wood)
+    (unit-type-count-total villager >= 10)
+    (or
+      (dropsite-min-distance wood > 5)
+      (building-type-count-total lumber-camp == 0)
+    )
+    (dropsite-min-distance wood < 255)
+    (can-build lumber-camp)
+    =>
+    (build lumber-camp)
+    (chat-local-to-self "Building: Lumber Camp")
+)
+
+; Build a Mining Camp for Gold.
+(defrule
+    (resource-found gold)
+    (current-age >= feudal-age)
+    (dropsite-min-distance gold > 5)
+    (dropsite-min-distance gold < 255)
+    (can-build mining-camp)
+    (and
+      (goal g-multiple-town-centers gv-done)
+      (building-type-count mining-camp < 2)
+    )
+    =>
+    (build mining-camp)
+    (chat-local-to-self "Building: Mining Camp")
+)
+
+; Build a Mining Camp for Stone.
+(defrule
+    (resource-found stone)
+    (current-age >= feudal-age)
+    (dropsite-min-distance stone > 10)
+    (dropsite-min-distance stone < 255)
+    (can-build mining-camp)
+    (and
+      (goal g-multiple-town-centers gv-done)
+      (building-type-count mining-camp < 2)
+    )
+    =>
+    (build mining-camp)
+    (chat-local-to-self "Building: Mining Camp")
+)
+
+; Build a Blacksmith
+(defrule
+   (current-age >= feudal-age)
+   (building-type-count-total blacksmith == 0)
+   (can-build blacksmith)
+   =>
+   (build blacksmith)
+   (chat-local-to-self "Building: Blacksmith")
+)
+
+; Build a Market
+(defrule
+   (current-age >= feudal-age)
+   (building-type-count-total market == 0)
+   (building-type-count-total blacksmith > 0)
+   (can-build market)
+   =>
+   (build market)
+   (chat-local-to-self "Building: Market")
+)
+
+; Build a Barracks
+(defrule
+   (goal g-multiple-town-centers gv-done)
+   (building-type-count-total market > 0)
+   (building-type-count-total blacksmith > 0)
+   (building-type-count-total barracks == 0)
+   (can-build barracks)
+   =>
+   (build barracks)
+   (chat-local-to-self "Building: Barracks")
+)
+
+; Multi TC on castle age
+(defrule
+   (current-age >= castle-age)
+   (building-type-count-total town-center <= max-num-of-town-centers-castle-age)
+   (can-build town-center)
+   =>
+   (build town-center)
+   (chat-local-to-self "Building: Town Center")
+)
+
+; Build Archery ranges
+(defrule
+   (goal g-multiple-town-centers gv-done)
+   (building-type-count-total archery-range == 0)
+   (can-build archery-range)
+   =>
+   (build archery-range)
+   (chat-local-to-self "Building: Archery Range")
+)
+
+(defrule
+   (current-age == castle-age)
+   (building-type-count-total archery-range < 3) ; build 3 archery ranges
+   (building-type-count-total castle > 0) ; when we have a castle
+   (building-type-count-total town-center >= max-num-of-town-centers-castle-age)
+   (can-build archery-range)
+   =>
+   (build archery-range)
+   (chat-local-to-self "Building: Archery Range (3x)")
+)
+
+(defrule
+   (current-age == imperial-age)
+   (building-type-count-total archery-range < 3) ; build 3 archery ranges
+   (building-type-count-total castle > 0) ; when we have a castle
+   (can-build archery-range)
+   =>
+   (build archery-range)
+   (chat-local-to-self "Building: Archery Range (8x)")
+)
+
+; Build Stables
+(defrule
+   (goal g-multiple-town-centers gv-done)
+   (building-type-count-total stable == 0)
+   (can-build stable)
+   =>
+   (build stable)
+   (chat-local-to-self "Building: Stable")
+)
+
+; Build Castle
+(defrule
+    (current-age == castle-age)
+    (building-type-count-total castle == 0)
+    (building-type-count-total town-center > max-num-of-town-centers-castle-age)
+    (can-build castle)
+    =>
+    (build castle)
+    (chat-local-to-self "Building: Castle")
+)
+
+(defrule
+   (current-age == castle-age)
+   (building-type-count-total stable < 3) ; build 3 stables
+   (building-type-count-total castle > 0) ; when we have a castle
+   (building-type-count-total town-center >= max-num-of-town-centers-castle-age)
+   (can-build stable)
+   =>
+   (build stable)
+   (chat-local-to-self "Building: Stable (3x)")
+)
+
+(defrule
+   (current-age == imperial-age)
+   (building-type-count-total stable < 8) ; build 3 stables
+   (building-type-count-total castle > 0) ; when we have a castle
+   (can-build stable)
+   =>
+   (build stable)
+   (chat-local-to-self "Building: Stable (8x)")
+)
+
+(defrule
+    (current-age == imperial-age)
+    (building-type-count-total castle < build-castles-in-imperial-age)
+    (can-build castle)
+    =>
+    (build castle)
+    (chat-local-to-self "Building: Castle (Imperial)")
+)
+
+; Build Towers
+(defrule
+    (current-age == imperial-age)
+    (building-type-count-total castle > 0)
+    (building-type-count-total watch-tower-line < build-towers-in-imperial-age)
+    (can-build watch-tower-line)
+    =>
+    (build watch-tower-line)
+    (chat-local-to-self "Building: Tower")
+)
+
+; Build walls
+(defrule
+   (goal g-build-walls gv-yes)
+   (current-age >= imperial-age)
+   (building-type-count-total castle > 0)
+   (building-type-count-total town-center > max-num-of-town-centers-castle-age)
+   (can-build-wall 2 stone-wall-line)
+   =>
+   (build-wall 2 stone-wall-line)
+   (chat-local-to-self "Building: Wall")
+)
+
+; Build Gates
+(defrule 
+   (goal g-build-walls gv-yes)
+   (current-age >= imperial-age)
+   (building-type-count-total castle > 0)
+   (building-type-count-total stone-wall-line > 0)
+   (building-type-count-total town-center > max-num-of-town-centers-castle-age)
+   (building-type-count-total gate < 3)
+   (can-build-gate 2)
+   =>
+   (build-gate 2)
+   (chat-local-to-self "Building: Gate")
+)
+
+; University
+(defrule
+   (current-age >= castle-age)
+   (building-type-count-total university == 0)
+   (building-type-count-total archery-range > 0)
+   (building-type-count-total stable > 0)
+   (or
+      (building-type-count-total town-center > max-num-of-town-centers-castle-age)
+      (current-age == imperial-age)
+   )
+   (can-build university)
+   =>
+   (build university)
+   (chat-local-to-self "Building: University")
+)
+
+; Monestary
+(defrule
+   (current-age >= castle-age)
+   (building-type-count-total monastery == 0)
+   (building-type-count-total archery-range > 0)
+   (building-type-count-total stable > 0)
+   (or
+      (building-type-count-total town-center >= max-num-of-town-centers-castle-age)
+      (current-age == imperial-age)
+   )
+   (can-build monastery)
+   =>
+   (build monastery)
+   (chat-local-to-self "Building: Monastery")
+)
+
+; Workshop
+(defrule
+   (current-age >= castle-age)
+   (or
+      (building-type-count-total town-center >= max-num-of-town-centers-castle-age)
+      (current-age == imperial-age)
+   )
+   (building-type-count-total siege-workshop < 2)
+   (building-type-count-total archery-range > 0)
+   (building-type-count-total stable > 0)
+   (can-build siege-workshop)
+   =>
+   (build siege-workshop)
+   (chat-local-to-self "Building: Siege Workshop")
+)

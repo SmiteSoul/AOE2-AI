@@ -1,0 +1,2404 @@
+(defconst CHAT-GENERAL-VERSION "The Captain by Leif Ericson")
+(defconst THE-GENERAL 1)
+(defconst THE-CAPTAIN 2)
+(defconst THE-LIEUTENANT 3)
+(defconst THE-SERGEANT 4)
+(defconst THE-CONSCRIPT 5)
+(defconst RANK THE-CAPTAIN)
+
+;See forum thread for settings and features: https://forums.aiscripters.com/viewtopic.php?f=8&t=3556
+
+;----------------
+;	Load Files
+;----------------
+
+	(defrule
+	(true)
+	=>
+	(up-log-data 0 "Begin Log" c: 0)
+	(disable-self)
+	)
+
+	(load "The General 1.3/UserPatchConst")
+	(load "The General 1.3/Game Stats")
+	(load "The General 1.3/Constants")
+	(load "The General 1.3/Initialization")
+
+	(defrule
+	(up-compare-goal g-rule-pass-count >= 0)
+	=>
+	(up-get-fact game-time 0 g-temp5)
+	(up-get-fact player-number 0 g-temp6)
+	(up-log-data 0 CHAT-LOG-TIME g: g-temp5)
+	(up-log-data 0 CHAT-LOG-PLAYER g: g-temp6)
+	(up-log-data 0 "Begin Pass %d" g: g-rule-pass-count)
+	)
+
+	(load "The General 1.3/Strats")
+	(load "The General 1.3/Desired Object Counts")
+	(load "The General 1.3/Strategic Numbers")
+	(load "The General 1.3/Goals")
+	(load "The General 1.3/Enemy Unit Counts")
+	(load "The General 1.3/Tech Progress")
+	(load "The General 1.3/Personality")
+	(load "The General 1.3/Needed Resources")
+	(load "The General 1.3/Escrow")
+	(load "The General 1.3/Building Construction")
+	(load "The General 1.3/Technology Research")
+	(load "The General 1.3/Unit Training")
+	(load "The General 1.3/Gathering")
+	(load "The General 1.3/Market Trading")
+	(load "The General 1.3/Attacking")
+	(load "The General 1.3/Army Control")
+	(load "The General 1.3/DUC")
+	(load "The General 1.3/Tribute")
+	(load "The General 1.3/Resign")
+	(load "The General 1.3/Debug")
+	(load "The General 1.3/Final Stuff")
+
+;--------------------
+;	Set Difficulty
+;--------------------
+
+	(defrule
+	(true)
+	=>
+	(set-goal g-difficulty HARDEST)
+	(disable-self)
+	)
+
+;---------------------
+;	GOAL: g-general
+;---------------------
+
+	;Use the number of trees on the map as a makeshift random number generator that is the same for all players.
+	;This number will be used to assign a general to each player to ensure that two generals of the same name aren't (likely) chosen.
+
+	(defrule
+	(goal g-general PENDING)
+	=>
+	(up-get-fact cc-gaia-type-count tree-class g-temp)		;Get number of forest trees on map as a universal seed for randomization
+	(up-get-fact player-number my-player-number g-temp2)	;Store the player number
+	(up-modify-goal g-temp g:+ g-temp2)					;add player number (g-temp2) to the number of trees on the map (g-temp)
+	(up-modify-goal g-temp c:mod NUM-GENERALS)				;Get the mod by the number of different generals available for the civ
+	(up-modify-goal g-general g:= g-temp)					;Set g-general to the result
+	)
+
+	;Set the name of each general based on g-general calculated above.
+	#load-if-defined ARMENIANS-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general ASHOT)
+		(up-change-name "Captain Ashot")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general GAGIK)
+		(up-change-name "Captain Gagik")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general LEVON-THE-MAGNIFICENT)
+		(up-change-name "Captain Levon the Magnificent")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general THOROS)
+		(up-change-name "Captain Thoros")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general VARDAN-MAMIKONIAN)
+		(up-change-name "Captain Vardan Mamikonian")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined AZTEC-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general ACAMAPICHTLI)
+		(up-change-name "Captain Acamapichtli")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general AHUITZOTOL)
+		(up-change-name "Captain Ahuitzotol")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general CUAUHTEMOC)
+		(up-change-name "Captain Cuauhtemoc")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general ITZCOATL)
+		(up-change-name "Captain Itzcoatl")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general MONTEZUMA)
+		(up-change-name "Captain Montezuma")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined BENGALIS-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general DEVAPALA)
+		(up-change-name "Captain Devapala")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general GOPALA)
+		(up-change-name "Captain Gopala")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general JAYAPALA)
+		(up-change-name "Captain Jayapala")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general SAMANTA)
+		(up-change-name "Captain Samanta")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general SHAMSUDDIN-ILYAS)
+		(up-change-name "Captain Shamsuddin Ilyas")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 5)
+		=>
+		(set-goal g-general SHASHANKA)
+		(up-change-name "Captain Shashanka")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined BERBERS-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general IDRIS-IBN-ABDALLAH)
+		(up-change-name "Captain Idris ibn Abdallah")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general MUHAMMAD-IBN-TUMART)
+		(up-change-name "Captain Muhammad ibn Tumart")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general MUSA-IBN-NUSAYR)
+		(up-change-name "Captain Musa ibn Nusayr")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general TARIQ-IBN-ZIYAD)
+		(up-change-name "Captain Tariq ibn Ziyad")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general YUSUF-IBN-TASHFIN)
+		(up-change-name "Captain Yusuf ibn Tashfin")
+		(disable-self)
+		)
+		
+	#end-if
+
+	#load-if-defined BOHEMIANS-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general BOLESLAUS-I)
+		(up-change-name "Captain Boleslaus I")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general JAN-HUS)
+		(up-change-name "Captain Jan Hus")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general JAN-ZIZKA)
+		(up-change-name "Captain Jan Zizka")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general OTTOKAR-II)
+		(up-change-name "Captain Ottokar II")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general SIGISMUND)
+		(up-change-name "Captain Sigismund")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 5)
+		=>
+		(set-goal g-general SVATOPLUK-I)
+		(up-change-name "Captain Svatopluk I")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined BRITON-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general EDWARD-LONGSHANKS)
+		(up-change-name "Captain Edward Longshanks")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general HAROLD-GODWINSON)
+		(up-change-name "Captain Harold Godwinson")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general HENRY-V)
+		(up-change-name "Captain Henry V")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general RICHARD-I)
+		(up-change-name "Captain Richard I")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general ARTHUR)
+		(up-change-name "Captain Arthur")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined BULGARIANS-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general ASPARUKH)
+		(up-change-name "Captain Asparukh")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general BORIS)
+		(up-change-name "Captain Boris I Mikhail")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general IVAN-ASEN)
+		(up-change-name "Captain Ivan Asen II")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general IVAYLO)
+		(up-change-name "Captain Ivaylo")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general SIMEON)
+		(up-change-name "Captain Simeon")
+		(disable-self)
+		)
+		
+	#end-if
+
+	#load-if-defined BURGUNDIANS-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general GUNDAHARIUS)
+		(up-change-name "Captain Gundaharius")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general JOHN-THE-FEARLESS)
+		(up-change-name "Captain John the Fearless")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general ODO-IV)
+		(up-change-name "Captain Odo IV")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general PHILIP-THE-GOOD)
+		(up-change-name "Captain Philip the Good")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general RICHARD-THE-JUSTICIAR)
+		(up-change-name "Captain Richard the Justiciar")
+		(disable-self)
+		)
+		
+	#end-if
+
+	#load-if-defined BURMESE-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general ANAWRAHTA)
+		(up-change-name "Captain Anawrahta")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general BAYINNAUNG)
+		(up-change-name "Captain Bayinnaung")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general MINGYINYO)
+		(up-change-name "Captain Mingyinyo")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general NARAPATISITHU)
+		(up-change-name "Captain Napapatisithu")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general TABINSHWEHTI)
+		(up-change-name "Captain Tabinshwehti")
+		(disable-self)
+		)
+		
+	#end-if
+
+	#load-if-defined BYZANTINE-CIV
+
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general BASIL)
+		(up-change-name "Captain Basil")
+		(disable-self)
+		)
+
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general BELISARIUS)
+		(up-change-name "Captain Belisarius")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general CONSTANTINE)
+		(up-change-name "Captain Constantine")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general HERACLIUS)
+		(up-change-name "Captain Heraclius")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general JUSTINIAN)
+		(up-change-name "Captain Justinian")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 5)
+		=>
+		(set-goal g-general MANUEL)
+		(up-change-name "Captain Manuel Komnenos")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined CELTIC-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general AETHELFIRTH)
+		(up-change-name "Captain Aethelfirth")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general BRIAN-BORU)
+		(up-change-name "Captain Brian Boru")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general MURTAUGH-OBRIEN)
+		(up-change-name "Captain Murtaugh O'Brien")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general ROBERT-THE-BRUCE)
+		(up-change-name "Captain Robert the Bruce")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general WILLIAM-WALLACE)
+		(up-change-name "Captain William Wallace")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined CHINESE-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general LI-SHI-MIN)
+		(up-change-name "Captain Li Shi-min")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general SU-DINGFANG)
+		(up-change-name "Captain Su Dingfang")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general YUE-FEI)
+		(up-change-name "Captain Yue Fei")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general ZHAO-KUANG-YING)
+		(up-change-name "Captain Zhao Kuang-Ying")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general ZHU-YUAN-ZHANG)
+		(up-change-name "Captain Zhu Yuan-zhang")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined CUMANS-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general BONIAK)
+		(up-change-name "Captain Boniak")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general KOTYAN-KHAN)
+		(up-change-name "Captain Kotyan Khan")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general KONCHAK-OTRAKOVICH)
+		(up-change-name "Captain Konchak")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general SOKAL)
+		(up-change-name "Captain Sokal")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general AYEPA)
+		(up-change-name "Captain Ayepa Khan")
+		(disable-self)
+		)
+		
+	#end-if
+
+	#load-if-defined DRAVIDIANS-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general AMOGHAVARSHA)
+		(up-change-name "Captain Amoghavarsha")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general GOVINDA-III)
+		(up-change-name "Captain Govinda III")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general KADUNGON)
+		(up-change-name "Captain Kadungon")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general KRISHNA-DEVARAYA)
+		(up-change-name "Captain Krishna Devaraya")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general RAJENDRA)
+		(up-change-name "Captain Rajendra")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 5)
+		=>
+		(set-goal g-general VIJAYABAHU)
+		(up-change-name "Captain Vijayabahu")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined ETHIOPIAN-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general AMDA-SEYON)
+		(up-change-name "Captain Amda Seyon")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general KALEB-OF-AKSUM)
+		(up-change-name "Captain Kaleb of Aksum")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general YEKUNO-AMLAK)
+		(up-change-name "Captain Yekuno Amlak")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general YODIT)
+		(up-change-name "Captain Yodit")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general ZARA-YAQOB)
+		(up-change-name "Captain Zara Yaqob")
+		(disable-self)
+		)
+		
+	#end-if
+
+	#load-if-defined FRANKISH-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general CHARLEMAGNE)
+		(up-change-name "Captain Charlemagne")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general CHARLES-MARTEL)
+		(up-change-name "Captain Charles Martel")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general JOAN-OF-ARC)
+		(up-change-name "Captain Joan of Arc")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general LA-HIRE)
+		(up-change-name "Captain La Hire")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general WILLIAM-THE-CONQUEROR)
+		(up-change-name "Captain William the Conqueror")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined GEORGIANS-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general BAGRAT)
+		(up-change-name "Captain Bagrat")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general DAVID-THE-BUILDER)
+		(up-change-name "Captain David the Builder")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general GEORGE-THE-BRILLIANT)
+		(up-change-name "Captain George the Brilliant")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general GREGORIOS-PAKOURIANOS)
+		(up-change-name "Captain Gregorios Pakourianos")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general TAMAR)
+		(up-change-name "Captain Tamar")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined GOTHIC-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general ALARIC)
+		(up-change-name "Captain Alaric")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general ATAULF)
+		(up-change-name "Captain Ataulf")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general FRITIGERN)
+		(up-change-name "Captain Fritigern")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general THEODORIC)
+		(up-change-name "Captain Theodoric")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general WALLIA)
+		(up-change-name "Captain Wallia")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined GURJARAS-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general JAYACHANDRA)
+		(up-change-name "Captain Jayachandra")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general MIHIRA-BHOJA)
+		(up-change-name "Captain Mihira Bhoja")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general NAGABHATA)
+		(up-change-name "Captain Nagabhata")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general PRITHVIRAJ)
+		(up-change-name "Captain Prithviraj")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general MAHARANA-PRATAP)
+		(up-change-name "Captain Maharana Pratap")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined HUN-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general ATTILA)
+		(up-change-name "Captain Attila")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general BLEDA)
+		(up-change-name "Captain Bleda")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general DENGIZICH)
+		(up-change-name "Captain Dengizich")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general RUGILA)
+		(up-change-name "Captain Rugila")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general ULDIN)
+		(up-change-name "Captain Uldin")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined INCAN-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general ATAHUALPA)
+		(up-change-name "Captain Atahualpa")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general HUAYNA-CAPAC)
+		(up-change-name "Captain Huayna Capac")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general MANCO-CAPAC)
+		(up-change-name "Captain Manco Capac")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general PACHACUTI)
+		(up-change-name "Captain Pachacuti")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general TOPA-YUPANQUI)
+		(up-change-name "Captain Topa Yupanqui")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined INDIAN-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general AKBAR)
+		(up-change-name "Captain Akbar")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general ALA-UD-DIN)
+		(up-change-name "Captain Ala-ud-din")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general BABUR)
+		(up-change-name "Captain Babur")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general CHANDRAGUPTA)
+		(up-change-name "Captain Chandragupta")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general MAHMUD-GHAZNAVI)
+		(up-change-name "Captain Mahmud Ghaznavi")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 5)
+		=>
+		(set-goal g-general QUTB-UD-DIN-AIBAK)
+		(up-change-name "Captain Qutb-ub-Din Aibak")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined ITALIAN-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general DOMENICO-SELVO)
+		(up-change-name "Captain Domenico Selvo")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general FRANCESCO-SFORZA)
+		(up-change-name "Captain Francesco Sforza")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general GUGLIELMO-EMBRIACO)
+		(up-change-name "Captain Guglielmo Embriaco")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general LIUTPRAND)
+		(up-change-name "Captain Liutprand")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general OTTONE-VISCONTI)
+		(up-change-name "Captain Ottone Visconti")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 5)
+		=>
+		(set-goal g-general PIETRO-GRADENIGO)
+		(up-change-name "Captain Pietro Gradenigo")
+		(disable-self)
+		)
+		
+	#end-if
+
+	#load-if-defined JAPANESE-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general FUJIWARANO-MICHINAGA)
+		(up-change-name "Captain Fujiwara Michinaga")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general KUSUNOKI-MASASHIGE)
+		(up-change-name "Captain Kusunoki Masashige")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general MINAMOTONO-YORITOMO)
+		(up-change-name "Captain Minamotono Yoritomo")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general ODA-NOBUNAGA)
+		(up-change-name "Captain Oda Nobunaga")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general TOKUGAWA-IEYASU)
+		(up-change-name "Captain Tokugawa Ieyasu")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 5)
+		=>
+		(set-goal g-general TOYOTOMI-HIDEYOSHI)
+		(up-change-name "Captain Toyotomi Hideyoshi")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined JURCHENS-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general DUDU-MENGTEMU)
+		(up-change-name "Captain Dudu Mengtemu")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general HANPU)
+		(up-change-name "Captain Hanpu")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general WANYAN-AYUDA)
+		(up-change-name "Captain Wanyan Ayuda")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general WANYAN-SHENG)
+		(up-change-name "Captain Wanyan Sheng")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general WUQIMAI-TAIZONG )
+		(up-change-name "Captain Wuqimai Taizong")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined KHITANS-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general ABAOJI)
+		(up-change-name "Captain Abaoji")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general KUSHLUK)
+		(up-change-name "Captain Kushluk")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general SHULU-PING)
+		(up-change-name "Captain Shulu Ping")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general YELU-DASHI)
+		(up-change-name "Captain Yelu Dashi")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general YELU-LONGXU)
+		(up-change-name "Captain Yelu Longxu")
+		(disable-self)
+		)
+		
+	#end-if
+
+	#load-if-defined KHMER-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general JAYAVARMAN-II)
+		(up-change-name "Captain Jayavarman II")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general JAYAVARMAN-VII)
+		(up-change-name "Captain Jayavarman VII")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general SURYAVARMAN-I)
+		(up-change-name "Captain Suryavarman I")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general SURYAVARMAN-II)
+		(up-change-name "Captain Suryavarman II")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general YASOVARMAN-I)
+		(up-change-name "Captain Yasovarman I")
+		(disable-self)
+		)
+		
+	#end-if
+
+	#load-if-defined KOREAN-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general CHOE-MU-SON)
+		(up-change-name "Captain Ch'oe Mu-son")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general ULJI-MUN-TOK)
+		(up-change-name "Captain Ulji Mun-tok")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general WANG-KON)
+		(up-change-name "Captain Wang Kon")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general YI-SONG-KYE)
+		(up-change-name "Captain Yi Song-kye")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general YI-SUN-SHIN)
+		(up-change-name "Captain Yi Sun-shin")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined LITHUANIANS-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general ALGIRDAS)
+		(up-change-name "Captain Algirdas")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general GEDIMINAS)
+		(up-change-name "Captain Gediminas")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general JOGAILA)
+		(up-change-name "Captain Jagaila")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general MINDAUGAS)
+		(up-change-name "Captain Mindaugas")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general VYTAUTAS)
+		(up-change-name "Captain Vytautus")
+		(disable-self)
+		)
+		
+	#end-if
+
+	#load-if-defined MAGYAR-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general ARPAD)
+		(up-change-name "Captain Arpad")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general HUNYADI-JANOS)
+		(up-change-name "Captain Hunyadi Janos")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general ISTVAN)
+		(up-change-name "Captain Istvan")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general KAROLY-ROBERT)
+		(up-change-name "Captain Karoly Robert")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general LASZLO)
+		(up-change-name "Captain Laszlo")
+		(disable-self)
+		)
+		
+	#end-if
+
+	#load-if-defined MALAY-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general DHARMASETU)
+		(up-change-name "Captain Dharmasetu")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general GAJAH-MADA)
+		(up-change-name "Captain Gajah Mada")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general HAYAM-WURUK)
+		(up-change-name "Captain Hayam Wuruk")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general PARAMESWARA)
+		(up-change-name "Captain Parameswara")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general RADEN-WIJAYA)
+		(up-change-name "Captain Raden Wijaya")
+		(disable-self)
+		)
+		
+	#end-if
+
+	#load-if-defined MALIAN-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general MAHMUD-IV)
+		(up-change-name "Captain Mahmud IV")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general MUSA)
+		(up-change-name "Captain Musa")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general SAKURA)
+		(up-change-name "Captain Sakura")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general SOULEYMAN)
+		(up-change-name "Captain Souleyman")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general SUNDJATA)
+		(up-change-name "Captain Sundjata")
+		(disable-self)
+		)
+		
+	#end-if
+
+	#load-if-defined MAYAN-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general BALAJ-CHAN-KAWIIL)
+		(up-change-name "Captain B'alaj Chan K'awiil")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general KINICH-JANAAB-PACAL)
+		(up-change-name "Captain Kinich Janaab Pacal")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general UAXACLAJUUN-UBAAH-KAWIIL)
+		(up-change-name "Captain Uaxaclajuun Ub'aah K'awiil")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general YIKIN-CHAN-KAWIIL)
+		(up-change-name "Captain Yik'in Chan K'awiil")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general YUKNOOM-CHEEN)
+		(up-change-name "Captain Yuknoom Che'en II")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined MONGOL-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general GENGHIS-KHAN)
+		(up-change-name "Captain Genghis Khan")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general KUBLAI-KHAN)
+		(up-change-name "Captain Kublai Khan")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general MONGKE-KHAN)
+		(up-change-name "Captain Mongke Khan")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general OGEDEI-KHAN)
+		(up-change-name "Captain Ogedei Khan")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general SUBOTAI)
+		(up-change-name "Captain Subotai")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined PERSIAN-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general ALA-AD-DIN-MUHAMMAD)
+		(up-change-name "Captain Ala ad-Din Muhammad")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general ANUSH-TIGIN-GHARCHAI)
+		(up-change-name "Captain Anush Tigin Gharchai")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general BAHRAM)
+		(up-change-name "Captain Bahram V")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general ISMAIL)
+		(up-change-name "Captain Ismail")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general KHOSRAU)
+		(up-change-name "Captain Khosrau I")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 5)
+		=>
+		(set-goal g-general MAHMUD-GHAZNAVI)
+		(up-change-name "Captain Mahmud Ghaznavi")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined POLES-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general BOLESLAW-THE-GREAT)
+		(up-change-name "Captain Boleslaw the Great")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general JAGWIGA)
+		(up-change-name "Captain Jadwiga")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general KAZIMIERZ-III)
+		(up-change-name "Captain Kazimierz III")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general MIESZKO-I)
+		(up-change-name "Captain Mieszko I")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general ZAWISZA-CZARNY)
+		(up-change-name "Captain Zawisza Czarny")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined PORTUGUESE-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general AFONSO-DE-ALBUQUERQUE)
+		(up-change-name "Captain Afonso de Albuquerque")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general AFONSO-HENRIQUES)
+		(up-change-name "Captain Afonso Henriques")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general FRANCISCO-DE-ALMEIDA)
+		(up-change-name "Captain Francisco de Almeida")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general HENRY-THE-NAVIGATOR)
+		(up-change-name "Captain Henry the Navigator")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general NUNO-ALVARES-PEREIRA)
+		(up-change-name "Captain Nuno Alvares Pereira")
+		(disable-self)
+		)
+		
+	#end-if
+
+	#load-if-defined ROMANS-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general AETIUS)
+		(up-change-name "Captain Aetius")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general HONORIUS)
+		(up-change-name "Captain Honorius")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general RICIMER)
+		(up-change-name "Captain Recimer")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general STILICHO)
+		(up-change-name "Captain Stilicho")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general THEODOSIUS-I)
+		(up-change-name "Captain Theodosius I")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 5)
+		=>
+		(set-goal g-general VALENTINIAN-III)
+		(up-change-name "Captain Valentinian III")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined SARACEN-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general BAIBARS)
+		(up-change-name "Captain Baibars")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general ABU-BAKR)
+		(up-change-name "Captain Abu Bakr")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general MUAWIYAH)
+		(up-change-name "Captain Muawiyah I")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general KHALID)
+		(up-change-name "Captain Khalid")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general HARUN-AL-RASHID)
+		(up-change-name "Captain Harun al-Rashid")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 5)
+		=>
+		(set-goal g-general SALADIN)
+		(up-change-name "Captain Saladin")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined SHU-CIV
+			(defconst GUAN-YU 581)
+			(defconst HUANG-ZHONG 582)
+			(defconst MA-CHAO 583)
+			(defconst LIU-BEI 584)
+			(defconst ZHANG-FEI 585)
+			(defconst ZHAO-YUN 586)
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general GUAN-YU)
+		(up-change-name "Captain Guan Yu")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general HUANG-ZHONG)
+		(up-change-name "Captain Huang Zhong")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general MA-CHAO)
+		(up-change-name "Captain Ma Chao")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general LIU-BEI)
+		(up-change-name "Captain Liu Bei")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general ZHANG-FEI)
+		(up-change-name "Captain Zhang Fei")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 5)
+		=>
+		(set-goal g-general ZHAO-YUN)
+		(up-change-name "Captain Zhao Yun")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined SICILIANS-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general BOHEMOND)
+		(up-change-name "Captain Bohemond")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general FREDERICK-II)
+		(up-change-name "Captain Frederick II")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general ROBERT-GUISCARD)
+		(up-change-name "Captain Robert Guiscard")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general ROGER-BOSSO)
+		(up-change-name "Captain Roger Bosso")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general ROGER-II)
+		(up-change-name "Captain Roger II")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined SLAVIC-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general ALEXANDER-NEVSKY)
+		(up-change-name "Captain Alexander Nevski")
+		(disable-self)
+		)
+
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general IVAN-III)
+		(up-change-name "Captain Ivan III")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general SVIATOSLAV)
+		(up-change-name "Captain Sviatoslav")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general VLADIMIR)
+		(up-change-name "Captain Vladimir")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general YAROSLAV)
+		(up-change-name "Captain Yaroslav")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 5)
+		=>
+		(set-goal g-general VLAD-DRACULA)
+		(up-change-name "Captain Vlad Dracula")
+		(disable-self)
+		)
+		
+	#end-if
+
+	#load-if-defined SPANISH-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general ALFONSO)
+		(up-change-name "Captain Alfonso VI")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general GONZALO-PIZARRO)
+		(up-change-name "Captain Gonzalo Pizarro")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general HERNAN-CORTEZ)
+		(up-change-name "Captain Hernan Cortez")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general RODRIGO-DIAZ)
+		(up-change-name "Captain Rodrigo Diaz")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general ISABELLA)
+		(up-change-name "Captain Isabella")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined TATARS-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general BATU-KHAN)
+		(up-change-name "Captain Batu Khan")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general KAIDU)
+		(up-change-name "Captain Kaidu")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general TAMERLANE)
+		(up-change-name "Captain Tamerlane")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general TOKHTAMYSH-KHAN)
+		(up-change-name "Captain Tokhtamysh Khan")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general UZBEG-KHAN)
+		(up-change-name "Captain Uzbeg Khan")
+		(disable-self)
+		)
+		
+	#end-if
+
+	#load-if-defined TEUTONIC-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general CHARLES-V)
+		(up-change-name "Captain Charles V")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general FREDERICK)
+		(up-change-name "Captain Frederick I")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general HENRY-THE-LION)
+		(up-change-name "Captain Henry the Lion")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general OTTO)
+		(up-change-name "Captain Otto I")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general WINRICH-VON-KNIPRODE)
+		(up-change-name "Captain Winrich")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined TURKISH-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general ALP-ARSLAN)
+		(up-change-name "Captain Alp Arslan")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general BAYAZID)
+		(up-change-name "Captain Bayazid")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general OSMAN)
+		(up-change-name "Captain Osman")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general SULEIMAN)
+		(up-change-name "Captain Suleiman")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general TUGHRIL)
+		(up-change-name "Captain Tughril")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined VIETNAMESE-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general LE-LOI)
+		(up-change-name "Captain Le Loi")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general LE-THANH-TONG)
+		(up-change-name "Captain Le Thanh Tong")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general NGO-QUYEN)
+		(up-change-name "Captain Ngo Quyen")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general TRAN-NHAN-TONG)
+		(up-change-name "Captain Tran Nhan Tong")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general TRAN-THAI-TONG)
+		(up-change-name "Captain Tran Thai Tong")
+		(disable-self)
+		)
+
+	#end-if
+
+	#load-if-defined VIKING-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general CNUT)
+		(up-change-name "Captain Cnut")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general HARALD-FAIRHAIR)
+		(up-change-name "Captain Harald Fairhair")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general HARALD-HARDRAADE)
+		(up-change-name "Captain Harald Hardraade")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general LEIF-ERICSON)
+		(up-change-name "Captain Leif Ericson")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general OLAF-HARALDSSON)
+		(up-change-name "Captain Olaf Haraldsson")
+		(disable-self)
+		)
+		
+	#end-if
+
+	#load-if-defined WEI-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general CAO-CAO)
+		(up-change-name "Captain Cao Cao")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general CAO-PI)
+		(up-change-name "Captain Cao Pi")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general CAO-REN)
+		(up-change-name "Captain Cao Ren")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general SIMA-YI)
+		(up-change-name "Captain Sima Yi")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general XIAHOU-DUN)
+		(up-change-name "Captain Xiahou Dun")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 5)
+		=>
+		(set-goal g-general ZHANG-HE)
+		(up-change-name "Captain Zhang He")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 6)
+		=>
+		(set-goal g-general ZHANG-LIAO)
+		(up-change-name "Captain Zhang Liao")
+		(disable-self)
+		)
+		
+	#end-if
+
+	#load-if-defined WU-CIV
+			
+		(defrule
+		(goal g-general 0)
+		=>
+		(set-goal g-general LU-MENG)
+		(up-change-name "Captain Lu Meng")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 1)
+		=>
+		(set-goal g-general LU-XUN)
+		(up-change-name "Captain Lu Xun")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 2)
+		=>
+		(set-goal g-general SUN-CE)
+		(up-change-name "Captain Sun Ce")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 3)
+		=>
+		(set-goal g-general SUN-JIAN)
+		(up-change-name "Captain Sun Jian")
+		(disable-self)
+		)
+			
+		(defrule
+		(goal g-general 4)
+		=>
+		(set-goal g-general SUN-QUAN)
+		(up-change-name "Captain Sun Quan")
+		(disable-self)
+		)
+		
+	#end-if

@@ -1,0 +1,120 @@
+;As hard as I try to shift villagers away from wood, I still often end up with
+;excess wood.  Go ahead and sell it when that happens.
+
+(defrule
+   (goal g-age-status gv-feudal-age)
+   (wood-amount > 400)
+   (or(gold-amount < 200)
+      (food-amount < 800))
+   (can-sell-commodity wood)
+   =>
+   (sell-commodity wood)
+)
+
+;Buy food if you have surplus gold.
+
+(defrule
+   (goal g-age-status gv-feudal-age)
+   (gold-amount > 400)
+   (food-amount < 800)
+   (can-buy-commodity food)
+   =>
+   (buy-commodity food)
+)
+
+;Sell food if you have surplus food.
+
+(defrule
+   (goal g-age-status gv-feudal-age)
+   (gold-amount < 200)
+   (food-amount > 1000)
+   (can-sell-commodity food)
+   =>
+   (sell-commodity food)
+)
+
+;New in Training6 - Castle Age Market Rules
+
+;****************************** Castle Age Rules ******************************
+
+#load-if-not-defined BYZANTINE-CIV
+
+(defrule
+   (goal g-age-status gv-castle-age)
+   (current-age-time > 60)
+   (wood-amount > 500)
+   (or(gold-amount < 800)
+      (food-amount < 1000))
+   (can-sell-commodity wood)
+   =>
+   (sell-commodity wood)
+)
+
+;Buy food if you have surplus gold.
+
+(defrule
+   (goal g-age-status gv-castle-age)
+   (gold-amount > 1000)
+   (food-amount < 1000)
+   (can-buy-commodity food)
+   =>
+   (buy-commodity food)
+)
+
+;Sell food if you have surplus food.
+
+(defrule
+   (goal g-age-status gv-castle-age)
+   (gold-amount < 800)
+   (food-amount > 1200)
+   (can-sell-commodity food)
+   =>
+   (sell-commodity food)
+)
+
+#else ;You're a Byzantine
+
+(defrule
+   (goal g-age-status gv-castle-age)
+   (current-age-time > 60)
+   (wood-amount > 500)
+   (or(food-amount < 667)
+      (gold-amount < 536))
+   (can-sell-commodity wood)
+   =>
+   (sell-commodity wood)
+)
+
+;Buy food if you have surplus gold.
+
+(defrule
+   (goal g-age-status gv-castle-age)
+   (gold-amount > 736)
+   (food-amount < 667)
+   (can-buy-commodity food)
+   =>
+   (buy-commodity food)
+)
+
+;Sell food if you have surplus food.
+
+(defrule
+   (goal g-age-status gv-castle-age)
+   (gold-amount < 536)
+   (food-amount > 867)
+   (can-sell-commodity food)
+   =>
+   (sell-commodity food)
+)
+
+; Buy wood if we have gold and still not have TC's
+(defrule
+   (not(goal g-multiple-town-centers gv-done))
+   (gold-amount > 200)
+   (wood-amount < 275)
+   (can-buy-commodity wood)
+   =>
+   (buy-commodity wood)
+)
+
+#end-if

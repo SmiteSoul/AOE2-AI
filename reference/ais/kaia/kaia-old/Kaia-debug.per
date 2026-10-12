@@ -1,0 +1,38 @@
+
+(defrule
+    (resource-found food)
+    =>
+    (chat-local-to-self "Resource found: Food")
+    (disable-self)
+)
+
+
+(defrule
+    (resource-found wood)
+    =>
+    (chat-local-to-self "Resource found: Wood")
+    (disable-self)
+)
+
+
+(defrule
+    (resource-found gold)
+    =>
+    (chat-local-to-self "Resource found: Gold")
+    (disable-self)
+)
+
+
+(defrule
+    (resource-found stone)
+    =>
+    (chat-local-to-self "Resource found: Stone")
+    (disable-self)
+)
+
+(defrule
+    (military-population > 100)
+    =>
+    (chat-local-to-self "Military population reached 100, starting attack.")
+    (disable-self)
+)

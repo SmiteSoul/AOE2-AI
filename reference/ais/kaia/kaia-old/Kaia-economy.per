@@ -1,0 +1,56 @@
+(defrule
+   (current-age == dark-age)
+   (unit-type-count-total villager < 10)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 100)
+   (set-strategic-number sn-wood-gatherer-percentage 0)
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+   (chat-local-to-self "Resources distribution: 100 0 0 0")
+   (disable-self)
+)
+
+(defrule
+   (current-age == dark-age)
+   (unit-type-count-total villager >= 10)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 50)
+   (set-strategic-number sn-wood-gatherer-percentage 50)
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+   (chat-local-to-self "Resources distribution: 70 30 0 0")
+   (disable-self)
+)
+
+(defrule
+   (current-age == feudal-age)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 40)
+   (set-strategic-number sn-wood-gatherer-percentage 50)
+   (set-strategic-number sn-gold-gatherer-percentage 10)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+   (chat-local-to-self "Resources distribution: 60 30 10 0")
+   (disable-self)
+)
+
+(defrule
+   (current-age == castle-age)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 40)
+   (set-strategic-number sn-wood-gatherer-percentage 35)
+   (set-strategic-number sn-gold-gatherer-percentage 15)
+   (set-strategic-number sn-stone-gatherer-percentage 10)
+   (chat-local-to-self "Resources distribution: 40 35 15 10")
+   (disable-self)
+)
+
+(defrule
+   (current-age == imperial-age)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 30)
+   (set-strategic-number sn-wood-gatherer-percentage 30)
+   (set-strategic-number sn-gold-gatherer-percentage 20)
+   (set-strategic-number sn-stone-gatherer-percentage 20)
+   (chat-local-to-self "Resources distribution: 30 30 20 20")
+   (disable-self)
+)

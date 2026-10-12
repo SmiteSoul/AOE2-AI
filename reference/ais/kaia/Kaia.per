@@ -1,0 +1,67 @@
+; Kaia AI: This script loads all the different components
+; into one main component which is Kaia AI.
+
+(defconst gv-no 0)
+(defconst gv-yes 1)
+(defconst gv-done 2)
+
+(defconst g-age-status 1) ;Goal 1
+(defconst gv-dark-age 0)
+(defconst gv-advancing-to-feudal 1)
+(defconst gv-feudal-age 2)
+(defconst gv-advancing-to-castle 3)
+(defconst gv-castle-age 4)
+(defconst gv-advancing-to-imperial 5)
+(defconst gv-imperial-age 6)
+
+(defconst g-resign 2); Resignation 
+
+
+(defconst g-multiple-town-centers 3); multi TC goal
+
+(defconst g-build-walls 4); allow building of walls
+
+; initial attack rush
+(defconst g-initial-attack-rush 3)
+(defconst max-num-initial-attack-rush 12)
+
+(defconst build-towers-in-castle-age 3)
+(defconst build-towers-in-imperial-age 9)
+(defconst build-castles-in-imperial-age 9)
+(defconst max-num-villager-start 11) ; after how many villagers it starts to collect other resources
+(defconst max-num-villagers-dark-age 27)
+(defconst max-num-villagers-feudal-age 29)
+(defconst max-num-villagers 100)
+
+(defconst max-num-of-town-centers-castle-age 3)
+
+(defconst max-num-cavalry-archers-in-castle-age 10)
+(defconst max-num-knights-in-castle-age 10)
+(defconst max-num-monks 3)
+
+; Initialization of all the strategic numbers.
+(load "Kaia/Kaia-init")
+
+; Determines the strategy used for many parameters.
+(load "Kaia/Kaia-strategy")
+
+; Determines how the research is done.
+(load "Kaia/Kaia-research")
+
+; Determines which buildings are build, and at which times.
+(load "Kaia/Kaia-build")
+
+; Determines which units need to be built.
+(load "Kaia/Kaia-training")
+
+; Determines all military stuff.
+(load "Kaia/Kaia-military")
+
+; Buying or selling resources.
+(load "Kaia/Kaia-market")
+
+; Conditions for resigning.
+(load "Kaia/Kaia-resign")
+
+; Gives some debug messages for when events happen.
+(load "Kaia/Kaia-debug")

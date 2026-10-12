@@ -1,0 +1,53 @@
+; set initial group form distance for created military units.
+(defrule
+    (true)
+    =>
+    (set-strategic-number sn-group-form-distance 1)
+    (set-strategic-number sn-defense-distance 0)
+    (disable-self)
+)
+
+; Initial attack rush if moderate or higher
+(defrule
+    (difficulty >= moderate)
+    (goal g-initial-attack-rush gv-yes)
+    (military-population > max-num-initial-attack-rush)
+    =>
+    (set-strategic-number sn-town-defend-priority 0)
+    (set-strategic-number sn-gather-idle-soldiers-at-center 0)
+    (set-strategic-number sn-percent-attack-soldiers 100)
+    (set-strategic-number sn-attack-intelligence 1)
+    (attack-now)
+    (set-goal g-initial-attack-rush gv-done)
+    (chat-local-to-self "Attack rush ready, sending raid.")
+    (disable-self)
+)
+
+(defrule
+    (goal g-initial-attack-rush gv-done)
+    =>
+    (set-strategic-number sn-gather-idle-soldiers-at-center 1)
+    (disable-self)
+)
+
+; Attack if big enough military
+(defrule
+    (military-population > 80)
+    =>
+    (set-strategic-number sn-town-defend-priority 0)
+    (set-strategic-number sn-gather-idle-soldiers-at-center 0)
+    (set-strategic-number sn-percent-attack-soldiers 80)
+    (set-strategic-number sn-attack-intelligence 1)
+    (attack-now)
+)
+
+(defrule
+    (military-population < 25)
+    =>
+    (set-strategic-number sn-percent-attack-soldiers 0)
+    (set-strategic-number sn-task-ungrouped-soldiers 0)
+    (set-strategic-number sn-group-form-distance 0)
+    (set-strategic-number sn-sentry-distance 0)
+    (set-strategic-number sn-town-defend-priority 0)
+    (set-strategic-number sn-gather-idle-soldiers-at-center 1)
+)

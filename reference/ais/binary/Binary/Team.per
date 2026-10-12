@@ -1,0 +1,135 @@
+﻿sn-coop-share-information = 1
+
+#load-if-defined UP-POCKET-POSITION
+
+	gl-team-position = 2
+
+#else
+
+	gl-team-position = 1
+	
+#end-if
+
+gl-team-attacking = sn-attack
+
+; set target player
+var gl-target
+up-find-player enemy find-closest gl-target
+sn-target-player-number = gl-target
+
+#if (military-population > 20) (civilian-population > 10)
+
+	var gl-target-mil
+	var gl-target-civ
+	up-get-target-fact military-population 0 gl-target-mil
+	up-get-target-fact civilian-population 0 gl-target-civ
+	
+	gl-target-mil *= 4
+	gl-target-civ *= 4
+	
+	#if (up-resource-amount amount-military-population g:> gl-target-mil) (up-resource-amount amount-civilian-population g:> gl-target-civ)
+	
+		var gl-max-score = -1
+		
+		#foreach $player in 1 2 3 4 5 6 7 8
+		
+			var gl-score
+			up-get-player-fact $player current-score 0 gl-score
+			#if (player-in-game $player) (players-stance $player enemy) (gl-score > gl-max-score)
+			
+				sn-target-player-number = $player
+				gl-max-score = gl-score
+		
+			#end-if
+		
+		#end-foreach
+	
+	#end-if
+
+#end-if
+
+
+; distribute extra resources
+#foreach $resource in food wood gold stone
+
+	#if ($resource-amount > 1100) (false)
+	
+		#foreach $player in 1 2 3 4 5 6 7 8
+		
+			#if (player-in-game $player) (players-stance $player ally) (up-compare-const my-player-number != $player) (up-allied-resource-amount $player $resource < 500)
+			
+				tribute-to-player $player $resource 100
+				TryImportantResearch(ri-coinage)
+				TryImportantResearch(ri-banking)
+				
+			#end-if
+		
+		#end-foreach
+	
+	#end-if
+
+#end-foreach
+
+; sling
+var gl-sling = -1
+
+#foreach $player in 1 2 3 4 5 6 7 8
+
+	#if (player-in-game $player) (or (players-stance $player ally) (up-compare-const my-player-number c:== $player)) (up-allied-goal $player gl-team-id c:== BINARY-ID) (players-current-age $player < imperial-age)
+	
+		gl-sling = $player
+	
+	#end-if
+
+#end-foreach
+
+#if gl-sling == my-player-number
+
+	gl-sling = -1
+	
+#end-if
+
+gl-sling = -1
+
+sn-auto-production-buildings = ON
+#if (gl-sling > 0) (building-type-count market == 0)
+
+	sn-auto-production-buildings = OFF
+	
+#end-if
+
+#foreach $player in 1 2 3 4 5 6 7 8
+
+	#if (gl-sling == $player) (building-type-count market > 0)
+	
+		#if (food-amount > 200) (up-allied-resource-amount $player food < 1000)
+		
+			tribute-to-player $player food 100
+			chat-local-to-self "Sling food to $player"
+			
+		#end-if
+		
+		#if (wood-amount > 200) (up-allied-resource-amount $player wood < 1000)
+		
+			tribute-to-player $player wood 100
+			chat-local-to-self "Sling wood to $player"
+			
+		#end-if
+		
+		#if (gold-amount > 200) (up-allied-resource-amount $player gold < 1000)
+		
+			tribute-to-player $player gold 100
+			chat-local-to-self "Sling gold to $player"
+			
+		#end-if
+		
+		#if (stone-amount > 200) (up-allied-resource-amount $player stone < 1000)
+		
+			tribute-to-player $player stone 100
+			chat-local-to-self "Sling stone to $player"
+			
+		#end-if
+	
+	#end-if
+
+#end-foreach

@@ -1,0 +1,23 @@
+(defrule
+(true)
+=>
+(up-full-reset-search)
+(up-get-search-state g-local-total)
+(up-set-target-point g-position-self-x)
+(up-reset-cost-data g-food-cost)
+(up-reset-cost-data g-food-delta)
+(up-reset-cost-data g-temp-food-cost)
+(set-goal g-temp g-temp2)
+)
+(defrule
+(up-compare-goal g-temp <= g-point12-y)
+=>
+(up-set-indirect-goal g: g-temp c: PENDING)
+(up-modify-goal g-temp c:+ 1)
+(up-jump-rule -1)
+)
+(defrule
+(true)
+=>
+(set-goal g-temp PENDING)
+)

@@ -1,0 +1,9 @@
+; Build a farm when there are less than 3 idle farms.
+(defrule
+    (goal g-allow-building gv-yes)
+    (idle-farm-count < 3)
+    (up-pending-objects c: farm < 3)
+    (can-build farm)
+    =>
+    (build farm)
+)

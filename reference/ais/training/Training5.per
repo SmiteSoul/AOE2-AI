@@ -1,0 +1,2016 @@
+;The purpose of this AI is to write an extremely thoroughly documented AI for
+;training purposes.
+;
+;Author:       BearTheGreat
+;Last Updated: Feb. 14, 2007
+;
+;PREREQUISITES:  Be comfortable with the concepts in the preceding AIs.  They 
+;will not necessarily be repeated in this AI, but any new changes will be noted
+;with "New in Training5".
+;
+;******************************************************************************
+;
+; Defconst Rules
+;
+;******************************************************************************
+;
+;There are two large advantages to defining constants.  One is that it makes
+;the script easier to read.  The other is that it makes the script easier to
+;modify.  Let's settle in on some conventions.  All goal numbers will be 
+;preceded by "g-", all goal values will be preceded by "gv-".  All regular
+;constants will not be preceded by either.
+
+;Need to set a limit on the number of Dark Age Villagers.  Otherwise it may 
+;take too long to get out of the Dark Age!
+
+(defconst max-num-dark-villagers 30) 
+
+;It is useful to know your age status for many reasons.
+
+(defconst g-age-status 1) ;Goal 1
+(defconst gv-dark-age 0)
+(defconst gv-advancing-to-feudal 1)
+(defconst gv-feudal-age 2)
+(defconst gv-advancing-to-castle 3)
+(defconst gv-castle-age 4)
+(defconst gv-advancing-to-imperial 5)
+(defconst gv-imperial-age 6)
+
+(defconst g-tsa 2) ;Goal 2
+(defconst t-gather-idle-soldiers 1)  ;Timer 1
+(defconst tv-gather-idle-soldiers 15)
+(defconst g-train-villager 3)   ;Goal 3 New in Training5
+(defconst g-train-sword 4)      ;Goal 4 New in Training5
+(defconst g-train-spear 5)      ;Goal 5 New in Training5
+(defconst g-train-skirm 6)      ;Goal 6 New in Training5
+(defconst g-train-unique 7)     ;Goal 7 New in Training5
+(defconst g-train-knight 8)     ;Goal 8 New in Training5
+(defconst g-unique-unit-type 9) ;Goal 9 New in Training5
+(defconst gv-infantry 0)        ;New in Training5
+(defconst gv-archer 1)          ;New in Training5
+(defconst gv-cavalry 2)         ;New in Training5
+(defconst gv-cav-archer 3)      ;New in Training5
+(defconst g-want-next-age 10)   ;Goal 10 New in Training5
+(defconst g-need-siege 11)      ;Goal 11 New in Training5
+
+;The following will also prove valuable for a number of future goals
+
+(defconst gv-off 0)
+(defconst gv-on 1)
+(defconst gv-no 0)
+(defconst gv-yes 1)
+
+(defrule
+   (true)
+   =>
+   (set-goal g-age-status gv-dark-age)
+   (set-goal g-tsa gv-off)
+   (enable-timer t-gather-idle-soldiers tv-gather-idle-soldiers)
+;New in Training5
+   (set-goal g-train-villager gv-yes)
+   (set-goal g-train-sword gv-yes)
+   (set-goal g-train-spear gv-no)
+   (set-goal g-train-skirm gv-no)
+   (set-goal g-train-unique gv-no)
+   (set-goal g-train-knight gv-no)
+   (set-goal g-want-next-age gv-no)
+   (set-goal g-need-siege gv-no)
+   (disable-self)
+)
+
+;******************************************************************************
+;
+; Starting Strategic Numbers
+;
+;******************************************************************************
+
+(defrule
+   (true)
+   =>
+   (set-strategic-number sn-camp-max-distance 8)
+   (set-strategic-number sn-initial-exploration-required 0)
+   (set-strategic-number sn-food-dropsite-distance -1)
+   (set-strategic-number sn-wood-dropsite-distance -1)
+   (set-strategic-number sn-stone-dropsite-distance 100)
+   (set-strategic-number sn-gold-dropsite-distance 35)
+   (set-strategic-number sn-maximum-food-drop-distance 15)
+   (set-strategic-number sn-maximum-wood-drop-distance 15)
+   (set-strategic-number sn-maximum-stone-drop-distance 25)
+   (set-strategic-number sn-maximum-gold-drop-distance 25)
+   (set-strategic-number sn-maximum-hunt-drop-distance 15)
+   (set-strategic-number sn-maximum-fish-boat-drop-distance 15)
+   (set-strategic-number sn-mill-max-distance 15)
+   (set-strategic-number sn-cap-civilian-builders 100)
+   (disable-self)
+)
+
+(defrule
+   (true)
+   =>
+   (set-strategic-number sn-gold-defend-priority 1)
+   (set-strategic-number sn-stone-defend-priority 0)
+   (set-strategic-number sn-forage-defend-priority 0)
+   (set-strategic-number sn-relic-defend-priority 0)
+   (set-strategic-number sn-town-defend-priority 0)
+   (set-strategic-number sn-dock-defend-priority 0)    ;New in Training5
+   (set-strategic-number sn-task-ungrouped-soldiers 0)
+   (set-strategic-number sn-gather-idle-soldiers-at-center 0)
+   (set-strategic-number sn-minimum-town-size 1)
+   (set-strategic-number sn-maximum-town-size 16)
+   (set-strategic-number sn-enemy-sighted-response-distance 2)
+   (disable-self)
+)
+
+;******************************************************************************
+;
+; Market Rules - New in Training5
+;
+;******************************************************************************
+
+;As hard as I try to shift villagers away from wood, I still often end up with
+;excess wood.  Go ahead and sell it when that happens.
+
+(defrule
+   (goal g-age-status gv-feudal-age)
+   (wood-amount > 400)
+   (or(gold-amount < 200)
+      (food-amount < 800))
+   (can-sell-commodity wood)
+   =>
+   (sell-commodity wood)
+)
+
+;Buy food if you have surplus gold.
+
+(defrule
+   (goal g-age-status gv-feudal-age)
+   (gold-amount > 400)
+   (food-amount < 800)
+   (can-buy-commodity food)
+   =>
+   (buy-commodity food)
+)
+
+;Sell food if you have surplus food.
+
+(defrule
+   (goal g-age-status gv-feudal-age)
+   (gold-amount < 200)
+   (food-amount > 1000)
+   (can-sell-commodity food)
+   =>
+   (sell-commodity food)
+)
+
+;******************************************************************************
+;
+; Economy Rules
+;
+;******************************************************************************
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 100)
+   (set-strategic-number sn-wood-gatherer-percentage 0)
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 9)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 84);8
+   (set-strategic-number sn-wood-gatherer-percentage 16)
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 11)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 69);8
+   (set-strategic-number sn-wood-gatherer-percentage 31)
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 13)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 59);8
+   (set-strategic-number sn-wood-gatherer-percentage 41)
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+#load-if-not-defined CELTIC-CIV
+#load-if-not-defined TEUTONIC-CIV
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 15)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 52);8
+   (set-strategic-number sn-wood-gatherer-percentage 48);7 to 8
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 17)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 46);8
+   (set-strategic-number sn-wood-gatherer-percentage 54);9 to 10
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 19)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 49)
+   (set-strategic-number sn-wood-gatherer-percentage 51);10
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 21)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 53)
+   (set-strategic-number sn-wood-gatherer-percentage 47);10
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 23)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 57)
+   (set-strategic-number sn-wood-gatherer-percentage 43);10
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 25)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 61)
+   (set-strategic-number sn-wood-gatherer-percentage 39);10
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 27)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 64)
+   (set-strategic-number sn-wood-gatherer-percentage 36);10
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 30)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 68)
+   (set-strategic-number sn-wood-gatherer-percentage 32);10
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+#end-if
+#end-if
+
+#load-if-defined CELTIC-CIV
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 15)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 52);8
+   (set-strategic-number sn-wood-gatherer-percentage 48);7 to 8
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 17)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 54);9 to 10
+   (set-strategic-number sn-wood-gatherer-percentage 46);8
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 19)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 59)
+   (set-strategic-number sn-wood-gatherer-percentage 41);8
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 21)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 63)
+   (set-strategic-number sn-wood-gatherer-percentage 37);8
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 23)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 66)
+   (set-strategic-number sn-wood-gatherer-percentage 34);8
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 25)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 68)
+   (set-strategic-number sn-wood-gatherer-percentage 32);8
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 27)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 72)
+   (set-strategic-number sn-wood-gatherer-percentage 28);8
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 30)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 74)
+   (set-strategic-number sn-wood-gatherer-percentage 26);8
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+#end-if
+
+#load-if-defined TEUTONIC-CIV
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 15)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 55);8 to 9
+   (set-strategic-number sn-wood-gatherer-percentage 45);7
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 17)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 60);10 to 11
+   (set-strategic-number sn-wood-gatherer-percentage 40);7
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 19)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 64)
+   (set-strategic-number sn-wood-gatherer-percentage 36);7
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 21)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 67)
+   (set-strategic-number sn-wood-gatherer-percentage 33);7
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 23)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 70)
+   (set-strategic-number sn-wood-gatherer-percentage 30);7
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 25)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 72)
+   (set-strategic-number sn-wood-gatherer-percentage 28);7
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 27)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 75)
+   (set-strategic-number sn-wood-gatherer-percentage 25);7
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count villager >= 30)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 78)
+   (set-strategic-number sn-wood-gatherer-percentage 22);7
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+#end-if
+
+;While advancing to Feudal Age, wood for buildings is suddenly very
+;important.  Switch more villagers to wood.  A very useful fact for setting 
+;gatherer percentages is that the last valid rule in the file is the one
+;that will be implemented.  The AI can read through several valid rules.
+;It will only implement the last valid rule.
+
+(defrule
+   (goal g-age-status gv-advancing-to-feudal)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 40)
+   (set-strategic-number sn-wood-gatherer-percentage 50)
+   (set-strategic-number sn-gold-gatherer-percentage 10)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+;New in Training5 - Before I forget, it is past time to give credit where 
+;credit is due.  I lifted the following basic gatherer ratio from Sith Beta
+;written by Hector, who was inspired to write it by Lather's Goths.
+
+(defrule
+   (goal g-age-status gv-advancing-to-feudal)  
+   (building-type-count-total barracks > 1)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 55)
+   (set-strategic-number sn-wood-gatherer-percentage 35)
+   (set-strategic-number sn-gold-gatherer-percentage 10)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (current-age == feudal-age)
+;   (goal g-age-status gv-feudal-age)   
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 55)
+   (set-strategic-number sn-wood-gatherer-percentage 35)
+   (set-strategic-number sn-gold-gatherer-percentage 10)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (current-age == feudal-age)
+;   (goal g-age-status gv-feudal-age)  
+   (building-type-count-total blacksmith < 1) ;New in Training5
+;   (building-type-count-total barracks < 2)  ;New in Training5
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 40)
+   (set-strategic-number sn-wood-gatherer-percentage 50)
+   (set-strategic-number sn-gold-gatherer-percentage 10)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+   (current-age == feudal-age)
+;   (goal g-age-status gv-feudal-age)   
+   (building-type-count-total blacksmith > 0)
+   (or(building-type-count-total archery-range > 0)
+      (building-type-count-total market > 0))
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 55)
+   (set-strategic-number sn-wood-gatherer-percentage 30)
+   (set-strategic-number sn-gold-gatherer-percentage 10)
+   (set-strategic-number sn-stone-gatherer-percentage 5)
+)
+
+(defrule
+   (current-age == feudal-age)
+;   (goal g-age-status gv-feudal-age)  
+   (building-type-count-total blacksmith > 0)
+   (or(building-type-count-total archery-range > 0)
+      (building-type-count-total market > 0))
+   (wood-amount > 200)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 60)
+   (set-strategic-number sn-wood-gatherer-percentage 20)
+   (set-strategic-number sn-gold-gatherer-percentage 15)
+   (set-strategic-number sn-stone-gatherer-percentage 5)
+)
+
+(defrule
+   (current-age == feudal-age)
+;   (goal g-age-status gv-feudal-age)  
+   (building-type-count-total blacksmith > 0)
+   (or(building-type-count-total archery-range > 0)
+      (building-type-count-total market > 0))
+   (wood-amount > 200)
+   (gold-amount > 200)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 65)
+   (set-strategic-number sn-wood-gatherer-percentage 20)
+   (set-strategic-number sn-gold-gatherer-percentage 10)
+   (set-strategic-number sn-stone-gatherer-percentage 5)
+)
+
+;New in Training5 - Mental note - missing advancing to Castle Age rules.
+;Temporarily addressed this above by including all of Feudal Age in these
+;rules.
+
+;New in Training5 - Castle Age Gatherer Rules!
+;All I really know at this time is that the Castle Age requires a little more
+;gold.  Switch 5% off wood towards gold.
+
+(defrule
+   (goal g-age-status gv-castle-age)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 55)
+   (set-strategic-number sn-wood-gatherer-percentage 25)
+   (set-strategic-number sn-gold-gatherer-percentage 15)
+   (set-strategic-number sn-stone-gatherer-percentage 5)
+)
+
+(defrule
+   (goal g-age-status gv-castle-age)
+   (wood-amount > 200)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 60)
+   (set-strategic-number sn-wood-gatherer-percentage 15)
+   (set-strategic-number sn-gold-gatherer-percentage 20)
+   (set-strategic-number sn-stone-gatherer-percentage 5)
+)
+
+(defrule
+   (goal g-age-status gv-castle-age)
+   (wood-amount > 200)
+   (gold-amount > 800)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 65)
+   (set-strategic-number sn-wood-gatherer-percentage 15)
+   (set-strategic-number sn-gold-gatherer-percentage 15)
+   (set-strategic-number sn-stone-gatherer-percentage 5)
+)
+
+;******************************************************************************
+;
+; Research Rules
+;
+;******************************************************************************
+
+(defrule
+   (goal g-age-status gv-advancing-to-feudal)
+   (research-available feudal-age)
+   =>
+   (chat-to-allies "Age research misfire!")
+   (set-goal g-age-status gv-dark-age)
+)
+
+(defrule
+   (can-research feudal-age)
+   =>
+   (research feudal-age)
+   (set-goal g-age-status gv-advancing-to-feudal)
+   (set-goal g-want-next-age gv-no)
+   (chat-to-allies "Researching Feudal Age")
+)
+
+(defrule
+   (current-age == feudal-age)
+   =>
+   (set-goal g-age-status gv-feudal-age)
+   (disable-self)
+)
+
+(defrule
+   (goal g-age-status gv-advancing-to-castle)
+   (research-available castle-age)
+   =>
+   (chat-to-allies "Age research misfire!")
+   (set-goal g-age-status gv-feudal-age)
+)
+
+(defrule
+   (can-research castle-age)
+   =>
+   (research castle-age)
+   (set-goal g-age-status gv-advancing-to-castle)
+   (set-goal g-want-next-age gv-no)
+   (chat-to-allies "Researching Castle Age")
+)
+
+(defrule
+   (current-age == castle-age)
+   =>
+   (set-goal g-age-status gv-castle-age)
+   (disable-self)
+)
+
+(defrule
+   (goal g-age-status gv-advancing-to-imperial)
+   (research-available imperial-age)
+   =>
+   (chat-to-allies "Age research misfire!")
+   (set-goal g-age-status gv-castle-age)
+)
+
+(defrule
+   (can-research imperial-age)
+   =>
+   (research imperial-age)
+   (set-goal g-age-status gv-advancing-to-imperial)
+   (set-goal g-want-next-age gv-no)
+   (chat-to-allies "Researching Imperial Age")
+)
+
+(defrule
+   (current-age == imperial-age)
+   =>
+   (set-goal g-age-status gv-imperial-age)
+   (disable-self)
+)
+
+#load-if-defined CHINESE-CIV
+
+(defrule
+   (can-research ri-loom)
+   =>
+   (research ri-loom)
+   (chat-to-allies "Researching loom.")
+)
+
+#else
+
+(defrule
+   (research-completed ri-wheel-barrow)
+   (can-research ri-loom)
+   =>
+   (research ri-loom)
+   (chat-to-allies "Researching loom.")
+)
+
+#end-if
+
+;***************************** Feudal Age Research ****************************
+
+(defrule
+   (can-research ri-wheel-barrow)
+   =>
+   (research ri-wheel-barrow)
+   (chat-to-allies "Researching wheel barrow.")
+)
+
+(defrule
+   (can-research ri-man-at-arms)
+   =>
+   (research ri-man-at-arms)
+   (chat-to-allies "Researching man at arms.")
+)
+
+(defrule
+   (not(research-available ri-wheel-barrow))
+   (not(research-available ri-man-at-arms))
+   (can-research ri-double-bit-axe)
+   =>
+   (research ri-double-bit-axe)
+   (chat-to-allies "Researching double bit axe.")
+)
+
+(defrule
+   (not(research-available ri-double-bit-axe))
+   (can-research ri-gold-mining)
+   =>
+   (research ri-gold-mining)
+   (chat-to-allies "Researching gold mining.")
+)
+
+(defrule
+   (not(research-available ri-gold-mining))
+   (can-research ri-horse-collar)
+   =>
+   (research ri-horse-collar)
+   (chat-to-allies "Researching horse collar.")
+)
+
+(defrule
+   (not(research-available ri-man-at-arms))
+   (can-research ri-scale-mail)
+   =>
+   (research ri-scale-mail)
+   (chat-to-allies "Researching scale mail armor.")
+)
+
+(defrule
+   (research-completed ri-scale-mail)
+   (can-research ri-forging)
+   =>
+   (research ri-forging)
+   (chat-to-allies "Researching forging.")
+)
+
+(defrule
+   (goal g-train-skirm gv-yes)
+   (can-research ri-padded-archer-armor) ;New in Training5 - Added rule.
+   =>
+   (research ri-padded-archer-armor)
+   (chat-to-allies "Researching padded archer armor.")
+)
+
+;The following rule will greatly aid in the TC being able
+;to defend itself.
+
+;New in Training5 - Added timer and skirmisher training to the following rule.
+;See discussion at Defend Rules for logic behind timer.
+
+(defrule
+   (or(timer-triggered t-gather-idle-soldiers) 
+      (goal g-train-skirm gv-yes))
+   (or(town-under-attack)
+      (goal g-train-skirm gv-yes))
+   (can-research ri-fletching)
+   =>
+   (research ri-fletching)
+   (chat-to-allies "Researching fletching.")
+)
+
+(defrule
+   (or(current-age > feudal-age)
+       (goal g-age-status gv-advancing-to-castle))
+   (can-research ri-stone-mining)
+   =>
+   (research ri-stone-mining)
+   (chat-to-allies "Researching stone mining.")
+)
+
+;New in Training5 - Castle Age Researches!
+
+;***************************** Castle Age Research ****************************
+
+(defrule
+   (can-research ri-hand-cart)
+   =>
+   (research ri-hand-cart)
+   (chat-to-allies "Researching hand cart.")
+)
+
+(defrule
+   (can-research ri-long-swordsman)
+   =>
+   (research ri-long-swordsman)
+   (chat-to-allies "Researching longswordsman.")
+)
+
+(defrule
+   (goal g-train-spear gv-yes)
+   (can-research ri-pikeman)
+   =>
+   (research ri-pikeman)
+   (chat-to-allies "Researching pikeman.")
+)
+
+(defrule
+   (goal g-train-skirm gv-yes)
+   (can-research ri-elite-skirmisher)
+   =>
+   (research ri-elite-skirmisher)
+   (chat-to-allies "Researching elite skirmisher.")
+)
+
+(defrule
+   (can-research ri-bow-saw)
+   =>
+   (research ri-bow-saw)
+   (chat-to-allies "Researching bow saw.")
+)
+
+(defrule
+   (can-research ri-gold-shaft-mining)
+   =>
+   (research ri-gold-shaft-mining)
+   (chat-to-allies "Researching gold shaft mining.")
+)
+
+(defrule
+   (can-research ri-heavy-plow)
+   =>
+   (research ri-heavy-plow)
+   (chat-to-allies "Researching heavy plow.")
+)
+
+(defrule
+   (can-research ri-chain-mail)
+   =>
+   (research ri-chain-mail)
+   (chat-to-allies "Researching chain mail armor.")
+)
+
+(defrule
+   (can-research ri-iron-casting)
+   =>
+   (research ri-iron-casting)
+   (chat-to-allies "Researching iron casting.")
+)
+
+(defrule
+   (or(building-type-count-total castle > 0)
+      (building-type-count-total watch-tower-line > 0))
+   (can-research ri-murder-holes)
+   =>
+   (research ri-murder-holes)
+)
+
+(defrule
+   (goal g-train-skirm gv-yes)
+   (can-research ri-leather-archer-armor)
+   =>
+   (research ri-leather-archer-armor)
+   (chat-to-allies "Researching leather archer armor.")
+)
+
+;The following rule will greatly aid in the TC being able
+;to defend itself.
+
+;New in Training5 - Added timer and skirmisher training to the following rule.
+;See discussion at Defend Rules for logic behind timer.
+
+(defrule
+   (or(timer-triggered t-gather-idle-soldiers) 
+      (goal g-train-skirm gv-yes))
+   (or(town-under-attack)
+      (goal g-train-skirm gv-yes))
+   (can-research ri-bodkin-arrow)
+   =>
+   (research ri-bodkin-arrow)
+   (chat-to-allies "Researching bodkin arrow.")
+)
+
+(defrule
+   (can-research ri-stone-shaft-mining)
+   =>
+   (research ri-stone-shaft-mining)
+   (chat-to-allies "Researching stone shaft mining.")
+)
+
+
+;******************************************************************************
+;
+; Escrow Rules
+;
+;******************************************************************************
+
+;******************************************************************************
+;
+; Build Rules
+;
+;******************************************************************************
+
+#load-if-not-defined HUN-CIV
+
+(defrule
+   (housing-headroom < 4)
+   (population-headroom > 3)
+   (can-build house)
+   =>
+   (build house)
+)
+
+(defrule
+   (or(current-age > dark-age)
+      (and(goal g-age-status gv-advancing-to-feudal)
+          (building-type-count-total barracks > 1)))
+   (housing-headroom < 10)
+   (population-headroom > 3)
+   (can-build house)
+   =>
+   (build house)
+)
+
+#end-if
+
+;Not all maps have forage bushes.  To be able to progress with this situation,
+;stop doing your initial exploring after you've built a mill.
+
+(defrule
+   (game-time < 600)
+   (sheep-and-forage-too-far)
+   (not(resource-found food)) ;Haven't found the berries yet.
+   (building-type-count-total mill == 0)
+   =>
+   (set-strategic-number sn-percent-civilian-explorers 100)
+   (set-strategic-number sn-minimum-civilian-explorers 100)
+   (set-strategic-number sn-cap-civilian-explorers 100)
+   (set-strategic-number sn-total-number-explorers 101)
+   (set-strategic-number sn-number-explore-groups 101)
+   (set-strategic-number sn-minimum-explore-group-size 1)
+   (set-strategic-number sn-maximum-explore-group-size 1)
+)
+
+(defrule
+   (or(not(sheep-and-forage-too-far))
+   (or(resource-found food)
+      (building-type-count-total mill > 0)))
+   (strategic-number sn-percent-civilian-explorers != 0)
+   =>
+   (set-strategic-number sn-percent-civilian-explorers 0)
+   (set-strategic-number sn-minimum-civilian-explorers 0)
+   (set-strategic-number sn-cap-civilian-explorers 0)
+   (set-strategic-number sn-total-number-explorers 1)
+   (set-strategic-number sn-number-explore-groups 1)
+)
+
+(defrule
+   (or(building-type-count-total house > 0)
+      (civ-selected hun))
+   (building-type-count-total mill < 1)
+   (or(resource-found food)
+      (and(cc-players-unit-type-count 0 59 == 0) ;The map has no berries.
+          (not(sheep-and-forage-too-far))))      ;You've found your first sheep.
+   (can-build mill)
+   =>
+   (build mill)
+)
+
+(defrule
+   (building-type-count-total blacksmith > 0)
+   =>
+   (set-strategic-number sn-mill-max-distance 35)
+   (set-strategic-number sn-maximum-hunt-drop-distance 25)
+   (disable-self)
+)
+
+(defrule
+   (building-type-count-total blacksmith > 0)
+   (or(unit-type-count 122 > 0)  ;Hunters
+      (unit-type-count 216 > 0))
+   (building-type-count-total mill < 3)
+   (can-build mill)
+   =>
+   (build mill)
+)
+
+(defrule
+   (current-age == feudal-age)
+   (building-type-count-total blacksmith > 0)
+   (building-type-count farm > 19)
+   (building-type-count-total mill < 2)
+   (can-build mill)
+   =>
+   (build mill)
+)
+
+;Now we'll try to also build a lumber camp.  The default strategic numbers do
+;not always work well for the initial camp placement, so hang with me here.
+;I copied the following from Elite Raider and it hardly ever fails on a
+;standard map.
+
+;START of first lumber camp placement rules.
+
+;The theory is that the amount of time it takes for your scout to see trees is
+;related to how far away they are from your camp.
+
+(defrule
+   (resource-found wood)
+   (strategic-number sn-camp-max-distance == 8)
+   (game-time < 4)
+   =>
+   (set-strategic-number sn-camp-max-distance 11)
+   (chat-local-to-self "Camp distance 11.")
+   (disable-self)
+)
+
+(defrule
+   (resource-found wood)
+   (strategic-number sn-camp-max-distance == 8)
+   (game-time < 7)
+   =>
+   (set-strategic-number sn-camp-max-distance 13)
+   (chat-local-to-self "Camp distance 13.")
+   (disable-self)
+)
+
+(defrule
+   (resource-found wood)
+   (strategic-number sn-camp-max-distance == 8)
+   (game-time < 12)
+   =>
+   (set-strategic-number sn-camp-max-distance 15)
+   (chat-local-to-self "Camp distance 15.")
+   (disable-self)
+)
+
+(defrule
+   (resource-found wood)
+   (strategic-number sn-camp-max-distance == 8)
+   (game-time < 16)
+   =>
+   (set-strategic-number sn-camp-max-distance 17)
+   (chat-local-to-self "Camp distance 17.")
+   (disable-self)
+)
+
+(defrule
+   (resource-found wood)
+   (strategic-number sn-camp-max-distance == 8)
+   (game-time < 25)
+   =>
+   (set-strategic-number sn-camp-max-distance 20)
+   (chat-local-to-self "Camp distance 20.")
+   (disable-self)
+)
+
+(defrule
+   (resource-found wood)
+   (strategic-number sn-camp-max-distance == 8)
+   (game-time > 25)
+   =>
+   (set-strategic-number sn-camp-max-distance 22)
+   (chat-local-to-self "Camp distance 22.")
+   (disable-self)
+)
+
+;I added the next two rules as acts of desperation.  They rarely fire on a
+;standard map.
+
+(defrule
+   (current-age == dark-age)
+   (wood-amount > 200)
+   (population > 19)
+   (building-type-count-total lumber-camp == 0)
+   =>
+   (set-strategic-number sn-camp-max-distance 35)
+   (chat-to-allies "Wood further away than 22 tiles!")
+   (chat-local-to-self "Camp distance 35.")
+   (disable-self)
+)
+
+(defrule
+   (current-age == dark-age)
+   (wood-amount > 200)
+   (population > 21)
+   (building-type-count-total lumber-camp == 0)
+   =>
+   (set-strategic-number sn-camp-max-distance 45)
+   (chat-to-allies "Wood further away than 35 tiles!")
+   (chat-local-to-self "Camp distance 45.")
+   (disable-self)
+)
+
+;END of first lumber camp placement rules
+
+;Now that we've hopefully found the trees at a reasonable distance
+;from the town center, let's build that lumber camp.
+
+(defrule
+   (current-age == dark-age)
+   (building-type-count-total mill > 0)
+   (resource-found wood)
+   (building-type-count-total lumber-camp < 1)
+   (can-build lumber-camp)
+   =>
+   (build lumber-camp)
+)
+
+(defrule
+   (building-type-count-total lumber-camp > 0)
+   (strategic-number sn-camp-max-distance < 35)
+   =>
+   (set-strategic-number sn-camp-max-distance 35)
+   (chat-local-to-self "Camp distance 35.")
+   (disable-self)
+)
+
+;One of the saddest things that can happen to an AI is for
+;its first lumber camp to be poorly placed.  Be prepared to detect this
+;situation and correct it.  The next 3 rules address this situation.
+
+(defrule
+   (current-age <= feudal-age)
+   (building-type-count lumber-camp == 1)
+   (dropsite-min-distance wood > 5)
+   =>
+   (chat-to-allies "Bad lumber camp.")
+   (set-strategic-number sn-camp-max-distance 45)
+   (chat-local-to-self "Camp distance 45.")
+   (set-strategic-number sn-maximum-wood-drop-distance -1)
+   (disable-self)
+)
+
+(defrule
+   (building-type-count-total lumber-camp == 2)
+   =>
+   (set-strategic-number sn-maximum-wood-drop-distance 15)
+   (disable-self)
+)
+
+(defrule
+   (or(current-age >= feudal-age)
+      (strategic-number sn-camp-max-distance == 45))
+   (dropsite-min-distance wood > 5)
+   (can-build lumber-camp)
+   =>
+   (build lumber-camp)
+)
+
+(defrule
+   (current-age == feudal-age)
+   (building-type-count-total blacksmith > 0)
+   (or(building-type-count-total archery-range > 0)
+      (building-type-count-total market > 0))
+   (building-type-count-total lumber-camp < 2)
+   (can-build lumber-camp)
+   =>
+   (build lumber-camp)
+)
+
+(defrule
+   (or(current-age > dark-age)
+      (goal g-age-status gv-advancing-to-feudal))
+   (building-type-count-total barracks > 0)
+   (or(unit-type-count 579 > 0)   ;Male gold miner
+      (unit-type-count 581 > 0))  ;Female gold miner 
+   (resource-found gold)
+   (building-type-count mining-camp < 4)
+   (cc-players-unit-type-count 0 66 > 0) 
+   (dropsite-min-distance gold > 5)
+   (dropsite-min-distance gold < 255)
+   (can-build mining-camp)
+   =>
+   (build mining-camp)
+)
+
+(defrule
+   (current-age >= feudal-age)
+   (building-type-count-total blacksmith > 0)
+   (or(building-type-count-total archery-range > 0)
+      (building-type-count-total market > 0))
+   (resource-found stone)
+   (building-type-count mining-camp < 4)
+   (dropsite-min-distance stone > 5)
+   (building-type-count-total mining-camp < 2)
+   (can-build mining-camp)
+   =>
+   (build mining-camp)
+)
+
+(defrule
+   (building-type-count-total mining-camp > 0)
+   (dropsite-min-distance gold <= 5)
+   =>
+   (set-strategic-number sn-gold-dropsite-distance -1)
+   (set-strategic-number sn-stone-dropsite-distance -1)
+   (disable-self)
+)
+
+(defrule
+   (or(current-age > dark-age)
+      (goal g-age-status gv-advancing-to-feudal))
+   (building-type-count-total barracks < 2)
+   (can-build barracks)
+   =>
+   (build barracks)
+   (set-strategic-number sn-maximum-town-size 2)
+)
+
+;****************************** Feudal Buildings ******************************
+
+(defrule
+   (current-age >= feudal-age)
+   (building-type-count-total barracks > 1)
+   (building-type-count-total blacksmith < 1)
+   (can-build blacksmith)
+   =>
+   (build blacksmith)
+   (set-strategic-number sn-maximum-town-size 2)
+)
+
+(defrule
+   (current-age >= feudal-age)
+   (building-type-count-total blacksmith > 0)
+   (or(and(unit-type-count 579 == 0)  ;Male gold miner
+          (unit-type-count 581 == 0)) ;Female gold miner
+      (building-type-count-total archery-range > 0))
+   (building-type-count-total market < 1)
+   (can-build market)
+   =>
+   (build market)
+   (set-strategic-number sn-maximum-town-size 2)
+)
+
+(defrule
+   (current-age >= feudal-age)
+   (building-type-count-total blacksmith > 0)
+   (or(and(unit-type-count 579 > 0)   ;Male gold miner
+          (unit-type-count 581 > 0))  ;Female gold miner 
+      (building-type-count-total market > 0))
+   (building-type-count-total archery-range < 1)
+   (can-build archery-range)
+   =>
+   (build archery-range)
+   (set-strategic-number sn-maximum-town-size 2)
+)
+
+(defrule
+   (or(current-age > feudal-age)
+      (goal g-age-status gv-advancing-to-castle));New in Training5 - Added rule
+   (goal g-train-skirm gv-yes)
+   (building-type-count-total archery-range < 2)
+   (can-build archery-range)
+   =>
+   (build archery-range)
+   (set-strategic-number sn-maximum-town-size 2)
+)
+
+(defrule
+   (current-age == feudal-age)
+   (building-type-count-total blacksmith > 0)
+   (or(unit-type-count 579 > 0)   ;Male gold miner
+      (unit-type-count 581 > 0))  ;Female gold miner 
+   (can-build watch-tower)
+   =>
+   (build watch-tower)
+)
+
+;**************************** Castle Age Buildings ****************************
+
+(defrule
+   (or(goal g-tsa gv-off)
+      (not(research-completed ri-murder-holes)))
+   (can-build castle)
+   =>
+   (build castle)
+   (set-strategic-number sn-maximum-town-size 2)
+)
+
+(defrule
+   (goal g-tsa gv-on)
+   (research-completed ri-murder-holes)
+   (can-build castle)
+   =>
+   (build-forward castle)
+)
+
+(defrule
+   (building-type-count-total siege-workshop < 1)
+   (can-build siege-workshop)
+   =>
+   (build siege-workshop)
+   (set-strategic-number sn-maximum-town-size 2)
+)
+
+(defrule
+   (building-type-count-total town-center < 3)
+   (can-build town-center)
+   =>
+   (build town-center)
+   (set-strategic-number sn-maximum-town-size 2)
+)
+
+(defrule
+   (building-type-count-total university < 1)
+   (can-build university)
+   =>
+   (build university)
+   (set-strategic-number sn-maximum-town-size 2)
+)
+
+(defrule
+   (building-type-count-total monastery < 1)
+   (can-build monastery)
+   =>
+   (build monastery)
+   (set-strategic-number sn-maximum-town-size 2)
+)
+
+;******************************* Farm Building ********************************
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (building-type-count-total mill > 0)
+   (building-type-count-total lumber-camp > 0)
+;If (dropsite-min-distance wood > 5) then the first lumber
+;camp was placed poorly.  Save the wood for a new lumber camp.
+   (dropsite-min-distance wood < 6)
+   (or(building-type-count-total farm < 15)
+      (idle-farm-count == 0))
+   (can-build farm)
+   =>
+   (build farm)
+)
+
+(defrule
+   (or(current-age > dark-age)
+      (goal g-age-status gv-advancing-to-feudal))
+   (idle-farm-count == 0)
+   (can-build farm)
+   =>
+   (build farm)
+)
+
+;******************************************************************************
+;
+; Military Superiority Rules
+;
+;******************************************************************************
+;
+; This can also be done with a goal, but I prefer using an obsolete 
+; strategic number instead because it allows for comparisons.  For example,
+; if my military superiority is greater than some value do this, if it is less
+; than that value do that.  You can do the same thing with goals by nesting
+; a bunch of "or" statements.  I just find it much easier to do with an 
+; obsolete strategic number.
+
+;  Redefine strategic number 215 - Degree of military superiority.
+;
+;        -2 = There is an enemy that has at least 20 more military than I do.
+;        -1 = There is an enemy that has at least 10 more military than I do.
+;         0 = Every enemy is within 10 of my military.
+;         1 = I have over 195 military or 10 more than every enemy.
+;         2 = I have over 200 military or 20 more than every enemy.
+
+(defrule  ;Initialize
+   (true)
+   =>
+   (set-strategic-number 215 0)
+)
+
+(defrule
+   (or(military-population > 195)
+      (or(and(military-population > 190)
+             (players-military-population every-enemy < 180))
+          (or(and(military-population > 180)
+                 (players-military-population every-enemy < 170))
+             (and(military-population > 170)
+                 (players-military-population every-enemy < 160)))))
+   =>
+   (set-strategic-number 215 1)
+)
+
+(defrule
+   (or(and(military-population > 160)
+          (players-military-population every-enemy < 150))
+      (or(and(military-population > 150)
+             (players-military-population every-enemy < 140))
+          (or(and(military-population > 140)
+                 (players-military-population every-enemy < 130))
+             (and(military-population > 130)
+                 (players-military-population every-enemy < 120)))))
+   =>
+   (set-strategic-number 215 1)
+)
+
+(defrule
+   (or(and(military-population > 120)
+          (players-military-population every-enemy < 110))
+      (or(and(military-population > 110)
+             (players-military-population every-enemy < 100))
+          (or(and(military-population > 100)
+                 (players-military-population every-enemy < 90))
+             (and(military-population > 90)
+                 (players-military-population every-enemy < 80)))))
+   =>
+   (set-strategic-number 215 1)
+)
+
+(defrule
+   (or(and(military-population > 80)
+          (players-military-population every-enemy < 70))
+      (or(and(military-population > 70)
+             (players-military-population every-enemy < 60))
+          (or(and(military-population > 60)
+                 (players-military-population every-enemy < 50))
+             (and(military-population > 50)
+                 (players-military-population every-enemy < 40)))))
+   =>
+   (set-strategic-number 215 1)
+)
+
+(defrule
+   (or(and(military-population > 40)
+          (players-military-population every-enemy < 30))
+      (or(and(military-population > 30)
+             (players-military-population every-enemy < 20))
+          (or(and(military-population > 20)
+                 (players-military-population every-enemy < 10))
+             (and(military-population > 10)
+                 (players-military-population every-enemy == 0)))))
+   =>
+   (set-strategic-number 215 1)
+)
+
+(defrule
+   (or(military-population > 200)
+      (or(and(military-population > 190)
+             (players-military-population every-enemy < 170))
+          (or(and(military-population > 180)
+                 (players-military-population every-enemy < 160))
+             (and(military-population > 170)
+                 (players-military-population every-enemy < 150)))))
+   =>
+   (set-strategic-number 215 2)
+)
+
+(defrule
+   (or(and(military-population > 160)
+          (players-military-population every-enemy < 140))
+      (or(and(military-population > 150)
+             (players-military-population every-enemy < 130))
+          (or(and(military-population > 140)
+                 (players-military-population every-enemy < 120))
+             (and(military-population > 130)
+                 (players-military-population every-enemy < 110)))))
+   =>
+   (set-strategic-number 215 2)
+)
+
+(defrule
+   (or(and(military-population > 120)
+          (players-military-population every-enemy < 100))
+      (or(and(military-population > 110)
+             (players-military-population every-enemy < 90))
+          (or(and(military-population > 100)
+                 (players-military-population every-enemy < 80))
+             (and(military-population > 90)
+                 (players-military-population every-enemy < 70)))))
+   =>
+   (set-strategic-number 215 2)
+)
+
+(defrule
+   (or(and(military-population > 80)
+          (players-military-population every-enemy < 60))
+      (or(and(military-population > 70)
+             (players-military-population every-enemy < 50))
+          (or(and(military-population > 60)
+                 (players-military-population every-enemy < 40))
+             (and(military-population > 50)
+                 (players-military-population every-enemy < 30)))))
+   =>
+   (set-strategic-number 215 2)
+)
+
+(defrule
+   (or(and(military-population > 40)
+          (players-military-population every-enemy < 20))
+      (or(and(military-population > 30)
+             (players-military-population every-enemy < 10))
+         (and(military-population > 20)
+             (players-military-population every-enemy == 0))))
+   =>
+   (set-strategic-number 215 2)
+)
+
+(defrule
+   (or(and(military-population == 0)
+          (players-military-population any-enemy > 10))
+      (or(and(military-population < 10)
+             (players-military-population any-enemy > 20))
+          (or(and(military-population < 20)
+                 (players-military-population any-enemy > 30))
+             (and(military-population < 30)
+                 (players-military-population any-enemy > 40)))))
+   =>
+   (set-strategic-number 215 -1)
+)
+
+(defrule
+   (or(and(military-population < 40)
+          (players-military-population any-enemy > 50))
+      (or(and(military-population < 50)
+             (players-military-population any-enemy > 60))
+          (or(and(military-population < 60)
+                 (players-military-population any-enemy > 70))
+             (and(military-population < 70)
+                 (players-military-population any-enemy > 80)))))
+   =>
+   (set-strategic-number 215 -1)
+)
+
+(defrule
+   (or(and(military-population < 80)
+          (players-military-population any-enemy > 90))
+      (or(and(military-population < 90)
+             (players-military-population any-enemy > 100))
+          (or(and(military-population < 100)
+                 (players-military-population any-enemy > 110))
+             (and(military-population < 110)
+                 (players-military-population any-enemy > 120)))))
+   =>
+   (set-strategic-number 215 -1)
+)
+
+(defrule
+   (or(and(military-population < 120)
+          (players-military-population any-enemy > 130))
+      (or(and(military-population < 130)
+             (players-military-population any-enemy > 140))
+          (or(and(military-population < 140)
+                 (players-military-population any-enemy > 150))
+             (and(military-population < 150)
+                 (players-military-population any-enemy > 160)))))
+   =>
+   (set-strategic-number 215 -1)
+)
+
+(defrule
+   (or(and(military-population < 160)
+          (players-military-population any-enemy > 170))
+      (or(and(military-population < 170)
+             (players-military-population any-enemy > 180))
+          (or(and(military-population < 180)
+                 (players-military-population any-enemy > 190))
+             (and(military-population < 190)
+                 (players-military-population any-enemy > 200)))))
+   =>
+   (set-strategic-number 215 -1)
+)
+
+(defrule
+   (or(and(military-population == 0)
+          (players-military-population any-enemy > 20))
+      (or(and(military-population < 10)
+             (players-military-population any-enemy > 30))
+          (or(and(military-population < 20)
+                 (players-military-population any-enemy > 40))
+             (and(military-population < 30)
+                 (players-military-population any-enemy > 50)))))
+   =>
+   (set-strategic-number 215 -2)
+)
+
+(defrule
+   (or(and(military-population < 40)
+          (players-military-population any-enemy > 60))
+      (or(and(military-population < 50)
+             (players-military-population any-enemy > 70))
+          (or(and(military-population < 60)
+                 (players-military-population any-enemy > 80))
+             (and(military-population < 70)
+                 (players-military-population any-enemy > 90)))))
+   =>
+   (set-strategic-number 215 -2)
+)
+
+(defrule
+   (or(and(military-population < 80)
+          (players-military-population any-enemy > 100))
+      (or(and(military-population < 90)
+             (players-military-population any-enemy > 110))
+          (or(and(military-population < 100)
+                 (players-military-population any-enemy > 120))
+             (and(military-population < 110)
+                 (players-military-population any-enemy > 130)))))
+   =>
+   (set-strategic-number 215 -2)
+)
+
+(defrule
+   (or(and(military-population < 120)
+          (players-military-population any-enemy > 140))
+      (or(and(military-population < 130)
+             (players-military-population any-enemy > 150))
+          (or(and(military-population < 140)
+                 (players-military-population any-enemy > 160))
+             (and(military-population < 150)
+                 (players-military-population any-enemy > 170)))))
+   =>
+   (set-strategic-number 215 -2)
+)
+
+(defrule
+   (or(and(military-population < 160)
+          (players-military-population any-enemy > 180))
+      (or(and(military-population < 170)
+             (players-military-population any-enemy > 190))
+          (or(and(military-population < 180)
+                 (players-military-population any-enemy > 200))
+             (and(military-population < 190)
+                 (players-military-population any-enemy > 210)))))
+   =>
+   (set-strategic-number 215 -2)
+)
+
+;******************************************************************************
+;
+; Training Rules
+;
+; New in Training5 - Heavily revised to turn training off and on with goals.
+; For right now this may seem like a dog chasing its tail, but it will 
+; hopefully be of advantage to us later.
+;
+;******************************************************************************
+
+(defrule
+   (goal g-age-status gv-dark-age)
+   (unit-type-count-total villager >= max-num-dark-villagers)
+   (goal g-train-villager gv-yes)
+   =>
+   (set-goal g-train-villager gv-no)
+)
+
+(defrule
+   (or(current-age > dark-age)
+      (goal g-age-status gv-advancing-to-feudal))
+   (goal g-train-villager gv-no)
+   =>
+   (set-goal g-train-villager gv-yes)
+)
+
+;New in Training5 - Make sure this rule stays at the bottom of the train
+;villager rule section.
+
+(defrule
+   (current-age > dark-age)
+   (unit-type-count-total villager >= 100)
+   (goal g-train-villager gv-yes)
+   =>
+   (set-goal g-train-villager gv-no)
+)
+
+(defrule
+   (current-age == feudal-age)
+   (research-available ri-man-at-arms)
+   (goal g-train-sword gv-yes)
+   =>
+   (set-goal g-train-sword gv-no)
+)
+
+(defrule
+   (current-age == feudal-age)
+   (not(research-available ri-man-at-arms))
+   (goal g-train-sword gv-no)
+   =>
+   (set-goal g-train-sword gv-yes)
+)
+
+;New in Training5 - Train spearmen if enemy cavalry is detected.
+
+(defrule
+   (goal g-train-spear gv-yes)
+   =>
+   (set-goal g-train-spear gv-no)
+)
+
+(defrule
+   (goal g-train-spear gv-no)
+   (or(players-unit-type-count any-enemy knight-line > 0)
+   (or(players-unit-type-count any-enemy camel-line > 0)
+   (or(players-unit-type-count any-enemy war-elephant-line > 0)
+   (or(players-unit-type-count any-enemy cataphract-line > 0)
+   (or(players-unit-type-count any-enemy tarkan-line > 0)
+   (or(players-unit-type-count any-enemy conquistador-line > 0)
+      (players-unit-type-count any-enemy war-wagon-line > 0)))))))
+   =>
+   (set-goal g-train-spear gv-yes)
+)
+
+(defrule
+   (timer-triggered t-gather-idle-soldiers)
+   (town-under-attack)
+   (strategic-number 215 < 0)      ;We're outnumbered!
+   (not(can-train militiaman-line))
+   =>
+   (set-goal g-train-spear gv-yes)
+)
+
+;New in Training5 - Train skirmishers if enemy archers are detected.
+;Also train them if a lot of enemy monks are detected.
+
+(defrule
+   (goal g-train-skirm gv-yes)
+   =>
+   (set-goal g-train-skirm gv-no)
+)
+
+(defrule
+   (goal g-train-skirm gv-no)
+   (or(players-unit-type-count any-enemy archer-line > 0)
+   (or(players-unit-type-count any-enemy cavalry-archer-line > 0)
+   (or(players-unit-type-count any-enemy longbowman-line > 0)
+   (or(players-unit-type-count any-enemy war-wagon-line > 0)
+   (or(players-unit-type-count any-enemy chu-ko-nu-line > 0)
+   (or(players-unit-type-count any-enemy plumed-archer-line > 0)
+      (players-unit-type-count any-enemy mangudai-line > 0)))))))
+   =>
+   (set-goal g-train-skirm gv-yes)
+)
+
+(defrule
+   (goal g-train-skirm gv-no)
+   (or(players-unit-type-count any-enemy missionary > 5)
+      (players-unit-type-count any-enemy monk > 5))
+   =>
+   (set-goal g-train-skirm gv-yes)
+)
+
+(defrule
+   (timer-triggered t-gather-idle-soldiers)
+   (town-under-attack)
+   (strategic-number 215 < 0)   ;We're outnumbered!
+   =>
+   (set-goal g-train-skirm gv-yes)
+)
+
+;New in Training5 - It was for just such an occassion as this that I switched
+;over to using goals for training!
+
+(defrule
+   (goal g-want-next-age gv-yes)
+   (strategic-number 215 > -2)   ;We're not way outnumbered.
+   (unit-type-count-total villager >= max-num-dark-villagers)
+   =>
+   (set-goal g-train-villager gv-no)
+)
+
+(defrule
+   (goal g-want-next-age gv-yes)
+   (not(town-under-attack))
+   (strategic-number 215 > -2)   ;We're not way outnumbered.
+   =>
+   (set-goal g-train-sword gv-no)
+   (set-goal g-train-spear gv-no)
+   (set-goal g-train-skirm gv-no)
+   (set-goal g-train-unique gv-no)
+   (set-goal g-train-knight gv-no)
+)
+
+(defrule
+   (goal g-train-villager gv-yes)
+   (can-train villager)
+   =>
+   (train villager)
+)
+
+(defrule
+   (unit-type-count-total battering-ram-line < 5)
+   (strategic-number 215 > -1)
+   (can-train battering-ram-line)
+   =>
+   (train battering-ram-line)
+)
+   
+(defrule
+   (goal g-train-sword gv-yes)
+   (can-train militiaman-line)
+   =>
+   (train militiaman-line)
+)
+
+(defrule
+   (goal g-train-spear gv-yes)
+   (can-train spearman-line)
+   =>
+   (train spearman-line)
+)
+
+(defrule
+   (goal g-train-skirm gv-yes)
+   (can-train skirmisher-line)
+   =>
+   (train skirmisher-line)
+)
+
+(defrule
+   (unit-type-count-total monk < 2)
+   (can-train monk)
+   =>
+   (train monk)
+)
+
+;******************************************************************************
+;
+; Taunting Rules
+;
+;******************************************************************************
+
+;******************************************************************************
+;
+; Resignation Rules
+;
+;******************************************************************************
+
+;******************************************************************************
+;
+; Town-Size Rules
+;
+;******************************************************************************
+;
+; Rather than put all those rules in here, lets put them in a separate file and
+; load that file into this one using the load command.
+
+(load "Training4/TSA366")
+
+;What you will find in this file are several rules that look like this:
+;
+;(defrule
+;   (strategic-number sn-maximum-town-size == 42)
+;   (not(enemy-buildings-in-town))
+;   (goal g-tsa gv-on)
+;   =>
+;   (set-strategic-number sn-maximum-town-size 44)
+;   (chat-local-to-self "TS 44.")
+;)
+;
+;(defrule
+;   (strategic-number sn-maximum-town-size == 40)
+;   (not(enemy-buildings-in-town))
+;   (goal g-tsa gv-on)
+;   =>
+;   (set-strategic-number sn-maximum-town-size 42)
+;   (chat-local-to-self "TS 42.")
+;)
+
+;Now this is the whole idea of the TSA - to increase your town size so that
+;your military will "defend" against the enemy buildings in your town.
+;
+;Following up on a post by Vader, I combined my TSA rules with my building
+;rules to build a nice, tight, easily defendable town.  If I fire off my build
+;rule at a small town size and allow the TSA rules to increment the town size
+;till the building can be placed, I will have a nice, tight town.
+
+;******************************************************************************
+;
+; Defend Rules
+;
+;******************************************************************************
+;
+;  I copied these rules from Mabuse.  I added the TSA portion to them.
+;
+;  New in Training5 - added timer to next rule.  Town-under-attack seems to be
+;  one of those facts evaluated once per rule pass.  It will still think it is
+;  under attack for one rule pass past turning the TSA off.  This will falsely
+;  set a high enemy-sighted-response-distance and your military will rush off
+;  to fight everything they see at or closer to that distance.
+
+(defrule
+   (town-under-attack)
+   (strategic-number sn-enemy-sighted-response-distance == 2)
+   (goal g-tsa gv-off)
+   (timer-triggered t-gather-idle-soldiers)
+   =>
+   (set-strategic-number sn-enemy-sighted-response-distance 144) ;Maximum
+   (set-strategic-number sn-target-evaluation-siege-weapon 100)
+)
+
+(defrule
+   (or(not(town-under-attack))
+      (goal g-tsa gv-on))
+   (strategic-number sn-enemy-sighted-response-distance == 144)
+   =>
+   (set-strategic-number sn-enemy-sighted-response-distance 2) ;On Sight Only
+   (set-strategic-number sn-target-evaluation-siege-weapon 0)
+)
+
+;******************************************************************************
+;
+; Counter-Attack Rules
+;
+;******************************************************************************
+
+;******************************************************************************
+;
+; Attack Rules - New in Training5 - Heavily revised.  See below.
+;
+;******************************************************************************
+
+;New in Training5 - Reduce the threshold for the first attack.  My idea is to
+;maybe put someone off balance early if they are pursuing a fast Castle Age
+;strategy.
+;
+;Even a fast castle building AI will not have its castle up within 20 minutes,
+;so don't stop because you've seen a castle foundation.  Maybe you can knock
+;the castle builder on the head!
+;
+;Only Teutons will get a castle and murder holes before the 22 minute mark, so
+;press your assault before that and maybe you can slip under the castle's 
+;minimum range and do it some serious harm.
+
+(defrule
+   (goal g-age-status gv-feudal-age)
+   (or(game-time > 1320)
+      (and(players-civ any-enemy teutonic)
+          (game-time > 1200)))
+   (players-building-type-count any-enemy castle > 0)
+   (goal g-want-next-age gv-no)
+   =>
+   (set-goal g-want-next-age gv-yes)
+   (set-goal g-need-siege gv-yes)
+   (chat-to-allies "We need the castle age for battering rams.")
+)
+
+(defrule
+   (or(game-time > 1320)
+      (and(players-civ any-enemy teutonic)
+          (game-time > 1200)))
+   (players-building-type-count any-enemy castle > 0)
+   (goal g-need-siege gv-no)
+   =>
+   (set-goal g-need-siege gv-yes)
+)
+
+(defrule
+   (goal g-need-siege gv-yes)
+   (unit-type-count battering-ram-line > 0)
+   =>
+   (set-goal g-need-siege gv-no)
+)
+
+(defrule
+   (current-age >= feudal-age)
+   (game-time <= 1200)
+   (strategic-number 215 > -1) ;We have military equality!
+   (goal g-tsa gv-off)
+   =>
+   (set-goal g-tsa gv-on)
+   (chat-to-allies "We have military equality.  Starting TSA.")
+)
+
+(defrule
+   (game-time <= 1200)
+   (strategic-number 215 < 0) ;We lost military equality!
+   (goal g-tsa gv-on)
+   =>
+   (set-goal g-tsa gv-off)
+   (chat-to-allies "We lost military equality.  Stopping TSA.")
+   (set-strategic-number sn-maximum-town-size 16)
+   (set-strategic-number sn-gather-idle-soldiers-at-center 1)
+   (disable-timer t-gather-idle-soldiers)
+   (enable-timer t-gather-idle-soldiers tv-gather-idle-soldiers)
+)
+
+(defrule
+   (current-age >= feudal-age)
+   (goal g-need-siege gv-no)
+   (game-time > 1200)
+   (strategic-number 215 > 0) ;We have military superiority!
+   (goal g-tsa gv-off)
+   =>
+   (set-goal g-tsa gv-on)
+   (chat-to-allies "We have military superiority.  Starting TSA.")
+)
+
+(defrule
+   (game-time > 1200)
+   (or(strategic-number 215 < 1) ;We lost military superiority!
+      (goal g-need-siege gv-yes))
+   (goal g-tsa gv-on)
+   =>
+   (set-goal g-tsa gv-off)
+   (chat-to-allies "Stopping TSA.")
+   (set-strategic-number sn-maximum-town-size 16)
+   (set-strategic-number sn-gather-idle-soldiers-at-center 1)
+   (disable-timer t-gather-idle-soldiers)
+   (enable-timer t-gather-idle-soldiers tv-gather-idle-soldiers)
+)
+
+(defrule
+   (timer-triggered t-gather-idle-soldiers)
+   (strategic-number sn-gather-idle-soldiers-at-center == 1)
+   =>
+   (set-strategic-number sn-gather-idle-soldiers-at-center 0)
+)
+
+;Now let's go smash the standard computer AI!
+
+
+
+

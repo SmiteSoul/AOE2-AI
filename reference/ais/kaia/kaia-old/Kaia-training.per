@@ -1,0 +1,111 @@
+; Train the first 20 villagers in the Dark Age, unless we can research
+; the Feudal age.
+(defrule
+    (current-age == dark-age)
+    (or
+        (unit-type-count-total villager < max-num-villagers-feudal-age)
+        (not(can-research feudal-age)) ; keep training if we cant research the feudal age yet
+    )
+    (not(can-research feudal-age))
+    (can-train villager)
+    =>
+    (train villager)
+)
+
+; Train the next 10 in the Feudal Age.
+(defrule
+    (current-age == feudal-age)
+    (not(can-research castle-age)) ; unless we can goto castle directly
+    (can-train villager)
+    =>
+    (train villager)
+)
+
+; Create until there are 100 Villagers.
+(defrule
+    (current-age > feudal-age)
+    (unit-type-count-total villager < max-num-villagers)
+    (can-train villager)
+    =>
+    (train villager)
+)
+
+; Train Cavalry Archers
+(defrule
+   (current-age >= castle-age)  
+   (unit-type-count-total cavalry-archer-line < max-num-cavalry-archers-in-castle-age)
+   (goal g-multiple-town-centers gv-done)
+   (can-train cavalry-archer-line)
+   =>
+   (train cavalry-archer-line)
+)
+
+(defrule
+   (current-age > castle-age)  
+   (can-train cavalry-archer-line)
+   =>
+   (train cavalry-archer-line)
+)
+
+; Train Knights
+(defrule
+   (current-age >= castle-age) 
+   (unit-type-count-total knight-line < max-num-knights-in-castle-age)
+   (goal g-multiple-town-centers gv-done)
+   (can-train knight-line)
+   =>
+   (train knight-line)
+)
+
+(defrule
+   (current-age > castle-age) 
+   (can-train knight-line)
+   =>
+   (train knight-line)
+)
+
+; Train Monks
+(defrule
+   (current-age >= castle-age) 
+   (unit-type-count-total knight-line < max-num-monks)
+   (can-train monk)
+   =>
+   (train monk)
+)
+
+(defrule
+   (current-age == imperial-age) 
+   (unit-type-count-total mangonel-line < 8)
+   (can-train mangonel-line)
+   =>
+   (train mangonel-line)
+)
+
+; Trebuchets
+(defrule
+   (current-age == imperial-age) 
+   (unit-type-count-total trebuchet < 4)
+   (can-train trebuchet)
+   =>
+   (train trebuchet)
+)
+
+; No more gold, so make other units
+(defrule
+   (gold-amount < 50)
+   (food-amount > 2000)
+   (wood-amount > 2000)
+   (current-age >= castle-age)
+   (goal g-multiple-town-centers gv-done)
+   =>
+   (train spearman-line)
+)
+
+(defrule
+   (gold-amount < 50)
+   (food-amount > 2000)
+   (current-age >= castle-age)
+   (goal g-multiple-town-centers gv-done)
+   =>
+   (train scout-cavalry-line)
+)

@@ -1,0 +1,17 @@
+(defrule
+   (true)
+   =>
+   (set-goal g-resign gv-no) ; resignation goal.
+   (set-goal g-age-status gv-dark-age) ; set initial age
+   (set-goal g-initial-attack-rush gv-yes) ; rush attack
+   (set-goal g-build-walls gv-no) ; no walls
+   (set-strategic-number sn-relic-return-distance 50) ; let monks grab relics further
+   (disable-self)
+)
+
+(defrule
+   (goal g-build-walls gv-yes)
+   =>
+   (enable-wall-placement 2) ; enable wall planning
+   (disable-self)
+)

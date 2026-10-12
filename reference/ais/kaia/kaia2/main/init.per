@@ -1,0 +1,10 @@
+; Set all the initial goal values.
+(defrule
+    (true)
+    =>
+    (set-goal g-allow-building gv-no)
+    (set-goal g-allow-research gv-no)
+    (set-goal g-allow-training gv-no)
+    (set-goal g-enable-auto-resource-distribution gv-no)
+    (disable-self)
+)
