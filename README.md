@@ -9,10 +9,12 @@ Este repositorio contiene una colección de scripts de Inteligencia Artificial (
     - `semiUtils-*.per`: Módulos especializados (const, init, eco, build, train, combat, etc.).
 - **`/forty/`**: Contendrá la IA `forty.per`, una versión mejorada de una IA defensiva existente. *(en preparación)*
 - **`/siege/`**: **`siege`**, IA de asedio pura ya implementada (arietes cargados, brechas, TSA, evaluación de objetivos). Ver [`siege/README.md`](siege/README.md).
+- **`/tools/`**: Herramientas de validación — `lint_siege.py` (auditoría posicional de identificadores, aridad y límites de regla contra el corpus de referencia).
 - **`/reference/`**:
     - `UserPatchConst.per`: Archivo de constantes de UserPatch. **Esencial** para que los comandos `up-` funcionen.
     - `CPSB.pdf`: La guía de scripting de AoE2 (opcional, pero muy útil).
     - `ais/`: IAs de terceros importadas como referencia de estudio (Barbarian 2.18, The Horde, Kaia, The General, Binary, Crusher, Brutal2, Promi, Training). Ver [`reference/ais/README.md`](reference/ais/README.md) para el índice y las fuentes.
+- **`Script_Errors.md`**: **Registro completo de errores de compilación y lógica** (ERR6002, ERR2005, comparadores en `goal`, `UserPatchConst`, etc.) con origen técnico y solución. Ver [`Script_Errors.md`](Script_Errors.md).
 - **`README.md`**: Este archivo.
 
 ## ⚙️ Requisitos
@@ -36,6 +38,8 @@ Este proyecto no es solo una colección de scripts, sino que documenta un proces
 2.  **Identificadores Válidos**: Se reemplazaron identificadores inexistentes en el motor (ej. `ri-fire-ship`) por los correctos (`ri-war-galley`).
 3.  **Uso Correcto de `goal`**: El fact `(goal ...)` solo compara igualdad. Se eliminaron todas las comparaciones (`<`, `>`) y se reescribieron como reglas independientes para cada valor posible.
 4.  **Optimización de Reglas**: Se dividieron reglas demasiado largas para evitar el error `Rule too long` (máx. 16 elementos por regla) y se eliminaron bloques duplicados.
+
+El **registro completo** de errores — con síntoma, código problemático, origen técnico y solución (incluidos `ri-my-unique-elite-unit`, `scout-type`, fallbacks doctrinales y las reglas de oro) — está documentado en [`Script_Errors.md`](Script_Errors.md).
 
 ## 🤖 Uso con Agentes de IA
 

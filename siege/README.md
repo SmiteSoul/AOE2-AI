@@ -96,6 +96,10 @@ motor (medida sobre los 360k tokens de referencia de `reference/ais/`):
 Ejecucion: `python3 tools/lint_siege.py` (desde la raiz del repo).
 Tras un test en partida, vuelve a ejecutarlo antes de commitear.
 
+Ademas, el registro historico de errores del motor (ERR6002, ERR2005,
+comparadores en `goal`, `UserPatchConst`...) con su solucion esta en
+[`../Script_Errors.md`](../Script_Errors.md).
+
 ## Limitaciones conocidas
 
 - El motor no permite ordenar reparaciones (`repair` no existe en el CPSB).
