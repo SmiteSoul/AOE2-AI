@@ -1,0 +1,160 @@
+; =====================================================================
+; SIEGE — combate
+; Ciclos de oleada (attack groups + TSA), apertura de brechas,
+; carga de arietes con infanteria y fuego concentrado a distancia.
+;
+; Notas DUC (UserPatch):
+;   - up-target-objects con opcion 1 exige up-set-target-object previo;
+;     con opcion 0 los objetivos se reparten entre la lista remota.
+;   - No usar action-default mientras el TSA este "bloqueado" sobre un
+;     objetivo (enemy-buildings-in-town) o las unidades se confunden.
+; =====================================================================
+
+; ---------- Inicio de oleada de asedio ----------
+(defrule
+	(current-age >= castle-age)
+	(goal gl-attack-state 0)
+	(not (town-under-attack))
+	(or	(unit-type-count-total battering-ram-line > 1)
+		(or	(unit-type-count-total trebuchet-set > 0)
+			(military-population >= 30)))
+=>
+	(set-goal gl-attack-state 1)
+	(set-strategic-number sn-number-attack-groups 200)
+	(attack-now)
+)
+(defrule
+	(goal gl-attack-state 1)
+	(goal gl-first-push 0)
+=>
+	(set-goal gl-first-push 1)
+	(chat-to-all "SIEGE: abriendo brecha.")
+)
+
+; ---------- Fin de oleada: reagrupar y reparar filas ----------
+(defrule
+	(goal gl-attack-state 1)
+	(or	(town-under-attack)
+		(and	(military-population < 12)
+			(and	(unit-type-count-total battering-ram-line == 0)
+				(unit-type-count-total trebuchet-set == 0))))
+=>
+	(set-goal gl-attack-state 0)
+	(set-strategic-number sn-number-attack-groups 0)
+	(set-strategic-number sn-maximum-town-size ts-base)
+)
+
+; ---------- TSA: avance progresivo hacia el enemigo ----------
+(defrule
+	(goal gl-attack-state 1)
+	(timer-triggered t-push)
+	(not (enemy-buildings-in-town))
+	(strategic-number sn-maximum-town-size < ts-max)
+=>
+	(up-modify-sn sn-maximum-town-size c:+ ts-step)
+	(enable-timer t-push 8)
+)
+(defrule
+	(timer-triggered t-push)
+	(goal gl-attack-state 0)
+=>
+	(enable-timer t-push 8)
+)
+(defrule
+	(timer-triggered t-push)
+	(goal gl-attack-state 1)
+	(enemy-buildings-in-town)
+=>
+	(enable-timer t-push 8)
+)
+(defrule
+	(timer-triggered t-push)
+	(goal gl-attack-state 1)
+	(strategic-number sn-maximum-town-size >= ts-max)
+=>
+	(enable-timer t-push 8)
+)
+
+; ---------- Apertura de brechas: arietes contra murallas ----------
+(defrule
+	(goal gl-attack-state 1)
+	(goal gl-target-walls 1)
+	(timer-triggered t-micro)
+	(not (enemy-buildings-in-town))
+	(unit-type-count battering-ram-line > 0)
+=>
+	(up-get-player-fact this-any-enemy player-number 0 gl-temp)
+	(up-modify-sn sn-focus-player-number g:= gl-temp)
+	(up-full-reset-search)
+	(up-find-local c: battering-ram-line c: 2)
+	(up-find-remote c: wall-class c: 2)
+	(up-get-search-state gl-local-total)
+)
+(defrule
+	(goal gl-attack-state 1)
+	(goal gl-target-walls 1)
+	(timer-triggered t-micro)
+	(not (enemy-buildings-in-town))
+	(unit-type-count battering-ram-line > 0)
+	(up-compare-goal gl-local-total > 0)
+	(up-compare-goal gl-remote-total > 0)
+	(stance-toward focus-player enemy)
+=>
+	(up-target-objects 0 action-default -1 aggressive)
+)
+
+; ---------- Arietes cargados de tropas (DUC) ----------
+; sn-garrison-rams (init) ya carga infanteria antes de salir;
+; aqui rellenamos arietes que queden con hueco durante la campana.
+(defrule
+	(timer-triggered t-micro)
+	(unit-type-count battering-ram-line > 0)
+	(unit-type-count-total spearman-line > 8)
+=>
+	(set-strategic-number sn-focus-player-number my-player-number)
+	(up-full-reset-search)
+	(up-find-local c: infantry-class c: 3)
+	(up-remove-objects search-local object-data-garrisoned == 1)
+	(up-find-remote c: battering-ram-line c: 3)
+	(up-remove-objects search-remote object-data-garrison-count >= ram-full)
+	(up-get-search-state gl-local-total)
+)
+(defrule
+	(timer-triggered t-micro)
+	(unit-type-count battering-ram-line > 0)
+	(unit-type-count-total spearman-line > 8)
+	(up-compare-goal gl-local-total > 0)
+	(up-compare-goal gl-remote-total > 0)
+=>
+	(up-target-objects 0 action-garrison -1 -1)
+)
+
+; ---------- Unidades a distancia: fuego concentrado y formacion ----------
+; Solo cuando el TSA no esta bloqueado (ver nota arriba).
+(defrule
+	(goal gl-attack-state 1)
+	(timer-triggered t-micro)
+	(not (enemy-buildings-in-town))
+	(or	(unit-type-count archer-line > 3)
+		(unit-type-count skirmisher-line > 3))
+=>
+	(up-get-player-fact this-any-enemy player-number 0 gl-temp)
+	(up-modify-sn sn-focus-player-number g:= gl-temp)
+	(up-full-reset-search)
+	(up-find-local c: archer-line c: 20)
+	(up-find-local c: skirmisher-line c: 20)
+	(up-filter-include cmdid-military -1 -1 -1)
+	(up-find-remote c: -1 c: 1)
+	(up-get-search-state gl-local-total)
+)
+(defrule
+	(goal gl-attack-state 1)
+	(timer-triggered t-micro)
+	(not (enemy-buildings-in-town))
+	(up-compare-goal gl-local-total > 0)
+	(up-compare-goal gl-remote-total > 0)
+	(stance-toward focus-player enemy)
+=>
+	(up-target-objects 0 action-default formation-stagger aggressive)
+)
+

@@ -1,0 +1,112 @@
+; =====================================================================
+; SIEGE — inicializacion
+; Estado inicial, numeros estrategicos y perfil de evaluacion de objetivos.
+; =====================================================================
+
+; ---------- Estado inicial y timers ----------
+(defrule
+	(true)
+=>
+	(set-goal gl-attack-state 0)
+	(set-goal gl-target-walls 0)
+	(set-goal gl-first-push 0)
+	(enable-timer t-micro 3)
+	(enable-timer t-push 8)
+	(enable-timer t-eco 15)
+	(chat-to-all "SIEGE: que comience el asedio.")
+	(disable-self)
+)
+
+; ---------- Deteccion de murallas enemigas (pegajosa) ----------
+(defrule
+	(or	(players-building-type-count any-enemy stone-wall-line > 0)
+		(players-building-type-count any-enemy palisade-wall > 0))
+=>
+	(set-goal gl-target-walls 1)
+)
+
+; ---------- Economia: aldeanos ----------
+(defrule
+	(true)
+=>
+	(set-strategic-number sn-percent-civilian-explorers 0)
+	(set-strategic-number sn-percent-civilian-gatherers 95)
+	(set-strategic-number sn-percent-civilian-builders 5)
+	(set-strategic-number sn-total-number-explorers 1)
+	(set-strategic-number sn-number-explore-groups 1)
+	(disable-self)
+)
+
+; ---------- Economia: recogida ----------
+(defrule
+	(true)
+=>
+	(set-strategic-number sn-maximum-food-drop-distance 7)
+	(set-strategic-number sn-maximum-wood-drop-distance 10)
+	(set-strategic-number sn-maximum-gold-drop-distance 7)
+	(set-strategic-number sn-maximum-stone-drop-distance 7)
+	(set-strategic-number sn-camp-max-distance 25)
+	(set-strategic-number sn-mill-max-distance 30)
+	(set-strategic-number sn-intelligent-gathering 1)
+	(disable-self)
+)
+
+; ---------- Combate: respuesta y tarea de unidades ----------
+(defrule
+	(true)
+=>
+	(set-strategic-number sn-percent-enemy-sighted-response 100)
+	(set-strategic-number sn-enemy-sighted-response-distance 100)
+	(set-strategic-number sn-zero-priority-distance 100)
+	(set-strategic-number sn-task-ungrouped-soldiers 1)
+	(set-strategic-number sn-consecutive-idle-unit-limit 1)
+	(set-strategic-number sn-gather-defense-units 1)
+	(disable-self)
+)
+
+; ---------- Asedio: arietes cargados y murallas ----------
+(defrule
+	(true)
+=>
+	(set-strategic-number sn-garrison-rams 1)
+	(set-strategic-number sn-wall-targeting-mode 1)
+	(set-strategic-number sn-enable-new-building-system 1)
+	(set-strategic-number sn-enable-offensive-priority 1)
+	(set-strategic-number sn-local-targeting-mode 1)
+	(set-strategic-number sn-enable-patrol-attack 1)
+	(disable-self)
+)
+
+; ---------- Evaluacion de objetivos inteligente ----------
+; siege-weapon > 0: la maquinaria ataca objetivos estacionarios (edificios,
+; murallas) y el resto de unidades NO pierde tiempo en ellos.
+; in-progress: mantener el foco en el objetivo ya en ataque.
+; special-attack-type1: sesgo hacia el corazon enemigo (centros urbanos).
+(defrule
+	(true)
+=>
+	(set-strategic-number sn-target-evaluation-siege-weapon 10)
+	(set-strategic-number sn-target-evaluation-in-progress 40)
+	(set-strategic-number sn-target-evaluation-time-kill-ratio 30)
+	(set-strategic-number sn-target-evaluation-distance 25)
+	(set-strategic-number sn-target-evaluation-randomness 5)
+	(set-strategic-number sn-target-evaluation-boat -10)
+	(set-strategic-number sn-special-attack-type1 town-center)
+	(set-strategic-number sn-special-attack-influence1 20)
+	(disable-self)
+)
+
+; ---------- Grupos de ataque / defensa ----------
+(defrule
+	(true)
+=>
+	(set-strategic-number sn-number-attack-groups 0)
+	(set-strategic-number sn-minimum-attack-group-size 3)
+	(set-strategic-number sn-maximum-attack-group-size 30)
+	(set-strategic-number sn-number-defend-groups 2)
+	(set-strategic-number sn-minimum-defend-group-size 3)
+	(set-strategic-number sn-maximum-defend-group-size 10)
+	(set-strategic-number sn-maximum-town-size ts-base)
+	(set-strategic-number sn-minimum-town-size 12)
+	(disable-self)
+)

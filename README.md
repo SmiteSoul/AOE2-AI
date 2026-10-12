@@ -8,6 +8,7 @@ Este repositorio contiene una colección de scripts de Inteligencia Artificial (
     - `semiUtils.per`: Archivo principal que carga todos los módulos.
     - `semiUtils-*.per`: Módulos especializados (const, init, eco, build, train, combat, etc.).
 - **`/forty/`**: Contendrá la IA `forty.per`, una versión mejorada de una IA defensiva existente. *(en preparación)*
+- **`/siege/`**: **`siege`**, IA de asedio pura ya implementada (arietes cargados, brechas, TSA, evaluación de objetivos). Ver [`siege/README.md`](siege/README.md).
 - **`/reference/`**:
     - `UserPatchConst.per`: Archivo de constantes de UserPatch. **Esencial** para que los comandos `up-` funcionen.
     - `CPSB.pdf`: La guía de scripting de AoE2 (opcional, pero muy útil).

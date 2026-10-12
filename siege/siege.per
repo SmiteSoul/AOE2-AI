@@ -1,0 +1,38 @@
+; =====================================================================
+; SIEGE — El Asediador Impenetrable
+; IA especializada en asedio para Age of Empires II: The Conquerors + UserPatch 1.5
+;
+; Objetivo unico: aplastar al enemigo con maquinaria de asedio.
+;   - Arietes cargados de infanteria (sn-garrison-rams + carga DUC)
+;   - Evaluacion de objetivos inteligente (siege -> edificios, ejercito -> amenazas)
+;   - Economia orientada a madera/oro para el ejercito de asedio
+;   - Unidades a distancia con fuego concentrado y formacion escalonada
+;   - Apertura de brechas en murallas (sn-wall-targeting-mode + DUC a arietes)
+;
+; Instalacion: copia el CONTENIDO de esta carpeta (siege.ai, siege.per, siege/)
+; dentro del directorio "AI" de tu instalacion de AoC con UserPatch.
+; =====================================================================
+
+(load "siege\UserPatchConst")
+(load "siege\const")
+(load "siege\init")
+(load "siege\eco")
+(load "siege\build")
+(load "siege\train")
+(load "siege\combat")
+
+; =====================================================================
+; Re-armado de timers: DEBE ir al final, despues de todas las cargas,
+; para que todos los consumidores de cada timer se evaluen antes de
+; reiniciarlo (el orden de las reglas es el orden de carga).
+; =====================================================================
+(defrule
+	(timer-triggered t-micro)
+=>
+	(enable-timer t-micro 3)
+)
+(defrule
+	(timer-triggered t-eco)
+=>
+	(enable-timer t-eco 15)
+)
