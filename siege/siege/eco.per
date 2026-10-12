@@ -9,9 +9,9 @@
 (defrule
 	(current-age == dark-age)
 	(unit-type-count villager >= 8)
-	(can-research loom)
+	(can-research ri-loom)
 =>
-	(research loom)
+	(research ri-loom)
 )
 
 ; ---------- Produccion de aldeanos ----------
@@ -162,11 +162,11 @@
 )
 (defrule
 	(timer-triggered t-eco)
-	(can-buy-commodity gold)
-	(gold-amount < 200)
-	(food-amount > 1200)
+	(can-buy-commodity stone)
+	(stone-amount < 200)
+	(gold-amount > 900)
 =>
-	(buy-commodity gold)
+	(buy-commodity stone)
 )
 
 ; ---------- Avance de edad ----------

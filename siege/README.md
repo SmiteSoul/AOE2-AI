@@ -71,6 +71,31 @@ Todos en `siege/const.per` y `siege/init.per`:
   `ts-step`.
 - Mas defensivo: sube `sn-number-defend-groups` en `init.per`.
 
+## Orden de carga (importante para los timers)
+
+`siege.per` carga los modulos en orden y **al final** rearma `t-eco` y
+`t-micro`: `enable-timer` deja el timer sin marcar dentro del pase actual,
+asi que las reglas de rearme deben ir *despues* de todos los consumidores
+del timer. Si editas los modulos, no muevas esas reglas de sitio.
+
+## Auditoria (lint) — obligatoria tras cualquier edicion
+
+`tools/lint_siege.py` valida todo el proyecto con la gramatica real del
+motor (medida sobre los 360k tokens de referencia de `reference/ais/`):
+
+- parentesis balanceados y `(load ...)` que resuelven a ficheros reales;
+- limite de **16 elementos por regla** (ERR6002; mi maximo: 15);
+- `(goal g v)` solo compara igualdad (el hecho goal no admite <, >...);
+- **argumentos validados por posicion de comando** contra el corpus
+  (atrapa fallos como `(research loom)` — lo valido es `ri-loom`;
+  y `(buy-commodity gold)` — el oro es la moneda, no un commodity:
+  solo `food/wood/stone`);
+- aridad exacta por comando, comandos desconocidos, goals/timers sin
+  `defconst`, colisiones de constantes con `UserPatchConst`.
+
+Ejecucion: `python3 tools/lint_siege.py` (desde la raiz del repo).
+Tras un test en partida, vuelve a ejecutarlo antes de commitear.
+
 ## Limitaciones conocidas
 
 - El motor no permite ordenar reparaciones (`repair` no existe en el CPSB).
