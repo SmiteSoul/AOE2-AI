@@ -9,6 +9,7 @@ de IA en este código, y cómo están construidas las IAs de referencia.
 | [`01_Hechos_Del_Motor.md`](01_Hechos_Del_Motor.md) | Base de hechos del motor con **etiqueta de procedencia** (CPSB / RUNTIME / CORPUS / FORO). | Antes de escribir cualquier código: no afirmar nada que no esté aquí o en el CPSB. |
 | [`02_Prevencion_Errores.md`](02_Prevencion_Errores.md) | Taxonomía completa de errores (ERR*), detección **antes de ejecutar** y casos reales. | Antes de cada test en partida y al depurar. |
 | [`03_Pipeline_Agentes_IA.md`](03_Pipeline_Agentes_IA.md) | Pipeline de implementación paso a paso + skills/herramientas del agente. | Siempre que se cree o modifique una IA. |
+| [`04_Auditoria_Multiagente.md`](04_Auditoria_Multiagente.md) | Informe del panel de auditoría multiagente (5 agentes especializados, triage y patrones validados). | Tras cada auditoría completa o cambio grande. |
 | [`referencia/`](referencia/README.md) | Arquitectura de Barbarian, The General, The Horde y Kaia: cómo se construyen y conectan. | Al diseñar módulos nuevos o investigar patrones. |
 
 Documentos relacionados en la raíz:
