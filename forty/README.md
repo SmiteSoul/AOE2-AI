@@ -24,9 +24,10 @@ La ciudad crece por fases, como un feudo medieval:
 
 1. **Aldea**: casas, granja, molino, campamentos (sobrevivir).
 2. **Villa**: plaza de mercado, gremio (blacksmith), cuarteles, iglesia.
-3. **Muralla**: torres con cuadrillas + anillo de casas (el burgage como
-   muro — el motor no deja construir murallas de piedra, ver docs/06) +
-   explotación de piedra.
+3. **Muralla**: **murallas de verdad** (doble perímetro): exterior de
+   empalizada en Feudal → piedra en Castillo, interior de piedra, con
+   `build-gate`, más torres con cuadrillas y el anillo de casas
+   (burgage) por dentro + explotación de piedra.
 4. **Plaza fuerte**: **castillo** (el keep), taller de asedio, establos,
    universidad, más torres y casas.
 

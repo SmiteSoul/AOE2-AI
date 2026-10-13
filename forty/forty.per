@@ -626,13 +626,21 @@
 ;   - Los frentes de burgage (casas-calle)      -> anillo de casas = muro
 ;   - La plaza de mercado                       -> (build market)
 ;   - La iglesia parroquial                     -> (build monastery)
-;   - Las torres de la muralla                  -> (build watch-tower)
-;   - El bailiff (gestion diaria del feudo)     -> director + fases
+;   - La muralla exterior (empalizada -> piedra)   -> build-wall perimetro 1
+;   - La muralla interior (doble anillo de piedra) -> build-wall perimetro 2
+;   - Las puertas de los tramos                    -> build-gate
+;   - Las torres de la muralla                     -> (build watch-tower)
+;   - El bailiff (gestion diaria del feudo)        -> director + fases
 ;
-; NOTA: el motor de AoC NO permite a los AIs construir murallas ni
-; puertas (verificado en el corpus: 0 usos de (build wall|gate)). La
-; muralla medieval se emula con el anillo de edificios + castillo +
-; torres, que es como las IAs de elite fortifican de verdad.
+; SISTEMA DE MURALLAS: el motor SIE PERMITE construir murallas a los AIs
+; con el juego de comandos
+; enable-wall-placement / can-build-wall / build-wall / can-build-gate /
+; build-gate / wall-completed-percentage [CORPUS: build-wall 11x,
+; build-gate 6x, wall-completed-percentage 60x]. Se planifican DOS
+; perimetros: el EXTERIOR primero en empalizada (Feudal) y luego en
+; piedra (Castillo), y el INTERIOR en piedra (Castillo). Es el mismo
+; sistema que usaban forty v1 y v2 (forty/legacy/). El anillo de casas
+; (burgage), las torres y el castillo completan la fortaleza por dentro.
 ; =====================================================================
 
 ; =====================================================================
@@ -718,6 +726,20 @@
 	(set-strategic-number sn-maximum-town-size 28)
 	(set-strategic-number sn-camp-max-distance 10)
 	(set-strategic-number sn-wall-targeting-mode 1)
+	(disable-self)
+)
+
+; =====================================================================
+; =====================================================================
+; PLANIFICACION DE MURALLAS: doble perimetro habilitado (v1/v2)
+; =====================================================================
+(defrule
+	(true)
+=>
+	(enable-wall-placement 1)
+	(enable-wall-placement 2)
+	(set-strategic-number sn-percent-civilian-builders 10)
+	(set-strategic-number sn-cap-civilian-builders 10)
 	(disable-self)
 )
 
@@ -896,7 +918,8 @@
 	(build monastery)
 )
 
-; --- Fase muralla: torres y densificacion (el anillo de burgage)
+; --- Fase muralla: piedra y torres (la muralla de verdad la levanta
+;     la seccion MURALLAS con build-wall: perimetro 1 piedra + perimetro 2)
 (defrule
 	(goal gl-city cty-muralla)
 	(can-build watch-tower)
@@ -958,6 +981,82 @@
 	(building-type-count-total house < 42)
 =>
 	(build house)
+)
+
+; =====================================================================
+; MURALLAS: DOBLE PERIMETRO (herencia forty v1/v2)
+; Exterior (perimetro 1): empalizada en Feudal -> piedra desde Castillo.
+; Interior (perimetro 2): piedra desde Castillo, cuando el exterior
+; lleva media hecha. Puertas en cuanto el tramo avanza. Los constructores
+; se refuerzan mientras quede muralla por hacer (patron v1).
+; =====================================================================
+(defrule
+	(current-age >= feudal-age)
+	(wall-completed-percentage 1 < 100)
+=>
+	(set-strategic-number sn-percent-civilian-builders 20)
+	(set-strategic-number sn-cap-civilian-builders 18)
+)
+(defrule
+	(current-age >= castle-age)
+	(wall-completed-percentage 2 < 100)
+=>
+	(set-strategic-number sn-percent-civilian-builders 22)
+	(set-strategic-number sn-cap-civilian-builders 20)
+)
+(defrule
+	(current-age >= castle-age)
+	(wall-completed-percentage 1 >= 100)
+	(wall-completed-percentage 2 >= 100)
+=>
+	(set-strategic-number sn-percent-civilian-builders 10)
+	(set-strategic-number sn-cap-civilian-builders 10)
+)
+; --- perimetro exterior: empalizada feudal
+(defrule
+	(current-age == feudal-age)
+	(wall-completed-percentage 1 < 100)
+	(can-build-wall 1 palisade-wall)
+=>
+	(build-wall 1 palisade-wall)
+)
+(defrule
+	(current-age == feudal-age)
+	(wall-completed-percentage 1 > 15)
+	(can-build-gate 1)
+=>
+	(build-gate 1)
+)
+; --- perimetro exterior: piedra desde castillo
+(defrule
+	(current-age >= castle-age)
+	(wall-completed-percentage 1 < 100)
+	(can-build-wall 1 stone-wall)
+=>
+	(build-wall 1 stone-wall)
+)
+(defrule
+	(current-age >= castle-age)
+	(wall-completed-percentage 1 > 15)
+	(can-build-gate 1)
+=>
+	(build-gate 1)
+)
+; --- perimetro interior: segundo anillo de piedra
+(defrule
+	(current-age >= castle-age)
+	(wall-completed-percentage 1 > 45)
+	(wall-completed-percentage 2 < 100)
+	(can-build-wall 2 stone-wall)
+=>
+	(build-wall 2 stone-wall)
+)
+(defrule
+	(current-age >= castle-age)
+	(wall-completed-percentage 2 > 15)
+	(can-build-gate 2)
+=>
+	(build-gate 2)
 )
 
 ; =====================================================================
@@ -1059,6 +1158,11 @@
 	(can-research ri-siege-engineers)
 =>
 	(research ri-siege-engineers)
+)
+(defrule
+	(can-research ri-fortified-wall)
+=>
+	(research ri-fortified-wall)
 )
 (defrule
 	(can-research my-unique-unit-upgrade)

@@ -20,7 +20,7 @@ diseño:
 | **Castillo fuerte / keep** | Torreón de piedra, refugio y símbolo del señor | `(build castle)` |
 | **Bailey (patio)** | Recinto de servicios: establos, almacenes, talleres, guarnición | Anillo denso de edificios militares/económicos |
 | **Frentes de burgage** | Parcelas largas y estrechas desde la calle; la casa forma CALLE, el huerto detrás | Las casas en fila = el muro urbano |
-| **Muralla + torres** | Cortina con torres redondas, puertas con peaje | `watch-tower` + anillo de casas (ver §2) |
+| **Muralla + torres + puertas** | Cortina de empalizada/piedra con torres y puertas | `build-wall` perímetro 1 (empalizada→piedra) y 2 (piedra), `build-gate`, `watch-tower` |
 | **Plaza de mercado** | Corazón comercial: mercado, ayuntamiento, casas de gremio | `(build market)` |
 | **Iglesia parroquial** | Centro espiritual y administrativo | `(build monastery)` |
 | **Villa / burgo** | Calle principal + calle trasera + barrios por oficio | Fases de construcción secuencial |
@@ -28,21 +28,39 @@ diseño:
 | **Mesnada y arqueros** | Fuerza del señor: piqueros, ballesteros, retenes | `spearman-line` / `archer-line` / `skirmisher-line` |
 | **Máquinas de asedio** | Arietes, trabucos, mangoneles | `battering-ram-line` / `trebuchet` |
 
-### La limitación dura del motor `[CORPUS]`
+### El sistema real de murallas del motor `[CORPUS][FORTY v1/v2]`
 
-**Los AIs de AoC no pueden construir murallas ni puertas.** Verificado en
-los 50 archivos de AIs de élite del corpus (incluida *Brutal2*, que es un
-AI de Arena): **0 usos** de `(build wall)`, `(build gate)`,
-`(build fortified-wall)`. Lo que el corpus SÍ hace en masa:
+**Los AIs de AoC SÍ construyen murallas y puertas**, con un juego de
+comandos propio que el forty v1 y el fortyV2 ya usaban (está en
+`forty/legacy/`) y que también aparece en el corpus de AIs de élite:
 
-- `up-assign-builders c: watch-tower c: 3` (28×) — torres con cuadrillas;
-- `up-assign-builders c: castle c: 4` (10×) — castillos urgentes;
-- `(can-build castle)` (81×), `(can-build watch-tower)` (61×).
+| Comando / hecho | Uso | Evidencia |
+|---|---|---|
+| `(enable-wall-placement <perimetro>)` | Habilita la planificación del perímetro 1 (exterior) o 2 (interior) | corpus 7×, forty v1/v2 |
+| `(can-build-wall <perimetro> <tipo>)` / `(build-wall ...)` | Coloca el tramo siguiente: `palisade-wall` (empalizada) o `stone-wall`/`stone-wall-line` (piedra) | corpus 11×, forty v1/v2 |
+| `(can-build-gate <perimetro>)` / `(build-gate <perimetro>)` | Puertas por donde salen las tropas | corpus 6×, forty v1/v2 |
+| `(wall-completed-percentage <perimetro> <cmp> <pct>)` | % de muralla hecho, por perímetro | corpus 60×, forty v1/v2 |
+| `(research ri-fortified-wall)` | Piedra → muralla fortificada | corpus 8×, fortyV2 |
+| `sn-percent-civilian-builders` / `sn-cap-civilian-builders` | Cuadrillas dedicadas a la obra de muralla | corpus 9×/21×, forty v1/v2 |
 
-Por tanto la **muralla medieval se emula como las IAs de élite fortifican
-de verdad**: el anillo de casas (burgage) + torres (muralla) + castillo
-(keep) + edificios densos (bailey). Es el patrón de `brutal2.per` y de la
-literatura del foro `[CORPUS][FORO]`.
+**La doctrina de los DOS perímetros** (exactamente como el forty
+original, heredado en el unificado):
+
+1. **Feudal** — perímetro **exterior (1)** en **empalizada**
+   (`build-wall 1 palisade-wall`), con `build-gate 1` cuando el tramo
+   lleva >15% hecho.
+2. **Castillo** — el exterior se reconstruye en **piedra**
+   (`build-wall 1 stone-wall`) y nace el perímetro **interior (2)**,
+   también de piedra, cuando el exterior supera el 45%.
+3. **Imperial** — `ri-fortified-wall` endurece la cortina.
+
+El anillo de casas (burgage), las torres y el castillo siguen
+importando: completan la fortaleza POR DENTRO (plaza, servicios,
+guarnición), como el bailey medieval.
+
+*(Nota de método: mi análisis anterior dijo "0 usos de `(build wall)`"
+— un grep mal enfocado: el comando real es `build-wall` con perímetro y
+tipo. Corregido aquí y en el código.)*
 
 ---
 
@@ -79,11 +97,18 @@ literatura del foro `[CORPUS][FORO]`.
    - **villa**: `market` (plaza) + `blacksmith` (gremio) + 2 `barracks` +
      2 `archery-range` (cuarteles) + `monastery` (iglesia, Edad de los
      Castillos);
-   - **muralla**: hasta 6 `watch-tower` con cuadrilla de 3 + densificación
-     de casas a 30 (el anillo burgage);
+   - **muralla**: la **muralla de doble perímetro** (sección propia:
+     empalizada→piedra exterior + piedra interior, ver §1) + hasta 6
+     `watch-tower` con cuadrilla de 3 + densificación de casas a 30
+     (el anillo burgage);
    - **plaza**: 2 `castle` con cuadrilla de 4 + `siege-workshop` +
      `stable` + `university` + torres a 10 + casas a 42.
-6. **Investigación** (rápida, estilo Barbarian): edades tempranas
+6. **Murallas: doble perímetro** (herencia forty v1/v2, ver §1):
+   `enable-wall-placement 1/2`; perímetro exterior de **empalizada** en
+   Feudal → **piedra** en Castillo; perímetro interior de piedra desde
+   Castillo; `build-gate` en cada tramo; constructores dedicados mientras
+   quede muralla; `ri-fortified-wall` en Imperial.
+7. **Investigación** (rápida, estilo Barbarian): edades tempranas
    (25/32/75 aldeanos), economía (`ri-loom`, `ri-double-bit-axe`,
    `ri-horse-collar`, `ri-gold-mining`, `ri-wheel-barrow`,
    `ri-stone-mining`), militar (`ri-fletching`, `ri-bodkin-arrow`,
@@ -91,22 +116,21 @@ literatura del foro `[CORPUS][FORO]`.
    `ri-elite-skirmisher`, `ri-siege-engineers`) y las dos joyas de
    corona: `my-unique-unit-upgrade` y `my-unique-research`
    `[CPSB][CORPUS: 56×/114× en el corpus]`.
-7. **Milicia** — piqueros (35), arqueros (45), hostigadores (15), unidad
-   única del señor (20), arietes (6), trabucos (4).
-8. **Defensa** — `sn-number-defend-groups` por modo (6 defendiendo,
+8. **Milicia** — piqueros (35), arqueros (45), hostigadores (15), unidad única del señor (20), arietes (6), trabucos (4).
+9. **Defensa** — `sn-number-defend-groups` por modo (6 defendiendo,
    3 creciendo, 2 asaltando).
-9. **Asalto organizado** — oleada con `sn-number-attack-groups 200`,
+10. **Asalto organizado** — oleada con `sn-number-attack-groups 200`,
    `attack-now`, TSA progresiva (`sn-maximum-town-size +10` cada `t-push`
    hasta 180) y repliegue a defensa si atacan nuestra ciudad.
-10. **Micro DUC** (Task 7): fuego concentrado de arqueros/hostigadores
+11. **Micro DUC** (Task 7): fuego concentrado de arqueros/hostigadores
     con `formation-stagger` sobre el enemigo con mejor
     `player-number` (`this-any-enemy`, `sn-focus-player-number`) y
     **asedio que prioriza edificios** (castillo → TC → torres → resto).
-11. **Mercado y cuentas** (`t-eco`): comprar piedra para el castillo,
+12. **Mercado y cuentas** (`t-eco`): comprar piedra para el castillo,
     vender madera de sobra, comprar comida si falta, y el reparto de
     aldeanos por fase (60/35/5/0 → 45/35/20/0 → 40/30/20/10 →
     35/25/25/15).
-12. **Timers** — armado inicial + rearme SIEMPRE al final (regla de
+13. **Timers** — armado inicial + rearme SIEMPRE al final (regla de
     `docs/01`).
 
 ### Fases de la ciudad (resumen)
@@ -115,7 +139,7 @@ literatura del foro `[CORPUS][FORO]`.
 |---|---|---|
 | `cty-aldea` | edad ≥ Feudal | casas, granja, molino, campamentos |
 | `cty-villa` | edad ≥ Castillo + 22 casas | market, blacksmith, barracks, archery-range, monastery |
-| `cty-muralla` | castillo + 2 torres | torres ×6, casas a 30, piedra |
+| `cty-muralla` | castillo + 2 torres | torres ×6, casas a 30, murallas de piedra (perímetros 1 y 2) |
 | `cty-plaza` | — (estado final) | castillo ×2, siege-workshop, stable, university, torres ×10, casas a 42 |
 
 ---

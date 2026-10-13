@@ -151,6 +151,13 @@ POS_BASE = {k: re.sub(r'-(action|form|stance|od)$', '', k) for k in POS}
 
 # aridad en TOKENS (los prefijos c:/g:/s: cuentan como token propio)
 SCHEMA = {
+    # --- sistema de murallas (forty v1/v2 + corpus: build-wall 11x, build-gate 6x) ---
+    'enable-wall-placement': 1,
+    'can-build-wall': 2,
+    'build-wall': 2,
+    'can-build-gate': 1,
+    'build-gate': 1,
+    'wall-completed-percentage': 3,
     'or': 2, 'and': 2, 'not': 1, 'true': 0, 'disable-self': 0, 'attack-now': 0,
     'goal': 2, 'set-goal': 2, 'up-compare-goal': 3, 'up-modify-goal': 3,
     'timer-triggered': 1, 'enable-timer': 2, 'disable-timer': 1,
