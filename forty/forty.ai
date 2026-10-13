@@ -1,0 +1,6 @@
+; forty.ai
+#load-if-defined UP-EXTENSION
+    (load "UserPatchConst")
+#end-if
+
+(load "forty")

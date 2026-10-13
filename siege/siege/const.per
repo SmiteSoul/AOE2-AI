@@ -1,0 +1,46 @@
+; =====================================================================
+; SIEGE - constantes
+; Goals, timers y parametros ajustables.
+; NOTA: el hecho (goal x y) SOLO compara igualdad; para rangos usar
+; up-compare-goal o los operadores g: de los hechos.
+; =====================================================================
+
+; ---------- Estado ----------
+(defconst gl-attack-state 1)      ; 0 = reposo / reagrupando, 1 = OLEADA DE ASEDIO
+(defconst gl-target-walls 2)      ; 1 si algun enemigo tiene murallas
+(defconst gl-first-push 3)        ; 1 tras el primer asalto (chat de presentacion)
+
+; ---------- Temporales DUC / puntos (punto = 2 goals consecutivos) ----------
+(defconst gl-temp 10)
+(defconst gl-temp2 11)
+(defconst gl-pt1 20)              ; punto DUC (x,y) = goals 20-21
+(defconst gl-pt1-y 21)
+
+; ---------- Estado de busqueda (up-get-search-state escribe 4 goals) ----------
+(defconst gl-local-total 30)
+(defconst gl-local-last 31)
+(defconst gl-remote-total 32)
+(defconst gl-remote-last 33)
+
+; ---------- Objetivos de produccion (los ajustan las reglas) ----------
+(defconst gl-villager-want 40)
+(defconst gl-ram-want 41)
+(defconst gl-mango-want 42)
+(defconst gl-scorp-want 43)
+(defconst gl-archer-want 44)
+(defconst gl-halb-want 45)
+(defconst gl-skirm-want 46)
+
+; ---------- Timers ----------
+(defconst t-micro 1)              ; micro DUC: carga de arietes, brechas, fuego concentrado
+(defconst t-push 2)               ; paso de TSA durante la oleada
+(defconst t-eco 3)                ; reajuste economico y mercado
+(defconst t-walls 4)              ; limite de fase de brecha (dejar de pegar murallas/puertas)
+
+; ---------- Constantes de proyecto ----------
+(defconst trebuchet-set 971)      ; trebuchet empaquetado + desplegado (ver UserPatchConst)
+(defconst ts-base 20)             ; town-size en reposo
+(defconst ts-step 6)              ; avance de TSA por paso
+(defconst ts-max 220)             ; techo de TSA
+(defconst ram-full 4)             ; guarnicion maxima de un ariete en AoC (solo la
+                                  ; infanteria mejora velocidad y ataque)

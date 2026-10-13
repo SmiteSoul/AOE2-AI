@@ -1,0 +1,555 @@
+; Keep track of the age we are in including if we
+; are progressing to another, in:  g-age-status
+(defrule                                      
+   (goal g-age-status gv-advancing-to-feudal)
+   (research-available feudal-age)
+   =>
+   (chat-to-allies "Age research misfire!")
+   (set-goal g-age-status gv-dark-age)
+)
+
+(defrule
+   (can-research feudal-age)
+   =>
+   (research feudal-age)
+   (set-goal g-age-status gv-advancing-to-feudal) 
+   (chat-to-allies "Researching Feudal Age")      
+)
+
+(defrule                        
+   (current-age == feudal-age)
+   =>
+   (set-goal g-age-status gv-feudal-age)
+   (disable-self)
+)
+
+(defrule                                     
+   (goal g-age-status gv-advancing-to-castle)
+   (research-available castle-age)
+   =>
+   (chat-to-allies "Age research misfire!")
+   (set-goal g-age-status gv-feudal-age)
+)
+
+(defrule
+   (can-research castle-age)
+   =>
+   (research castle-age)
+   (set-goal g-age-status gv-advancing-to-castle) 
+   (chat-to-allies "Researching Castle Age")    
+)
+
+(defrule                     
+   (current-age == castle-age)
+   =>
+   (set-goal g-age-status gv-castle-age)
+   (disable-self)
+)
+
+(defrule                                       
+   (goal g-age-status gv-advancing-to-imperial)
+   (research-available imperial-age)
+   =>
+   (chat-to-allies "Age research misfire!")
+   (set-goal g-age-status gv-castle-age)
+)
+
+(defrule
+   (can-research imperial-age)
+   =>
+   (research imperial-age)
+   (set-goal g-age-status gv-advancing-to-imperial) 
+   (chat-to-allies "Researching Imperial Age")    
+)
+
+(defrule                        
+   (current-age == imperial-age)
+   =>
+   (set-goal g-age-status gv-imperial-age)
+   (disable-self)
+)
+
+; TC opgrades
+(defrule
+    (can-research ri-loom)
+    (food-amount <= 50)
+    (unit-type-count-total villager > 10)
+    (current-age == dark-age)
+    =>
+    (research ri-loom)
+)
+
+(defrule
+    (can-research ri-loom)
+    (current-age > dark-age)
+    =>
+    (research ri-loom)
+)
+
+(defrule
+    (can-research ri-wheel-barrow)
+	(or
+		(goal g-multiple-town-centers gv-yes)
+		(current-age == imperial-age)
+	)
+    =>
+    (research ri-wheel-barrow)
+)
+
+(defrule
+    (can-research ri-hand-cart)
+    =>
+    (research ri-hand-cart)
+)
+
+; mill upgrades
+(defrule
+    (can-research ri-horse-collar)
+	(or
+		(goal g-multiple-town-centers gv-yes)
+		(current-age == imperial-age)
+	)
+    =>
+    (research ri-horse-collar)
+)
+
+(defrule
+    (can-research ri-heavy-plow)
+	(or
+		(goal g-multiple-town-centers gv-yes)
+		(current-age == imperial-age)
+	)
+    =>
+    (research ri-heavy-plow)
+)
+
+; lumber camp upgrades
+(defrule
+    (can-research ri-double-bit-axe)
+	(or
+		(goal g-age-status gv-advancing-to-castle)
+		(current-age >= castle-age)
+	)
+    =>
+    (research ri-double-bit-axe)
+)
+
+(defrule
+    (can-research ri-bow-saw)
+    =>
+    (research ri-bow-saw)
+)
+
+(defrule
+    (can-research ri-two-man-saw)
+    =>
+    (research ri-two-man-saw)
+)
+
+; mine upgrades
+(defrule
+    (can-research ri-gold-mining)
+	(current-age >= castle-age)
+    =>
+    (research ri-gold-mining)
+)
+
+(defrule
+    (can-research ri-gold-shaft-mining)
+    =>
+    (research ri-gold-shaft-mining)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-stone-mining)
+    =>
+    (research ri-stone-mining)
+)
+
+; castle upgrades
+(defrule
+    (can-research ri-conscription)
+    =>
+    (research ri-conscription)
+)
+
+(defrule
+    (can-research ri-hoardings)
+    =>
+    (research ri-hoardings)
+)
+
+
+;militia-line upgrades
+(defrule
+	(unit-type-count militiaman >= 5)
+	(can-research ri-man-at-arms)
+=>
+	(research ri-man-at-arms)
+)
+(defrule
+	(unit-type-count man-at-arms >= 12)
+	(can-research ri-long-swordsman)
+=>
+	(research ri-long-swordsman)
+)
+(defrule
+	(unit-type-count long-swordsman >= 15)
+	(can-research ri-two-handed-swordsman)
+=>
+	(research ri-two-handed-swordsman)
+)
+(defrule
+	(unit-type-count two-handed-swordsman >= 20)
+	(can-research ri-champion)
+=>
+	(research ri-champion)
+)
+;spear-line upgrades
+(defrule
+	(unit-type-count spearman >= 10)
+	(can-research ri-pikeman)
+=>
+	(research ri-pikeman)
+)
+(defrule
+	(unit-type-count pikeman >= 20)
+	(can-research ri-halberdier)
+=>
+	(research ri-halberdier)
+)
+;eagle-line upgrades
+(defrule
+	(unit-type-count eagle-warrior >= 18)
+	(can-research ri-eagle-warrior)
+=>
+	(research ri-eagle-warrior)
+)
+(defrule
+	(unit-type-count heavy-eagle-warrior >= 20)
+	(can-research ri-elite-eagle-warrior)
+=>
+	(research ri-elite-eagle-warrior)
+)
+;blacksmith upgrades
+(defrule
+	(can-research ri-scale-mail)
+    (goal g-multiple-town-centers gv-done)
+=>
+	(research ri-scale-mail)
+)
+(defrule
+	(research-completed ri-scale-mail)
+	(can-research ri-forging)
+=>
+	(research ri-forging)
+)
+(defrule
+	(can-research ri-chain-mail)
+    (goal g-multiple-town-centers gv-done)
+=>
+	(research ri-chain-mail)
+)
+(defrule
+	(research-completed ri-chain-mail)
+	(can-research ri-iron-casting)
+=>
+	(research ri-iron-casting)
+)
+(defrule
+	(research-completed ri-iron-casting)
+	(can-research ri-squires)
+=>
+	(research ri-squires)
+)
+(defrule
+	(not(research-available ri-squires))	;researched already or not available for the civ
+	(can-research ri-tracking)
+	(goal g-multiple-town-centers gv-done)
+=>
+	(research ri-tracking)
+)
+(defrule
+	(can-research ri-plate-mail)
+    (goal g-multiple-town-centers gv-done)
+=>
+	(research ri-plate-mail)
+)
+(defrule
+	(not(research-available ri-plate-mail))
+	(can-research ri-blast-furnace)
+	(goal g-multiple-town-centers gv-done)
+=>
+	(research ri-blast-furnace)
+)
+
+;Scout upgrades
+(defrule
+	(unit-type-count scout-cavalry >= 10)
+	(can-research ri-light-cavalry)
+=>
+	(research ri-light-cavalry)
+)
+(defrule
+	(unit-type-count scout-cavalry >= 20)
+	(can-research ri-hussar)
+=>
+	(research ri-hussar)
+)
+;knight upgrades
+(defrule
+	(unit-type-count knight >= 20)
+	(can-research knight)
+=>
+	(research cavalier)
+)
+(defrule
+	(unit-type-count cavalier >= 30)
+	(can-research ri-paladin)
+=>
+	(research ri-paladin)
+)
+;camel upgrades
+(defrule
+	(unit-type-count camel >= 15)
+	(can-research ri-heavy-camel)
+=>
+	(research ri-heavy-camel)
+)
+
+;blacksmith ups
+(defrule
+	(can-research ri-scale-barding)
+    (goal g-multiple-town-centers gv-done)
+=>
+	(research ri-scale-barding)
+)
+(defrule
+	(can-research ri-bloodlines)
+    (goal g-multiple-town-centers gv-done)
+=>
+	(research ri-bloodlines)
+)
+(defrule
+	(research-completed ri-scale-barding)
+	(can-research ri-forging)
+=>
+	(research ri-forging)
+)
+(defrule
+	(can-research ri-chain-barding)
+    (goal g-multiple-town-centers gv-done)
+=>
+	(research ri-chain-barding)
+)
+(defrule
+	(research-completed ri-chain-barding)
+	(can-research ri-iron-casting)
+=>
+	(research ri-iron-casting)
+)
+(defrule
+	(research-completed ri-iron-casting)
+	(not(research-available ri-bloodlines))
+	(can-research ri-husbandry)
+=>
+	(research ri-husbandry)
+)
+(defrule
+	(can-research ri-plate-barding)
+    (goal g-multiple-town-centers gv-done)
+=>
+	(research ri-plate-barding)
+)
+(defrule
+	(research-completed ri-plate-barding)
+	(can-research ri-blast-furnace)
+=>
+	(research ri-blast-furnace)
+)
+
+;Archer-line ups
+(defrule
+	(unit-type-count archer >= 10)
+	(can-research ri-crossbow)
+=>
+	(research ri-crossbow)
+)
+(defrule
+	(unit-type-count crossbowman >= 20)
+	(can-research ri-arbalest)
+=>
+	(research ri-arbalest)
+)
+;Cavalry archer up
+(defrule
+	(unit-type-count cavalry-archer >= 20)
+	(can-research ri-heavy-cavalry-archer)
+=>
+	(research ri-heavy-cavalry-archer)
+)
+(defrule
+	(or
+		(unit-type-count cavalry-archer >= 10)
+		(unit-type-count conquistador-line >= 10)
+	)
+	(can-research ri-bloodlines)
+=>
+	(research ri-bloodlines)
+)
+
+(defrule
+	(unit-type-count cavalry-archer >= 20)
+	(research-completed ri-leather-archer-armor)
+	(or
+		(research-completed ri-bloodlines)
+		(not(research-available ri-bloodlines))
+	)
+	(can-research ri-husbandry)
+=>
+	(research ri-husbandry)
+)
+(defrule
+	(unit-type-count cavalry-archer >= 20)
+	(research-completed ri-heavy-cavalry-archer)
+	(can-research ri-parthian-tactics)
+=>
+	(research ri-parthian-tactics)
+)
+;skirmisher up
+(defrule
+	(unit-type-count skirmisher >= 20)
+	(can-research ri-elite-skirmisher)
+=>
+	(research ri-elite-skirmisher)
+)
+;blacksmith ups
+(defrule
+	(can-research ri-fletching)
+    (goal g-multiple-town-centers gv-done)
+=>
+	(research ri-fletching)
+)
+(defrule
+	(research-completed ri-fletching)
+	(can-research ri-padded-archer-armor)
+=>
+	(research ri-padded-archer-armor)
+)
+(defrule
+	(can-research ri-bodkin-arrow)
+    (goal g-multiple-town-centers gv-done)
+=>
+	(research ri-bodkin-arrow)
+)
+(defrule
+    (research-completed ri-bodkin-arrow)
+	(can-research ri-leather-archer-armor)
+=>
+	(research ri-leather-archer-armor)
+)
+(defrule
+	(research-completed ri-leather-archer-armor)
+	(can-research ri-ballistics)
+=>
+	(research ri-ballistics)
+)
+(defrule
+	(goal g-multiple-town-centers gv-done)
+	(unit-type-count-total archer-line > 4)
+	(can-research ri-thumb-ring)
+=>
+	(research ri-thumb-ring)
+)
+(defrule
+	(can-research ri-bracer)
+    (goal g-multiple-town-centers gv-done)
+=>
+	(research ri-bracer)
+)
+(defrule
+    (not(research-available ri-bracer))
+	(can-research ri-ring-archer-armor)
+=>
+	(research ri-ring-archer-armor)
+)
+(defrule
+	(not(research-available ri-bracer))
+	(can-research ri-chemistry)
+=>
+	(research ri-chemistry)
+)
+
+
+; imperial age
+
+(defrule
+    (current-age == imperial-age)
+    (can-research ri-masonry)
+    =>
+    (research ri-masonry)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (can-research ri-fortified-wall)
+    =>
+    (research ri-fortified-wall)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (can-research ri-murder-holes)
+    =>
+    (research ri-murder-holes)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (can-research ri-guard-tower)
+    =>
+    (research ri-guard-tower)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (can-research ri-keep)
+    =>
+    (research ri-keep)
+)
+
+;; walls
+;(defrule
+	;(current-age == imperial-age)
+	;(building-type-count-total stone-wall-line > 10)
+	;(can-research ri-fortified-walls)
+	;=>
+	;(research ri-fortified-walls)
+;)
+
+;; watch tower upgrades
+(defrule
+	(current-age == imperial-age)
+	(building-type-count-total watch-tower-line > 2)
+	(can-research ri-guard-tower)
+	=>
+	(research ri-guard-tower)
+)
+
+(defrule
+	(current-age == imperial-age)
+	(building-type-count-total watch-tower-line > 4)
+	(can-research ri-keep)
+	=>
+	(research ri-keep)
+)
+
+;; mangonel upgrades
+(defrule
+	(current-age == imperial-age)
+	(unit-type-count-total mangonel-line > 2)
+	(can-research ri-onager)
+	=>
+	(research ri-onager)
+)

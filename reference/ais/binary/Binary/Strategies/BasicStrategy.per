@@ -1,0 +1,313 @@
+﻿; STRATEGY BASIC
+
+; TODO all civs
+
+var gl-my-feudal-unit
+var gl-my-primary-unit
+var gl-my-secondary-unit
+var gl-my-siege-unit
+var gl-my-primary-trash-unit
+var gl-my-secondary-trash-unit
+var gl-my-infantry-counter
+var gl-my-archer-counter
+var gl-my-cavalry-counter
+var gl-my-monk-counter
+var gl-my-eagle-warrior-counter
+
+(load "Binary\Strategies\BasicStrategyCivs")
+
+sn-market-eco-balance = LOW
+
+; age up
+
+#if civilian-population > 10
+
+	TryImportantResearch(ri-loom)
+	
+#end-if
+
+#if research-completed ri-loom
+
+	TryImportantResearch(feudal-age)
+	
+#end-if
+
+#if current-age >= feudal-age
+
+	#if building-type-count-total market == 0
+	
+		TryImportantBuilding(market, BUILDING-NORMAL, -1, -1)
+		
+	#end-if
+	
+	#if (building-type-count-total blacksmith == 0) (building-type-count-total market > 0)
+	
+		TryImportantBuilding(blacksmith, BUILDING-NORMAL, -1, -1)
+		
+	#end-if
+
+#end-if
+
+TryImportantResearch(castle-age)
+
+#if (current-age >= castle-age) (up-object-type-count c: town-center s:>= sn-min-town-center)
+
+	#if building-type-count-total monastery == 0
+	
+		TryImportantBuilding(monastery, BUILDING-NORMAL, -1, -1)
+		
+	#end-if
+	
+	#if building-type-count-total university == 0
+	
+		TryImportantBuilding(university, BUILDING-NORMAL, -1, -1)
+		
+	#end-if
+
+#end-if
+
+TryImportantResearch(imperial-age)
+
+; buildings
+
+#if (current-age >= castle-age) (can-build castle) (up-object-type-count c: town-center s:>= sn-min-town-center)
+
+	BuildNormal(gl-without-escrow, castle)
+
+#end-if
+
+#if (up-research-status c: castle-age c:>= research-pending)
+
+	sn-min-town-center max= 3
+	
+#end-if
+
+#if (building-type-count-total castle > 0) (building-type-count university > 0)
+
+	TryImportantResearch(ri-murder-holes)
+	
+#end-if
+
+; units
+
+#if up-research-status c: feudal-age c:>= research-pending
+
+	sn-primary-unit = gl-my-feudal-unit
+	sn-min-primary-unit = sn-recent-target-army
+
+	sn-auto-attack = OFF
+	
+	var gl-biggest-threat = NO
+
+	#if sn-monk-threat > gl-biggest-threat
+	
+		sn-primary-unit = gl-my-monk-counter
+		gl-biggest-threat = sn-monk-threat
+		
+	#end-if
+	
+	#if sn-cavalry-threat > gl-biggest-threat
+	
+		sn-primary-unit = gl-my-cavalry-counter
+		gl-biggest-threat = sn-cavalry-threat
+		
+	#end-if
+	
+	#if sn-eagle-warrior-threat > gl-biggest-threat
+	
+		sn-primary-unit = gl-my-eagle-warrior-counter
+		gl-biggest-threat = sn-eagle-warrior-threat
+		
+	#end-if
+	
+	#if sn-archery-threat > gl-biggest-threat
+	
+		sn-primary-unit = gl-my-archer-counter
+		gl-biggest-threat = sn-archery-threat
+		
+	#end-if
+	
+	#if sn-infantry-threat > gl-biggest-threat
+	
+		sn-primary-unit = gl-my-infantry-counter
+		gl-biggest-threat = sn-infantry-threat
+		
+	#end-if
+	
+#end-if
+
+#if up-research-status c: castle-age c:>= research-pending
+
+	sn-primary-unit = gl-my-primary-unit
+	
+#end-if
+
+#if current-age >= castle-age
+	
+	sn-auto-attack = ON
+	
+	sn-primary-unit = gl-my-primary-unit
+	sn-secondary-unit = gl-my-secondary-unit
+	
+	sn-siege-unit = gl-my-siege-unit
+	sn-min-siege-unit = 3
+		
+	#if (unit-available trebuchet) (unit-type-count-total trebuchet-set < 3) (building-type-count castle > 0)
+	
+		sn-siege-unit = trebuchet
+		
+	#end-if
+	
+	sn-min-primary-unit = 20
+	sn-min-secondary-unit = 10
+	
+	#if sn-recent-target-army > 40
+	
+		sn-min-primary-unit = 40
+		sn-min-secondary-unit = 20
+		
+	#end-if
+
+	var gl-biggest-threat = NO
+	
+	#if sn-monk-threat > gl-biggest-threat
+	
+		sn-secondary-unit = gl-my-monk-counter
+		gl-biggest-threat = sn-monk-threat
+		
+	#end-if
+	
+	#if sn-cavalry-threat > gl-biggest-threat
+	
+		sn-secondary-unit = gl-my-cavalry-counter
+		gl-biggest-threat = sn-cavalry-threat
+		
+	#end-if
+	
+	#if sn-eagle-warrior-threat > gl-biggest-threat
+	
+		sn-secondary-unit = gl-my-eagle-warrior-counter
+		gl-biggest-threat = sn-eagle-warrior-threat
+		
+	#end-if
+	
+	#if sn-archery-threat > gl-biggest-threat
+	
+		sn-secondary-unit = gl-my-archer-counter
+		gl-biggest-threat = sn-archery-threat
+		
+	#end-if
+	
+	#if sn-infantry-threat > gl-biggest-threat
+	
+		sn-secondary-unit = gl-my-infantry-counter
+		gl-biggest-threat = sn-infantry-threat
+		
+	#end-if	
+	
+	#if gl-biggest-threat == HIGH
+	
+		var gl-prime = sn-min-primary-unit
+		sn-min-primary-unit = sn-min-secondary-unit
+		sn-min-secondary-unit = gl-prime
+		
+	#end-if
+	
+	#if sn-gold-availability <= LOW
+	
+		sn-primary-unit = gl-my-primary-trash-unit
+		sn-secondary-unit = gl-my-secondary-trash-unit
+		
+	#end-if
+	
+#end-if
+
+; TODO switch this condition to when civilian pop cap is near rather than when imperial age
+#if up-research-status c: imperial-age c:>= research-pending
+	
+	sn-auto-attack = ON
+	
+	var gl-pop-cap
+	up-get-fact population-cap 0 gl-pop-cap
+	
+	var gl-mil = 100
+	gl-mil -= sn-civilian-population-percentage
+	gl-mil %*= gl-pop-cap
+	
+	#if sn-siege-unit != OFF
+	
+		gl-mil -= 5
+		sn-min-siege-unit = 5
+		
+	#end-if
+	
+	#if sn-primary-unit != OFF
+	
+		sn-min-primary-unit = 60
+		sn-min-primary-unit %*= gl-mil
+		
+	#end-if
+	
+	#if sn-secondary-unit != OFF
+	
+		sn-min-secondary-unit = 30
+		sn-min-secondary-unit %*= gl-mil
+		
+	#end-if
+	
+	#if sn-tertiary-unit != OFF
+	
+		sn-min-tertiary-unit = 10
+		sn-min-tertiary-unit %*= gl-mil
+	
+	#end-if
+	
+#end-if
+
+; have at least 1 monk
+#if (building-type-count monastery > 0) (unit-type-count-total monk == 0) (sn-important-unit == OFF)
+
+	sn-important-unit = monk
+	
+#end-if
+
+; fill up army with trash if no gold
+#if (up-resource-amount amount-military-population s:< sn-recent-target-army) (housing-headroom > 3) (gold-amount < 100) (up-object-type-count c: town-center s:>= sn-min-town-center)
+
+	var gl-unit
+	var gl-train-site
+	
+	#foreach $unit in gl-my-primary-trash-unit gl-my-secondary-trash-unit
+	
+		up-get-object-type-data g: $unit object-data-type gl-unit
+		up-get-object-type-data g: gl-unit object-data-train-site gl-train-site
+	
+		#if up-train-site-ready g: gl-unit
+	
+			#if up-can-train gl-without-escrow g: gl-unit
+		
+				up-train gl-without-escrow g: gl-unit
+			
+			#end-if
+			
+			#if (sn-town-threat == HIGH) (up-can-train gl-with-escrow g: gl-unit)
+			
+				chat-local-to-self "Training trash urgently"
+				
+				up-train gl-with-escrow g: gl-unit
+				
+			#end-if
+		
+		#else
+	
+			#if (up-pending-objects g: gl-train-site c:== 0) (timer-triggered ti-repeat-13)
+			
+				TryImportantBuilding(gl-train-site, BUILDING-NORMAL, -1, -1)
+				
+			#end-if
+		
+		#end-if
+	
+	#end-foreach
+	
+#end-if

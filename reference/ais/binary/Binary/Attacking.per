@@ -1,0 +1,244 @@
+﻿; ATTACKING
+
+(defconst flag-tsa 1)
+(defconst flag-inside-safe 2)
+(defconst flag-outside-safe 4)
+(defconst flag-outside-max 8)
+
+(defrule
+	(true)
+=>
+	(set-strategic-number sn-percent-enemy-sighted-response 100)
+	(set-strategic-number sn-enemy-sighted-response-distance 100)
+	(set-strategic-number sn-zero-priority-distance 100)
+	(set-strategic-number sn-enable-offensive-priority 1)
+	(set-strategic-number sn-enable-patrol-attack 1)
+	(set-strategic-number sn-local-targeting-mode 1)
+	(set-strategic-number sn-minimum-attack-group-size 1)
+	(set-strategic-number sn-maximum-attack-group-size 1)
+	(set-strategic-number sn-disable-defend-groups flag-outside-max)
+	(set-strategic-number sn-consecutive-idle-unit-limit 1)
+	(set-strategic-number sn-wall-targeting-mode 1)
+	;(set-strategic-number sn-gather-defense-units 1)
+	(disable-self)
+)
+
+#function SetRetreatTargetObject
+
+	var gl-found = NO
+	
+	up-full-reset-search
+	up-find-local c: town-center c: 10
+	up-find-local c: castle c: 10
+	up-find-local c: watch-tower-line c: 10
+	up-get-search-state gl-search-state
+	
+	#if gl-local-total > 0
+	
+		up-get-point position-target gl-point1
+		up-set-target-point gl-point1
+		up-clean-search search-local object-data-distance search-order-asc
+		up-set-target-object search-local c: 0
+		gl-found = YES
+		
+	#end-if
+	
+#return gl-found
+
+(defrule
+	(true)
+=>
+	(set-strategic-number sn-number-civilian-militia 0)
+	(set-strategic-number sn-allow-civilian-offense 0)
+	(set-strategic-number sn-allow-civilian-defense 0)
+	(disable-self)
+)
+
+; Switch Attack State
+
+#if (sn-attack == YES) (gl-currently-attacking == NO)
+
+	gl-currently-attacking = YES
+	
+	chat-local-to-self "Attack!"
+	
+#end-if
+
+#if (sn-attack == NO) (gl-currently-attacking == YES)
+
+	gl-currently-attacking = NO
+				
+	sn-total-number-explorers = 1
+	sn-number-explore-groups = 1
+	
+	chat-local-to-self "Run away!"
+	
+#end-if
+
+; Auto Attack
+
+#if sn-auto-attack == ON
+
+	var gl-pop
+	var gl-pop-cap
+	var gl-mod = 90
+	
+	var gl-ally-attacked = -1
+	gl-ally-attacked = GetAllyAttacked()
+	
+	#if gl-ally-attacked > 0
+	
+		gl-mod = 50
+		
+	#end-if
+	
+	up-get-fact population 0 gl-pop
+	up-get-fact population-cap 0 gl-pop-cap
+	gl-pop-cap -= 10
+	gl-pop-cap %*= gl-mod
+		
+	#if (sn-attack == NO) (sn-primary-unit != OFF) (sn-min-primary-unit >= 5) (timer-triggered ti-repeat-3m)
+		
+		var gl-should-attack = NO
+		
+		#if (gl-pop > gl-pop-cap) (military-population > 25)
+		
+			gl-should-attack = YES
+		
+		#end-if
+		
+		#if gl-should-attack == YES
+		
+			sn-attack = YES
+			
+		#end-if
+		
+	#end-if
+		
+	var gl-should-retreat = NO
+		
+	gl-pop-cap %*= 70
+	#if or (gl-pop < gl-pop-cap) (military-population < 15)
+		
+		gl-should-retreat = YES
+			
+	#end-if
+		
+	#if sn-town-threat == HIGH
+		
+		gl-should-retreat = YES
+			
+	#end-if
+		
+	#if (up-object-type-count s: sn-siege-unit c:== 0) (unit-type-count battering-ram-line == 0) (unit-type-count packed-trebuchet-class == 0) (unit-type-count unpacked-trebuchet-class == 0)
+		
+		gl-should-retreat = YES
+			
+	#end-if
+	
+	up-get-fact population 0 gl-pop
+	up-get-fact population-cap 0 gl-pop-cap
+	gl-pop += 10
+	
+	#if gl-pop >= gl-pop-cap
+	
+		gl-should-retreat = NO
+		
+	#end-if
+		
+	#if gl-should-retreat == YES
+		
+		sn-attack = NO
+			
+	#end-if
+	
+#end-if
+
+; Unit Micro
+
+;up-set-attack-stance -1 c: stance-defensive
+
+#if gl-currently-attacking == YES
+
+	#if timer-triggered ti-repeat-7
+	
+		chat-local-to-self "Attacking..."
+	
+	#end-if
+	
+	#if (up-building-type-in-town c: town-center == 0) (up-building-type-in-town c: castle == 0) (up-building-type-in-town c: watch-tower == 0)
+	
+		sn-maximum-town-size += 2
+		sn-maximum-town-size min= 1000
+		
+		#if (sn-maximum-town-size > 250) (military-population > 20)
+		
+			sn-total-number-explorers = 10
+			sn-number-explore-groups = 10
+			
+		#end-if
+	
+	#end-if
+
+#else
+
+	#if timer-triggered ti-repeat-7
+	
+		; set maximum-town-size
+		up-full-reset-search
+		up-find-local c: town-center c: 10
+		up-find-local c: castle c: 10
+		up-find-local c: watch-tower-line c: 10
+		up-find-local c: house c: 50
+		up-find-local c: mill c: 50
+		up-get-point position-self gl-point1
+		up-set-target-point gl-point1
+		up-clean-search search-local object-data-distance search-order-desc
+		up-set-target-object search-local c: 0
+		var gl-distance
+		up-get-object-data object-data-distance gl-distance
+		sn-maximum-town-size = gl-distance
+	
+		sn-maximum-town-size += 5
+		
+		var gl-mil-pop
+		up-get-fact military-population 0 gl-mil-pop
+		gl-mil-pop %*= 150
+		#if up-enemy-units-in-town g:> gl-mil-pop
+			
+			; hide in buildings
+			up-gather-inside c: barracks c: 1
+			up-gather-inside c: archery-range c: 1
+			up-gather-inside c: stable c: 1
+			up-gather-inside c: siege-workshop c: 1
+			up-gather-inside c: castle c: 1
+			
+		#else
+			
+			; pop out
+			up-gather-inside c: barracks c: 0
+			up-gather-inside c: archery-range c: 0
+			up-gather-inside c: stable c: 0
+			up-gather-inside c: siege-workshop c: 0
+			up-gather-inside c: castle c: 0
+			
+		#end-if
+		
+	#end-if
+	
+	#if (current-age < castle-age) (up-enemy-units-in-town < 10) (military-population < 10) (research-completed ri-loom)
+		
+		sn-number-civilian-militia = 15
+		sn-allow-civilian-offense = 2
+		sn-allow-civilian-defense = 3
+		
+	#else
+	
+		sn-number-civilian-militia = 0
+		sn-allow-civilian-offense = 0
+		sn-allow-civilian-defense = 0
+		
+	#end-if
+	
+#end-if
+

@@ -1,0 +1,147 @@
+; =====================================================================
+; SIEGE - construccion
+; Base economica + fabricas de asedio (talleres de asedio, castillos).
+; =====================================================================
+
+; ---------- Casas ----------
+(defrule
+	(housing-headroom < 5)
+	(can-build house)
+	(building-type-count-total house < 90)
+=>
+	(build house)
+)
+
+; ---------- Aserradero / campamentos mineros ----------
+(defrule
+	(resource-found wood)
+	(dropsite-min-distance wood > 3)
+	(can-build lumber-camp)
+=>
+	(build lumber-camp)
+)
+(defrule
+	(resource-found gold)
+	(dropsite-min-distance gold > 4)
+	(can-build mining-camp)
+=>
+	(build mining-camp)
+)
+(defrule
+	(current-age >= castle-age)
+	(resource-found stone)
+	(dropsite-min-distance stone > 4)
+	(can-build mining-camp)
+=>
+	(build mining-camp)
+)
+
+; ---------- Molino y granjas ----------
+(defrule
+	(game-time > 90)
+	(can-build mill)
+	(building-type-count-total mill < 1)
+=>
+	(build mill)
+)
+(defrule
+	(idle-farm-count < 1)
+	(can-build farm)
+	(building-type-count-total farm < 36)
+	(wood-amount >= 90)
+=>
+	(build farm)
+)
+
+; ---------- Edificios militares base ----------
+(defrule
+	(current-age >= feudal-age)
+	(can-build barracks)
+	(building-type-count-total barracks < 1)
+=>
+	(build barracks)
+)
+(defrule
+	(current-age >= feudal-age)
+	(can-build market)
+	(building-type-count-total market < 1)
+=>
+	(build market)
+)
+(defrule
+	(current-age >= feudal-age)
+	(can-build blacksmith)
+	(building-type-count-total blacksmith < 1)
+=>
+	(build blacksmith)
+)
+
+; ---------- Fabricas de asedio y apoyo ----------
+(defrule
+	(current-age >= castle-age)
+	(can-build siege-workshop)
+	(building-type-count-total siege-workshop < 2)
+=>
+	(build siege-workshop)
+)
+(defrule
+	(current-age == imperial-age)
+	(can-build siege-workshop)
+	(building-type-count-total siege-workshop < 4)
+=>
+	(build siege-workshop)
+)
+(defrule
+	(current-age >= castle-age)
+	(can-build archery-range)
+	(building-type-count-total archery-range < 2)
+=>
+	(build archery-range)
+)
+(defrule
+	(current-age == imperial-age)
+	(can-build archery-range)
+	(building-type-count-total archery-range < 4)
+=>
+	(build archery-range)
+)
+(defrule
+	(current-age >= castle-age)
+	(can-build monastery)
+	(building-type-count-total monastery < 1)
+=>
+	(build monastery)
+)
+(defrule
+	(current-age >= castle-age)
+	(can-build university)
+	(building-type-count-total university < 1)
+=>
+	(build university)
+)
+
+; ---------- Centros urbanos (base economica del asedio) ----------
+(defrule
+	(current-age >= castle-age)
+	(can-build town-center)
+	(building-type-count-total town-center < 3)
+=>
+	(build town-center)
+)
+
+; ---------- Castillos: trebuchets y defensa ----------
+(defrule
+	(current-age >= castle-age)
+	(can-build castle)
+	(building-type-count-total castle < 1)
+=>
+	(build castle)
+)
+(defrule
+	(current-age == imperial-age)
+	(can-build castle)
+	(building-type-count-total castle < 3)
+=>
+	(build castle)
+)
+

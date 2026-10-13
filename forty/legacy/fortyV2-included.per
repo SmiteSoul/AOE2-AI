@@ -1,0 +1,7060 @@
+; ==========================================================
+; semiUtils.per
+; IA GENERALISTA MODULAR PARA AOE2 TC/UP 1.5
+; BLOQUE 1/10
+; ENCABEZADO + CARGA DE CONSTANTES + MEMORIA + ESTADOS
+; ==========================================================
+
+(load "UserPatchConst")
+
+; ==========================================================
+; GOALS BASE 1-40
+; ESTADO GLOBAL Y MEMORIA ESTRATEGICA
+; ==========================================================
+
+(defconst gl-theater              1)
+(defconst gl-strat-state          2)
+(defconst gl-eco-state            3)
+(defconst gl-build-state          4)
+(defconst gl-land-combat-state    5)
+(defconst gl-naval-combat-state   6)
+(defconst gl-intel-state          7)
+(defconst gl-duc-state            8)
+
+(defconst gl-doctrine-land        9)
+(defconst gl-doctrine-naval      10)
+
+(defconst gl-primary-enemy       11)
+(defconst gl-primary-front       12)
+
+(defconst gl-map-openness        13)
+(defconst gl-water-presence      14)
+(defconst gl-forward-risk        15)
+(defconst gl-panic-flag          16)
+
+(defconst gl-boom-permit         17)
+(defconst gl-attack-permit       18)
+(defconst gl-water-permit        19)
+(defconst gl-land-permit         20)
+
+(defconst gl-enemy-land-comp     21)
+(defconst gl-enemy-naval-comp    22)
+(defconst gl-enemy-siege-flag    23)
+(defconst gl-enemy-monk-flag     24)
+(defconst gl-enemy-castle-flag   25)
+(defconst gl-enemy-dock-flag     26)
+(defconst gl-enemy-water-mass    27)
+(defconst gl-enemy-raiding-flag  28)
+(defconst gl-enemy-boom-flag     29)
+(defconst gl-enemy-forward-flag  30)
+
+(defconst gl-last-major-decision 31)
+(defconst gl-recovery-flag       32)
+(defconst gl-anchor-ready-land   33)
+(defconst gl-anchor-ready-water  34)
+(defconst gl-trade-permit        35)
+(defconst gl-market-mode         36)
+(defconst gl-front-creep-mode    37)
+(defconst gl-target-class-land   38)
+(defconst gl-target-class-water  39)
+(defconst gl-debug-mode          40)
+
+; ==========================================================
+; GOALS ALTOS
+; SCRATCH / SCORE ENGINE / PUNTOS DUC
+; ==========================================================
+
+(defconst gl-score-a            100)
+(defconst gl-score-b            101)
+(defconst gl-score-c            102)
+(defconst gl-score-d            103)
+(defconst gl-best-score         104)
+(defconst gl-best-choice        105)
+(defconst gl-alt-score          106)
+(defconst gl-alt-choice         107)
+
+(defconst gl-home-x             108)
+(defconst gl-home-y             109)
+(defconst gl-anchor-x           110)
+(defconst gl-anchor-y           111)
+(defconst gl-fallback-x         112)
+(defconst gl-fallback-y         113)
+(defconst gl-temp-x             114)
+(defconst gl-temp-y             115)
+
+(defconst gl-search-main        116)
+(defconst gl-search-a           117)
+(defconst gl-search-b           118)
+(defconst gl-search-c           119)
+
+(defconst gl-hyst-a             120)
+(defconst gl-hyst-b             121)
+(defconst gl-hyst-c             122)
+(defconst gl-watch-a            123)
+(defconst gl-watch-b            124)
+(defconst gl-watch-c            125)
+
+; ==========================================================
+; TEATRO PRINCIPAL
+; ==========================================================
+
+(defconst th-land-open     0)
+(defconst th-land-closed   1)
+(defconst th-hybrid        2)
+(defconst th-water         3)
+
+; ==========================================================
+; MAQUINA DE ESTADOS - ESTRATEGIA MACRO
+; ==========================================================
+
+(defconst st-boot             0)
+(defconst st-opening          1)
+(defconst st-feudal-defense   2)
+(defconst st-feudal-pressure  3)
+(defconst st-castle-boom      4)
+(defconst st-castle-war       5)
+(defconst st-imp-prep         6)
+(defconst st-imp-control      7)
+(defconst st-imp-push         8)
+(defconst st-recovery         9)
+
+; ==========================================================
+; MAQUINA DE ESTADOS - ECONOMIA
+; ==========================================================
+
+(defconst ec-balanced          0)
+(defconst ec-need-food         1)
+(defconst ec-need-wood         2)
+(defconst ec-need-gold         3)
+(defconst ec-need-stone        4)
+(defconst ec-need-fish         5)
+(defconst ec-reseed-farms      6)
+(defconst ec-expand-dropsites  7)
+(defconst ec-market-corrective 8)
+(defconst ec-trade-shift       9)
+
+; ==========================================================
+; MAQUINA DE ESTADOS - INFRAESTRUCTURA
+; ==========================================================
+
+(defconst bd-minimal           0)
+(defconst bd-eco-expand        1)
+(defconst bd-defense-core      2)
+(defconst bd-land-production   3)
+(defconst bd-naval-production  4)
+(defconst bd-castle-network    5)
+(defconst bd-front-creep       6)
+(defconst bd-rebuild           7)
+
+; ==========================================================
+; MAQUINA DE ESTADOS - COMBATE TERRESTRE
+; ==========================================================
+
+(defconst lc-hold           0)
+(defconst lc-local-defense  1)
+(defconst lc-raid           2)
+(defconst lc-contain        3)
+(defconst lc-push           4)
+(defconst lc-regroup        5)
+(defconst lc-retreat        6)
+
+; ==========================================================
+; MAQUINA DE ESTADOS - COMBATE NAVAL
+; ==========================================================
+
+(defconst nc-ignore             0)
+(defconst nc-contest-water      1)
+(defconst nc-defend-fish        2)
+(defconst nc-gain-control       3)
+(defconst nc-blockade           4)
+(defconst nc-transport-support  5)
+(defconst nc-retreat-port       6)
+
+; ==========================================================
+; MAQUINA DE ESTADOS - INTELIGENCIA
+; ==========================================================
+
+(defconst in-home-scan      0)
+(defconst in-ring-scan      1)
+(defconst in-enemy-confirm  2)
+(defconst in-comp-read      3)
+(defconst in-water-read     4)
+(defconst in-forward-read   5)
+(defconst in-late-tracking  6)
+
+; ==========================================================
+; MAQUINA DE ESTADOS - DUC
+; ==========================================================
+
+(defconst duc-idle                0)
+(defconst duc-anti-siege          1)
+(defconst duc-save-high-value     2)
+(defconst duc-escort-land-anchor  3)
+(defconst duc-land-focus-fire     4)
+(defconst duc-naval-demo-strike   5)
+(defconst duc-cannon-focus        6)
+(defconst duc-fallback            7)
+
+; ==========================================================
+; DOCTRINAS TERRESTRES
+; ==========================================================
+
+(defconst dl-generic        0)
+(defconst dl-archer         1)
+(defconst dl-cavalry        2)
+(defconst dl-trash-siege    3)
+(defconst dl-monk-siege     4)
+(defconst dl-uu-core        5)
+(defconst dl-ca-siege       6)
+(defconst dl-camel          7)
+(defconst dl-infantry       8)
+
+; ==========================================================
+; DOCTRINAS NAVALES
+; ==========================================================
+
+(defconst dn-none               0)
+(defconst dn-galley-control     1)
+(defconst dn-fire-control       2)
+(defconst dn-demo-mix           3)
+(defconst dn-cannon-control     4)
+(defconst dn-transport-support  5)
+
+; ==========================================================
+; CLASIFICACION DE COMPOSICION ENEMIGA TERRESTRE
+; ==========================================================
+
+(defconst el-unknown        0)
+(defconst el-infantry       1)
+(defconst el-archer         2)
+(defconst el-cavalry        3)
+(defconst el-camel          4)
+(defconst el-monk-siege     5)
+(defconst el-trash          6)
+(defconst el-uu             7)
+(defconst el-gunpowder      8)
+
+; ==========================================================
+; CLASIFICACION DE COMPOSICION ENEMIGA NAVAL
+; ==========================================================
+
+(defconst en-unknown        0)
+(defconst en-galley         1)
+(defconst en-fire           2)
+(defconst en-demo           3)
+(defconst en-cannon         4)
+(defconst en-transport      5)
+
+; ==========================================================
+; APERTURA DEL MAPA
+; ==========================================================
+
+(defconst mo-closed         0)
+(defconst mo-mixed          1)
+(defconst mo-open           2)
+
+; ==========================================================
+; PRESENCIA DE AGUA
+; ==========================================================
+
+(defconst wp-none           0)
+(defconst wp-shoreline      1)
+(defconst wp-full           2)
+
+; ==========================================================
+; FRENTES
+; ==========================================================
+
+(defconst fr-home           0)
+(defconst fr-mid            1)
+(defconst fr-forward        2)
+(defconst fr-water          3)
+
+; ==========================================================
+; MODO DE MERCADO
+; ==========================================================
+
+(defconst mm-idle           0)
+(defconst mm-buy-food       1)
+(defconst mm-buy-wood       2)
+(defconst mm-buy-stone      3)
+(defconst mm-sell-food      4)
+(defconst mm-sell-wood      5)
+(defconst mm-sell-stone     6)
+
+; ==========================================================
+; MODO DE CREEP DE FRENTE
+; ==========================================================
+
+(defconst fc-off            0)
+(defconst fc-land           1)
+(defconst fc-water          2)
+
+; ==========================================================
+; CLASES DE OBJETIVO TERRESTRE
+; ==========================================================
+
+(defconst tg-land-none          0)
+(defconst tg-land-siege         1)
+(defconst tg-land-castle        2)
+(defconst tg-land-tc            3)
+(defconst tg-land-production    4)
+(defconst tg-land-monastery     5)
+(defconst tg-land-forward       6)
+(defconst tg-land-eco           7)
+
+; ==========================================================
+; CLASES DE OBJETIVO NAVAL
+; ==========================================================
+
+(defconst tg-water-none         0)
+(defconst tg-water-fleet        1)
+(defconst tg-water-dock         2)
+(defconst tg-water-fish         3)
+(defconst tg-water-transport    4)
+(defconst tg-water-cannon       5)
+
+; ==========================================================
+; CODIGOS DE DECISION MAYOR
+; ==========================================================
+
+(defconst md-none            0)
+(defconst md-eco             1)
+(defconst md-build           2)
+(defconst md-tech            3)
+(defconst md-defend          4)
+(defconst md-attack          5)
+(defconst md-regroup         6)
+(defconst md-water           7)
+(defconst md-recover         8)
+
+; ==========================================================
+; SCORE ENGINE - BANCO ECO
+; ==========================================================
+
+(defconst sc-eco-food           201)
+(defconst sc-eco-wood           202)
+(defconst sc-eco-gold           203)
+(defconst sc-eco-stone          204)
+(defconst sc-eco-fish           205)
+(defconst sc-eco-farms          206)
+(defconst sc-eco-lumber         207)
+(defconst sc-eco-mining         208)
+(defconst sc-eco-mill           209)
+(defconst sc-eco-market-buy     210)
+(defconst sc-eco-market-sell    211)
+(defconst sc-eco-trade          212)
+
+; ==========================================================
+; SCORE ENGINE - BANCO BUILD
+; ==========================================================
+
+(defconst sc-build-tc              221)
+(defconst sc-build-house           222)
+(defconst sc-build-lumber          223)
+(defconst sc-build-mining          224)
+(defconst sc-build-mill            225)
+(defconst sc-build-barracks        226)
+(defconst sc-build-range           227)
+(defconst sc-build-stable          228)
+(defconst sc-build-siege           229)
+(defconst sc-build-blacksmith      230)
+(defconst sc-build-market          231)
+(defconst sc-build-monastery       232)
+(defconst sc-build-university      233)
+(defconst sc-build-castle          234)
+(defconst sc-build-dock            235)
+(defconst sc-build-dock-forward    236)
+(defconst sc-build-forward-barr    237)
+(defconst sc-build-forward-range   238)
+(defconst sc-build-forward-siege   239)
+
+; ==========================================================
+; SCORE ENGINE - BANCO TRAIN LAND
+; ==========================================================
+
+(defconst sc-tr-spear          241)
+(defconst sc-tr-skirm          242)
+(defconst sc-tr-archer         243)
+(defconst sc-tr-scout          244)
+(defconst sc-tr-knight         245)
+(defconst sc-tr-camel          246)
+(defconst sc-tr-eagle          247)
+(defconst sc-tr-monk           248)
+(defconst sc-tr-ram            249)
+(defconst sc-tr-mango          250)
+(defconst sc-tr-scorp          251)
+(defconst sc-tr-treb           252)
+(defconst sc-tr-bbc            253)
+(defconst sc-tr-hc             254)
+(defconst sc-tr-ca             255)
+(defconst sc-tr-uu             256)
+
+; ==========================================================
+; SCORE ENGINE - BANCO TRAIN NAVAL
+; ==========================================================
+
+(defconst sc-nv-fishing        261)
+(defconst sc-nv-galley         262)
+(defconst sc-nv-fire           263)
+(defconst sc-nv-demo           264)
+(defconst sc-nv-cannon         265)
+(defconst sc-nv-transport      266)
+(defconst sc-nv-dock-spam      267)
+
+; ==========================================================
+; SCORE ENGINE - BANCO TECH
+; ==========================================================
+
+(defconst sc-te-eco                281)
+(defconst sc-te-blacksmith-inf     282)
+(defconst sc-te-blacksmith-arch    283)
+(defconst sc-te-blacksmith-cav     284)
+(defconst sc-te-monastery          285)
+(defconst sc-te-university         286)
+(defconst sc-te-siege              287)
+(defconst sc-te-naval              288)
+(defconst sc-te-unique             289)
+(defconst sc-te-conscription       290)
+(defconst sc-te-ballistics         291)
+(defconst sc-te-chemistry          292)
+(defconst sc-te-elite-skirm        293)
+(defconst sc-te-halberdier         294)
+(defconst sc-te-light-cav          295)
+(defconst sc-te-hussar             296)
+
+; ==========================================================
+; SCORE ENGINE - BANCO COMBAT
+; ==========================================================
+
+(defconst sc-cb-hold            301)
+(defconst sc-cb-defend          302)
+(defconst sc-cb-raid            303)
+(defconst sc-cb-contain         304)
+(defconst sc-cb-attack          305)
+(defconst sc-cb-push-siege      306)
+(defconst sc-cb-regroup         307)
+(defconst sc-cb-retreat         308)
+(defconst sc-cb-water-fight     309)
+(defconst sc-cb-blockade        310)
+(defconst sc-cb-landing         311)
+
+; ==========================================================
+; SCORE ENGINE - BANCO TARGET
+; ==========================================================
+
+(defconst sc-tg-siege           321)
+(defconst sc-tg-castle          322)
+(defconst sc-tg-tc              323)
+(defconst sc-tg-production      324)
+(defconst sc-tg-monastery       325)
+(defconst sc-tg-dock            326)
+(defconst sc-tg-fish            327)
+(defconst sc-tg-trade           328)
+(defconst sc-tg-forward         329)
+(defconst sc-tg-fleet           330)
+
+; ==========================================================
+; TIMERS
+; ==========================================================
+
+(defconst t-master         1)
+(defconst t-eco-fast       2)
+(defconst t-eco-slow       3)
+(defconst t-build          4)
+(defconst t-train-land     5)
+(defconst t-train-naval    6)
+(defconst t-tech           7)
+(defconst t-intel          8)
+(defconst t-land-combat    9)
+(defconst t-naval-combat  10)
+(defconst t-wall-defense  11)
+(defconst t-duc-sortie    12)
+(defconst t-duc-anchor    13)
+(defconst t-duc-naval     14)
+(defconst t-market-trade  15)
+(defconst t-watchdog      16)
+
+; ==========================================================
+; FIN BLOQUE 1/10
+; EL BLOQUE 2 VA INMEDIATAMENTE DEBAJO
+; ==========================================================
+
+; ==========================================================
+; semiUtils.per
+; BLOQUE 2/10
+; INICIALIZACION GENERAL + TIMERS + SN BASE + PUNTOS DUC
+; ==========================================================
+
+; ==========================================================
+; INIT 1 - ESTADOS BASE
+; ==========================================================
+(defrule
+    (true)
+=>
+    (set-goal gl-theater th-land-open)
+    (set-goal gl-strat-state st-boot)
+    (set-goal gl-eco-state ec-balanced)
+    (set-goal gl-build-state bd-minimal)
+    (set-goal gl-land-combat-state lc-hold)
+    (set-goal gl-naval-combat-state nc-ignore)
+    (set-goal gl-intel-state in-home-scan)
+    (set-goal gl-duc-state duc-idle)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 2 - DOCTRINAS BASE
+; ==========================================================
+(defrule
+    (true)
+=>
+    (set-goal gl-doctrine-land dl-generic)
+    (set-goal gl-doctrine-naval dn-none)
+    (set-goal gl-primary-enemy 0)
+    (set-goal gl-primary-front fr-home)
+    (set-goal gl-map-openness mo-mixed)
+    (set-goal gl-water-presence wp-none)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 3 - FLAGS ESTRATEGICAS
+; ==========================================================
+(defrule
+    (true)
+=>
+    (set-goal gl-forward-risk 0)
+    (set-goal gl-panic-flag 0)
+    (set-goal gl-boom-permit 1)
+    (set-goal gl-attack-permit 0)
+    (set-goal gl-water-permit 0)
+    (set-goal gl-land-permit 1)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 4 - MODELO ENEMIGO BASE
+; ==========================================================
+(defrule
+    (true)
+=>
+    (set-goal gl-enemy-land-comp el-unknown)
+    (set-goal gl-enemy-naval-comp en-unknown)
+    (set-goal gl-enemy-siege-flag 0)
+    (set-goal gl-enemy-monk-flag 0)
+    (set-goal gl-enemy-castle-flag 0)
+    (set-goal gl-enemy-dock-flag 0)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 5 - FLAGS DE LATE / PUSH
+; ==========================================================
+(defrule
+    (true)
+=>
+    (set-goal gl-enemy-water-mass 0)
+    (set-goal gl-enemy-raiding-flag 0)
+    (set-goal gl-enemy-boom-flag 0)
+    (set-goal gl-enemy-forward-flag 0)
+    (set-goal gl-last-major-decision md-none)
+    (set-goal gl-recovery-flag 0)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 6 - ANCLAS / TRADE / TARGETS
+; ==========================================================
+(defrule
+    (true)
+=>
+    (set-goal gl-anchor-ready-land 0)
+    (set-goal gl-anchor-ready-water 0)
+    (set-goal gl-trade-permit 0)
+    (set-goal gl-market-mode mm-idle)
+    (set-goal gl-front-creep-mode fc-off)
+    (set-goal gl-target-class-land tg-land-none)
+    (set-goal gl-target-class-water tg-water-none)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 7 - SCRATCH / SCORE ENGINE
+; ==========================================================
+(defrule
+    (true)
+=>
+    (set-goal gl-score-a 0)
+    (set-goal gl-score-b 0)
+    (set-goal gl-score-c 0)
+    (set-goal gl-score-d 0)
+    (set-goal gl-best-score 0)
+    (set-goal gl-best-choice 0)
+    (disable-self)
+)
+
+(defrule
+    (true)
+=>
+    (set-goal gl-alt-score 0)
+    (set-goal gl-alt-choice 0)
+    (set-goal gl-search-main 0)
+    (set-goal gl-search-a 0)
+    (set-goal gl-search-b 0)
+    (set-goal gl-search-c 0)
+    (disable-self)
+)
+
+(defrule
+    (true)
+=>
+    (set-goal gl-hyst-a 0)
+    (set-goal gl-hyst-b 0)
+    (set-goal gl-hyst-c 0)
+    (set-goal gl-watch-a 0)
+    (set-goal gl-watch-b 0)
+    (set-goal gl-watch-c 0)
+    (set-goal gl-debug-mode 0)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 8 - PUNTOS BASE PARA DUC
+; ==========================================================
+(defrule
+    (true)
+=>
+    (up-get-point position-self gl-home-x)
+    (disable-self)
+)
+
+(defrule
+    (true)
+=>
+    (up-get-point position-self gl-anchor-x)
+    (disable-self)
+)
+
+(defrule
+    (true)
+=>
+    (up-get-point position-self gl-fallback-x)
+    (disable-self)
+)
+
+(defrule
+    (true)
+=>
+    (up-get-point position-self gl-temp-x)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 9 - TIMERS
+; ==========================================================
+(defrule
+    (true)
+=>
+    (enable-timer t-master 14)
+    (enable-timer t-eco-fast 5)
+    (enable-timer t-eco-slow 11)
+    (enable-timer t-build 7)
+    (enable-timer t-train-land 4)
+    (enable-timer t-train-naval 4)
+    (disable-self)
+)
+
+(defrule
+    (true)
+=>
+    (enable-timer t-tech 9)
+    (enable-timer t-intel 18)
+    (enable-timer t-land-combat 6)
+    (enable-timer t-naval-combat 6)
+    (enable-timer t-wall-defense 3)
+    (disable-self)
+)
+
+(defrule
+    (true)
+=>
+    (enable-timer t-duc-sortie 3)
+    (enable-timer t-duc-anchor 4)
+    (enable-timer t-duc-naval 4)
+    (enable-timer t-market-trade 10)
+    (enable-timer t-watchdog 15)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 10 - SN BASE DE ESCALADO Y RITMO
+; ==========================================================
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-do-not-scale-for-difficulty-level 1)
+    (set-strategic-number sn-build-frequency 1)
+    (set-strategic-number sn-initial-exploration-required 0)
+    (set-strategic-number sn-percent-exploration-required 0)
+    (set-strategic-number sn-percent-civilian-explorers 1)
+    (set-strategic-number sn-cap-civilian-explorers 1)
+    (disable-self)
+)
+
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-total-number-explorers 1)
+    (set-strategic-number sn-consecutive-idle-unit-limit 1)
+    (set-strategic-number sn-zero-priority-distance 255)
+    (set-strategic-number sn-attack-intelligence 0)
+    (set-strategic-number sn-scale-minimum-attack-group-size 0)
+    (set-strategic-number sn-scale-maximum-attack-group-size 0)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 11 - SN BASE DE DEFENSA / ATAQUE
+; ==========================================================
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-number-defend-groups 2)
+    (set-strategic-number sn-number-attack-groups 0)
+    (set-strategic-number sn-percent-attack-soldiers 0)
+    (set-strategic-number sn-minimum-attack-group-size 8)
+    (set-strategic-number sn-maximum-attack-group-size 14)
+    (set-strategic-number sn-group-form-distance 100)
+    (disable-self)
+)
+
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-task-ungrouped-soldiers 1)
+    (set-strategic-number sn-special-attack-type1 663)
+    (set-strategic-number sn-special-attack-influence1 100)
+    (set-strategic-number sn-target-evaluation-distance 50)
+    (set-strategic-number sn-target-evaluation-continent 160)
+    (set-strategic-number sn-target-evaluation-in-progress 15)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 12 - SN BASE ECONOMICOS
+; ==========================================================
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-cap-civilian-builders 8)
+    (set-strategic-number sn-percent-civilian-builders 8)
+    (set-strategic-number sn-camp-max-distance 24)
+    (set-strategic-number sn-mill-max-distance 22)
+    (set-strategic-number sn-food-dropsite-distance 8)
+    (set-strategic-number sn-wood-dropsite-distance 8)
+    (disable-self)
+)
+
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-gold-dropsite-distance 8)
+    (set-strategic-number sn-stone-dropsite-distance 8)
+    (set-strategic-number sn-percent-civilian-gatherers 100)
+    (set-strategic-number sn-food-gatherer-percentage 70)
+    (set-strategic-number sn-wood-gatherer-percentage 30)
+    (set-strategic-number sn-gold-gatherer-percentage 0)
+    (disable-self)
+)
+
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-stone-gatherer-percentage 0)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 13 - SN PARA AGUA / NAVAL
+; Conservador: no invertir todavia hasta clasificar teatro
+; ==========================================================
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-number-explore-groups 1)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 14 - WALL PLACEMENT HABILITADO
+; ==========================================================
+(defrule
+    (true)
+=>
+    (enable-wall-placement 1)
+    (enable-wall-placement 2)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 15 - DETECCION INICIAL CONSERVADORA DEL TEATRO
+; Por defecto se arranca como land-open y luego se corrige
+; en bloques posteriores por scouting e infraestructura.
+; ==========================================================
+(defrule
+    (current-age == dark-age)
+=>
+    (set-goal gl-theater th-land-open)
+    (set-goal gl-water-presence wp-none)
+    (set-goal gl-doctrine-naval dn-none)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 16 - BOOT A OPENING
+; ==========================================================
+(defrule
+    (goal gl-strat-state st-boot)
+=>
+    (set-goal gl-strat-state st-opening)
+    (set-goal gl-eco-state ec-balanced)
+    (set-goal gl-build-state bd-minimal)
+    (set-goal gl-land-combat-state lc-hold)
+    (set-goal gl-naval-combat-state nc-ignore)
+    (set-goal gl-last-major-decision md-eco)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 17 - SALUDO
+; ==========================================================
+(defrule
+    (true)
+=>
+    (chat-to-all "semiUtils activo. Analizando mapa y preparando apertura generalista.")
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 18 - HOME/FALLBACK RESETEABLES SI HAY TC
+; ==========================================================
+(defrule
+    (building-type-count-total town-center > 0)
+=>
+    (up-get-point position-self gl-home-x)
+    (up-get-point position-self gl-fallback-x)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 19 - DEFENSA NAVAL DESACTIVADA DE INICIO
+; Se activa mas adelante si el teatro se corrige a hybrid/water.
+; ==========================================================
+(defrule
+    (goal gl-theater th-land-open)
+=>
+    (set-goal gl-water-permit 0)
+    (set-goal gl-naval-combat-state nc-ignore)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 20 - ANCLA TERRESTRE TEMPORAL = CASA
+; ==========================================================
+(defrule
+    (true)
+=>
+    (up-get-point position-self gl-anchor-x)
+    (set-goal gl-anchor-ready-land 0)
+    (set-goal gl-anchor-ready-water 0)
+    (disable-self)
+)
+
+; ==========================================================
+; FIN BLOQUE 2/10
+; EL BLOQUE 3 VA INMEDIATAMENTE DEBAJO
+; ==========================================================
+
+; ==========================================================
+; semiUtils.per
+; BLOQUE 3/10
+; CRECIMIENTO ORGANICO + CLASIFICACION DE TEATRO
+; + TRANSICIONES MACRO + ECONOMIA BASE GENERALISTA
+; ==========================================================
+
+; ==========================================================
+; CRECIMIENTO ORGANICO DE LA BASE
+; ==========================================================
+(defrule
+    (current-age == dark-age)
+=>
+    (set-strategic-number sn-maximum-town-size 16)
+    (set-strategic-number sn-camp-max-distance 22)
+    (set-strategic-number sn-mill-max-distance 20)
+    (set-strategic-number sn-food-dropsite-distance 8)
+    (set-strategic-number sn-wood-dropsite-distance 8)
+)
+
+(defrule
+    (current-age == feudal-age)
+=>
+    (set-strategic-number sn-maximum-town-size 24)
+    (set-strategic-number sn-camp-max-distance 28)
+    (set-strategic-number sn-mill-max-distance 26)
+    (set-strategic-number sn-food-dropsite-distance 8)
+    (set-strategic-number sn-wood-dropsite-distance 8)
+)
+
+(defrule
+    (current-age == castle-age)
+=>
+    (set-strategic-number sn-maximum-town-size 34)
+    (set-strategic-number sn-camp-max-distance 36)
+    (set-strategic-number sn-mill-max-distance 34)
+    (set-strategic-number sn-food-dropsite-distance 9)
+    (set-strategic-number sn-wood-dropsite-distance 9)
+)
+
+(defrule
+    (current-age == imperial-age)
+=>
+    (set-strategic-number sn-maximum-town-size 46)
+    (set-strategic-number sn-camp-max-distance 44)
+    (set-strategic-number sn-mill-max-distance 42)
+    (set-strategic-number sn-food-dropsite-distance 10)
+    (set-strategic-number sn-wood-dropsite-distance 10)
+)
+
+(defrule
+    (current-age >= castle-age)
+=>
+    (set-strategic-number sn-gold-dropsite-distance 9)
+    (set-strategic-number sn-stone-dropsite-distance 9)
+)
+
+(defrule
+    (current-age == imperial-age)
+=>
+    (set-strategic-number sn-gold-dropsite-distance 10)
+    (set-strategic-number sn-stone-dropsite-distance 10)
+)
+
+; ==========================================================
+; CLASIFICACION CONSERVADORA DEL TEATRO
+; ==========================================================
+
+; Si no hay docks ni posibilidad naval visible, seguir land
+(defrule
+    (current-age == dark-age)
+    (building-type-count-total dock == 0)
+    (not (can-build dock))
+=>
+    (set-goal gl-theater th-land-open)
+    (set-goal gl-water-presence wp-none)
+    (set-goal gl-water-permit 0)
+    (set-goal gl-doctrine-naval dn-none)
+)
+
+; Si se puede construir dock muy temprano, marcar hybrid
+(defrule
+    (current-age <= feudal-age)
+    (can-build dock)
+    (building-type-count-total dock == 0)
+=>
+    (set-goal gl-theater th-hybrid)
+    (set-goal gl-water-presence wp-shoreline)
+    (set-goal gl-water-permit 1)
+)
+
+; Si ya tenemos dock, minimo hybrid
+(defrule
+    (building-type-count-total dock > 0)
+=>
+    (set-goal gl-theater th-hybrid)
+    (set-goal gl-water-presence wp-shoreline)
+    (set-goal gl-water-permit 1)
+)
+
+; Si ambos bandos tienen dock, escalar hacia water/hybrid fuerte
+(defrule
+    (building-type-count-total dock > 0)
+    (players-building-type-count any-enemy dock > 0)
+=>
+    (set-goal gl-theater th-water)
+    (set-goal gl-water-presence wp-full)
+    (set-goal gl-water-permit 1)
+    (set-goal gl-enemy-dock-flag 1)
+)
+
+; Si tenemos flota pesquera relevante, ya no ignorar agua
+(defrule
+    (unit-type-count-total fishing-ship > 2)
+=>
+    (set-goal gl-water-presence wp-shoreline)
+    (set-goal gl-water-permit 1)
+)
+
+; Si tenemos produccion naval fuerte, teatro naval real
+(defrule
+    (building-type-count-total dock > 1)
+=>
+    (set-goal gl-theater th-water)
+    (set-goal gl-water-presence wp-full)
+    (set-goal gl-water-permit 1)
+)
+
+; Si estamos full water/hybrid, no cortar tierra
+(defrule
+    (goal gl-theater th-hybrid)
+=>
+    (set-goal gl-land-permit 1)
+)
+
+(defrule
+    (goal gl-theater th-water)
+=>
+    (set-goal gl-land-permit 1)
+)
+
+; ==========================================================
+; APERTURA DEL MAPA (HEURISTICA SUAVE)
+; ==========================================================
+
+; si el plan de murallas progresa, tratarlo como mas cerrado
+(defrule
+    (wall-completed-percentage 1 > 35)
+=>
+    (set-goal gl-map-openness mo-mixed)
+)
+
+(defrule
+    (wall-completed-percentage 1 > 75)
+=>
+    (set-goal gl-map-openness mo-closed)
+)
+
+; si aun no hay muralla y estamos expuestos, asumir abierto
+(defrule
+    (current-age <= feudal-age)
+    (wall-completed-percentage 1 < 10)
+=>
+    (set-goal gl-map-openness mo-open)
+)
+
+; ==========================================================
+; FORWARD RISK / PANICO TEMPRANO
+; ==========================================================
+(defrule
+    (current-age <= feudal-age)
+    (town-under-attack)
+=>
+    (set-goal gl-panic-flag 1)
+    (set-goal gl-forward-risk 2)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (town-under-attack)
+=>
+    (set-goal gl-forward-risk 2)
+)
+
+(defrule
+    (not (town-under-attack))
+    (goal gl-panic-flag 1)
+    (current-age >= feudal-age)
+=>
+    (set-goal gl-panic-flag 0)
+)
+
+; ==========================================================
+; PERMISOS GENERALES POR TEATRO
+; ==========================================================
+
+; land puro: eco/ataque terrestre, nada naval
+(defrule
+    (goal gl-theater th-land-open)
+=>
+    (set-goal gl-land-permit 1)
+    (set-goal gl-water-permit 0)
+)
+
+(defrule
+    (goal gl-theater th-land-closed)
+=>
+    (set-goal gl-land-permit 1)
+    (set-goal gl-water-permit 0)
+)
+
+; hybrid: ambos habilitados
+(defrule
+    (goal gl-theater th-hybrid)
+=>
+    (set-goal gl-land-permit 1)
+    (set-goal gl-water-permit 1)
+)
+
+; water: mantener ambos, pero permitir sesgo naval
+(defrule
+    (goal gl-theater th-water)
+=>
+    (set-goal gl-land-permit 1)
+    (set-goal gl-water-permit 1)
+)
+
+; ==========================================================
+; TRANSICIONES MACRO POR EDAD Y PRESION
+; ==========================================================
+
+; dark: apertura
+(defrule
+    (current-age == dark-age)
+=>
+    (set-goal gl-strat-state st-opening)
+    (set-goal gl-boom-permit 1)
+    (set-goal gl-attack-permit 0)
+    (set-goal gl-land-combat-state lc-hold)
+)
+
+; feudal bajo presion
+(defrule
+    (current-age == feudal-age)
+    (town-under-attack)
+=>
+    (set-goal gl-strat-state st-feudal-defense)
+    (set-goal gl-boom-permit 1)
+    (set-goal gl-attack-permit 0)
+    (set-goal gl-land-combat-state lc-local-defense)
+)
+
+; feudal estable: puede presionar un poco en land abierto
+(defrule
+    (current-age == feudal-age)
+    (not (town-under-attack))
+    (goal gl-theater th-land-open)
+    (soldier-count >= 8)
+=>
+    (set-goal gl-strat-state st-feudal-pressure)
+    (set-goal gl-boom-permit 1)
+    (set-goal gl-attack-permit 1)
+    (set-goal gl-land-combat-state lc-contain)
+)
+
+; feudal estable en cerrado/hybrid: seguir defensivo
+(defrule
+    (current-age == feudal-age)
+    (not (town-under-attack))
+    (goal gl-theater th-hybrid)
+=>
+    (set-goal gl-strat-state st-feudal-defense)
+    (set-goal gl-boom-permit 1)
+    (set-goal gl-attack-permit 0)
+)
+
+(defrule
+    (current-age == feudal-age)
+    (not (town-under-attack))
+    (goal gl-map-openness mo-closed)
+=>
+    (set-goal gl-strat-state st-feudal-defense)
+    (set-goal gl-boom-permit 1)
+    (set-goal gl-attack-permit 0)
+)
+
+; castillo estable: boom
+(defrule
+    (current-age == castle-age)
+    (not (town-under-attack))
+=>
+    (set-goal gl-strat-state st-castle-boom)
+    (set-goal gl-boom-permit 1)
+    (set-goal gl-attack-permit 0)
+    (set-goal gl-land-combat-state lc-hold)
+)
+
+; castillo en guerra
+(defrule
+    (current-age == castle-age)
+    (town-under-attack)
+=>
+    (set-goal gl-strat-state st-castle-war)
+    (set-goal gl-boom-permit 1)
+    (set-goal gl-attack-permit 0)
+    (set-goal gl-land-combat-state lc-local-defense)
+)
+
+; castillo con ejercito ya suficiente: contener
+(defrule
+    (current-age == castle-age)
+    (not (town-under-attack))
+    (soldier-count >= 18)
+    (goal gl-theater th-land-open)
+=>
+    (set-goal gl-strat-state st-castle-war)
+    (set-goal gl-attack-permit 1)
+    (set-goal gl-land-combat-state lc-contain)
+)
+
+; imperial inicial = preparacion
+(defrule
+    (current-age == imperial-age)
+    (soldier-count < 30)
+=>
+    (set-goal gl-strat-state st-imp-prep)
+    (set-goal gl-boom-permit 1)
+    (set-goal gl-attack-permit 0)
+)
+
+; imperial con masa = control
+(defrule
+    (current-age == imperial-age)
+    (soldier-count >= 30)
+=>
+    (set-goal gl-strat-state st-imp-control)
+    (set-goal gl-boom-permit 1)
+    (set-goal gl-attack-permit 1)
+)
+
+; imperial con asedio = push
+(defrule
+    (current-age == imperial-age)
+    (unit-type-count-total trebuchet >= 2)
+    (soldier-count >= 34)
+=>
+    (set-goal gl-strat-state st-imp-push)
+    (set-goal gl-boom-permit 1)
+    (set-goal gl-attack-permit 1)
+    (set-goal gl-land-combat-state lc-push)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (unit-type-count-total bombard-cannon >= 2)
+    (soldier-count >= 34)
+=>
+    (set-goal gl-strat-state st-imp-push)
+    (set-goal gl-boom-permit 1)
+    (set-goal gl-attack-permit 1)
+    (set-goal gl-land-combat-state lc-push)
+)
+
+; recovery
+(defrule
+    (current-age >= castle-age)
+    (soldier-count < 8)
+=>
+    (set-goal gl-recovery-flag 1)
+    (set-goal gl-strat-state st-recovery)
+    (set-goal gl-attack-permit 0)
+    (set-goal gl-land-combat-state lc-regroup)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (soldier-count >= 14)
+    (goal gl-recovery-flag 1)
+=>
+    (set-goal gl-recovery-flag 0)
+)
+
+; ==========================================================
+; POSTURA NAVAL BASE
+; ==========================================================
+
+; sin agua: ignorar naval
+(defrule
+    (goal gl-water-presence wp-none)
+=>
+    (set-goal gl-naval-combat-state nc-ignore)
+)
+
+; con costa y fish propia: defender fish
+(defrule
+    (goal gl-water-presence wp-shoreline)
+    (unit-type-count-total fishing-ship > 0)
+=>
+    (set-goal gl-naval-combat-state nc-defend-fish)
+)
+
+; con docks de ambos bandos: pelear por agua
+(defrule
+    (building-type-count-total dock > 0)
+    (players-building-type-count any-enemy dock > 0)
+=>
+    (set-goal gl-naval-combat-state nc-contest-water)
+)
+
+; imperial naval: bloqueo si ya hay masa y agua plena
+(defrule
+    (current-age == imperial-age)
+    (goal gl-theater th-water)
+    (building-type-count-total dock >= 2)
+=>
+    (set-goal gl-naval-combat-state nc-blockade)
+)
+
+; ==========================================================
+; ECONOMIA BASE GENERALISTA POR EDAD - LAND
+; ==========================================================
+
+(defrule
+    (goal gl-theater th-land-open)
+    (current-age == dark-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 72)
+    (set-strategic-number sn-wood-gatherer-percentage 28)
+    (set-strategic-number sn-gold-gatherer-percentage 0)
+    (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+    (goal gl-theater th-land-open)
+    (current-age == feudal-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 48)
+    (set-strategic-number sn-wood-gatherer-percentage 34)
+    (set-strategic-number sn-gold-gatherer-percentage 12)
+    (set-strategic-number sn-stone-gatherer-percentage 6)
+)
+
+(defrule
+    (goal gl-theater th-land-open)
+    (current-age == castle-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 40)
+    (set-strategic-number sn-wood-gatherer-percentage 28)
+    (set-strategic-number sn-gold-gatherer-percentage 22)
+    (set-strategic-number sn-stone-gatherer-percentage 10)
+)
+
+(defrule
+    (goal gl-theater th-land-open)
+    (current-age == imperial-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 33)
+    (set-strategic-number sn-wood-gatherer-percentage 24)
+    (set-strategic-number sn-gold-gatherer-percentage 28)
+    (set-strategic-number sn-stone-gatherer-percentage 15)
+)
+
+; ==========================================================
+; ECONOMIA BASE GENERALISTA - CLOSED LAND
+; ==========================================================
+
+(defrule
+    (goal gl-map-openness mo-closed)
+    (current-age == feudal-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 50)
+    (set-strategic-number sn-wood-gatherer-percentage 30)
+    (set-strategic-number sn-gold-gatherer-percentage 8)
+    (set-strategic-number sn-stone-gatherer-percentage 12)
+)
+
+(defrule
+    (goal gl-map-openness mo-closed)
+    (current-age == castle-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 40)
+    (set-strategic-number sn-wood-gatherer-percentage 25)
+    (set-strategic-number sn-gold-gatherer-percentage 18)
+    (set-strategic-number sn-stone-gatherer-percentage 17)
+)
+
+; ==========================================================
+; ECONOMIA BASE GENERALISTA - HYBRID / WATER
+; ==========================================================
+
+(defrule
+    (goal gl-theater th-hybrid)
+    (current-age == dark-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 62)
+    (set-strategic-number sn-wood-gatherer-percentage 38)
+    (set-strategic-number sn-gold-gatherer-percentage 0)
+    (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+    (goal gl-theater th-hybrid)
+    (current-age == feudal-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 42)
+    (set-strategic-number sn-wood-gatherer-percentage 38)
+    (set-strategic-number sn-gold-gatherer-percentage 15)
+    (set-strategic-number sn-stone-gatherer-percentage 5)
+)
+
+(defrule
+    (goal gl-theater th-hybrid)
+    (current-age == castle-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 34)
+    (set-strategic-number sn-wood-gatherer-percentage 34)
+    (set-strategic-number sn-gold-gatherer-percentage 22)
+    (set-strategic-number sn-stone-gatherer-percentage 10)
+)
+
+(defrule
+    (goal gl-theater th-water)
+    (current-age == dark-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 58)
+    (set-strategic-number sn-wood-gatherer-percentage 42)
+    (set-strategic-number sn-gold-gatherer-percentage 0)
+    (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+    (goal gl-theater th-water)
+    (current-age == feudal-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 35)
+    (set-strategic-number sn-wood-gatherer-percentage 40)
+    (set-strategic-number sn-gold-gatherer-percentage 20)
+    (set-strategic-number sn-stone-gatherer-percentage 5)
+)
+
+(defrule
+    (goal gl-theater th-water)
+    (current-age == castle-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 30)
+    (set-strategic-number sn-wood-gatherer-percentage 35)
+    (set-strategic-number sn-gold-gatherer-percentage 25)
+    (set-strategic-number sn-stone-gatherer-percentage 10)
+)
+
+(defrule
+    (goal gl-theater th-water)
+    (current-age == imperial-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 26)
+    (set-strategic-number sn-wood-gatherer-percentage 30)
+    (set-strategic-number sn-gold-gatherer-percentage 30)
+    (set-strategic-number sn-stone-gatherer-percentage 14)
+)
+
+; ==========================================================
+; AJUSTE DE BUILD STATE SEGUN FASE
+; ==========================================================
+
+(defrule
+    (goal gl-strat-state st-opening)
+=>
+    (set-goal gl-build-state bd-minimal)
+)
+
+(defrule
+    (goal gl-strat-state st-feudal-defense)
+=>
+    (set-goal gl-build-state bd-defense-core)
+)
+
+(defrule
+    (goal gl-strat-state st-feudal-pressure)
+=>
+    (set-goal gl-build-state bd-land-production)
+)
+
+(defrule
+    (goal gl-strat-state st-castle-boom)
+=>
+    (set-goal gl-build-state bd-eco-expand)
+)
+
+(defrule
+    (goal gl-strat-state st-castle-war)
+=>
+    (set-goal gl-build-state bd-defense-core)
+)
+
+(defrule
+    (goal gl-strat-state st-imp-prep)
+=>
+    (set-goal gl-build-state bd-land-production)
+)
+
+(defrule
+    (goal gl-strat-state st-imp-control)
+=>
+    (set-goal gl-build-state bd-castle-network)
+)
+
+(defrule
+    (goal gl-strat-state st-imp-push)
+=>
+    (set-goal gl-build-state bd-front-creep)
+)
+
+(defrule
+    (goal gl-theater th-water)
+    (current-age >= feudal-age)
+=>
+    (set-goal gl-build-state bd-naval-production)
+)
+
+; ==========================================================
+; FIN BLOQUE 3/10
+; EL BLOQUE 4 VA INMEDIATAMENTE DEBAJO
+; ==========================================================
+
+; ==========================================================
+; semiUtils.per
+; BLOQUE 4/10
+; ALDEANOS + EDIFICIOS BASE + EXPANSION CIVIL/MILITAR
+; ==========================================================
+
+; ==========================================================
+; BOOM DE ALDEANOS
+; ==========================================================
+(defrule
+    (current-age == dark-age)
+    (can-train villager)
+    (civilian-population < 27)
+=>
+    (train villager)
+)
+
+(defrule
+    (current-age == feudal-age)
+    (can-train villager)
+    (civilian-population < 48)
+=>
+    (train villager)
+)
+
+(defrule
+    (current-age == castle-age)
+    (can-train villager)
+    (civilian-population < 96)
+=>
+    (train villager)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (can-train villager)
+    (civilian-population < 118)
+=>
+    (train villager)
+)
+
+; en agua/hibrido permitir eco ligeramente mayor
+(defrule
+    (goal gl-water-presence wp-shoreline)
+    (current-age == castle-age)
+    (can-train villager)
+    (civilian-population < 102)
+=>
+    (train villager)
+)
+
+(defrule
+    (goal gl-water-presence wp-full)
+    (current-age == imperial-age)
+    (can-train villager)
+    (civilian-population < 124)
+=>
+    (train villager)
+)
+
+; ==========================================================
+; CASAS
+; ==========================================================
+(defrule
+    (housing-headroom < 6)
+    (can-build house)
+=>
+    (build house)
+)
+
+(defrule
+    (housing-headroom < 10)
+    (current-age >= castle-age)
+    (can-build house)
+=>
+    (build house)
+)
+
+; ==========================================================
+; DROPSITES BASE
+; ==========================================================
+(defrule
+    (building-type-count-total lumber-camp == 0)
+    (can-build lumber-camp)
+=>
+    (build lumber-camp)
+)
+
+(defrule
+    (building-type-count-total mill == 0)
+    (can-build mill)
+=>
+    (build mill)
+)
+
+(defrule
+    (building-type-count-total mining-camp == 0)
+    (current-age >= feudal-age)
+    (can-build mining-camp)
+=>
+    (build mining-camp)
+)
+
+; piedra temprana para mapas cerrados o panico
+(defrule
+    (current-age == dark-age)
+    (civilian-population >= 18)
+    (goal gl-map-openness mo-closed)
+    (building-type-count-total mining-camp == 0)
+    (can-build mining-camp)
+=>
+    (build mining-camp)
+)
+
+(defrule
+    (current-age == dark-age)
+    (civilian-population >= 18)
+    (goal gl-panic-flag 1)
+    (building-type-count-total mining-camp == 0)
+    (can-build mining-camp)
+=>
+    (build mining-camp)
+)
+
+; ==========================================================
+; DROPSITES EXTRA
+; ==========================================================
+
+; lumber camps
+(defrule
+    (current-age >= feudal-age)
+    (civilian-population >= 20)
+    (building-type-count-total lumber-camp < 2)
+    (can-build lumber-camp)
+=>
+    (build lumber-camp)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (civilian-population >= 42)
+    (building-type-count-total lumber-camp < 3)
+    (can-build lumber-camp)
+=>
+    (build lumber-camp)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (civilian-population >= 75)
+    (building-type-count-total lumber-camp < 4)
+    (can-build lumber-camp)
+=>
+    (build lumber-camp)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (civilian-population >= 95)
+    (building-type-count-total lumber-camp < 5)
+    (can-build lumber-camp)
+=>
+    (build lumber-camp)
+)
+
+; mining camps
+(defrule
+    (current-age >= castle-age)
+    (civilian-population >= 36)
+    (building-type-count-total mining-camp < 2)
+    (can-build mining-camp)
+=>
+    (build mining-camp)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (civilian-population >= 70)
+    (building-type-count-total mining-camp < 3)
+    (can-build mining-camp)
+=>
+    (build mining-camp)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (civilian-population >= 95)
+    (building-type-count-total mining-camp < 4)
+    (can-build mining-camp)
+=>
+    (build mining-camp)
+)
+
+; mills
+(defrule
+    (current-age >= feudal-age)
+    (civilian-population >= 22)
+    (building-type-count-total mill < 2)
+    (can-build mill)
+=>
+    (build mill)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (civilian-population >= 48)
+    (building-type-count-total mill < 3)
+    (can-build mill)
+=>
+    (build mill)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (civilian-population >= 85)
+    (building-type-count-total mill < 4)
+    (can-build mill)
+=>
+    (build mill)
+)
+
+; ==========================================================
+; EDIFICIOS BASE DE APERTURA
+; ==========================================================
+(defrule
+    (civilian-population >= 8)
+    (building-type-count-total barracks == 0)
+    (can-build barracks)
+=>
+    (build barracks)
+)
+
+(defrule
+    (goal gl-water-permit 1)
+    (building-type-count-total dock == 0)
+    (can-build dock)
+=>
+    (build dock)
+)
+
+(defrule
+    (goal gl-water-presence wp-full)
+    (current-age >= feudal-age)
+    (building-type-count-total dock < 2)
+    (can-build dock)
+=>
+    (build dock)
+)
+
+(defrule
+    (goal gl-water-presence wp-full)
+    (current-age >= castle-age)
+    (building-type-count-total dock < 3)
+    (can-build dock)
+=>
+    (build dock)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (building-type-count-total blacksmith == 0)
+    (can-build blacksmith)
+=>
+    (build blacksmith)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (building-type-count-total market == 0)
+    (can-build market)
+=>
+    (build market)
+)
+
+; ==========================================================
+; PRODUCCION TERRESTRE BASICA
+; ==========================================================
+(defrule
+    (goal gl-land-permit 1)
+    (current-age >= feudal-age)
+    (building-type-count-total archery-range == 0)
+    (can-build archery-range)
+=>
+    (build archery-range)
+)
+
+(defrule
+    (goal gl-land-permit 1)
+    (current-age >= feudal-age)
+    (building-type-count-total stable == 0)
+    (can-build stable)
+=>
+    (build stable)
+)
+
+; segundo edificio segun estado militar
+(defrule
+    (goal gl-build-state bd-land-production)
+    (current-age >= feudal-age)
+    (building-type-count-total archery-range < 2)
+    (can-build archery-range)
+=>
+    (build archery-range)
+)
+
+(defrule
+    (goal gl-build-state bd-land-production)
+    (current-age >= feudal-age)
+    (building-type-count-total stable < 2)
+    (can-build stable)
+=>
+    (build stable)
+)
+
+(defrule
+    (goal gl-build-state bd-defense-core)
+    (current-age >= castle-age)
+    (building-type-count-total barracks < 2)
+    (can-build barracks)
+=>
+    (build barracks)
+)
+
+; ==========================================================
+; CENTROS URBANOS
+; ==========================================================
+(defrule
+    (current-age >= castle-age)
+    (building-type-count-total town-center < 2)
+    (can-build town-center)
+=>
+    (build town-center)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (building-type-count-total town-center < 3)
+    (can-build town-center)
+=>
+    (build town-center)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-boom-permit 1)
+    (building-type-count-total town-center < 4)
+    (can-build town-center)
+=>
+    (build town-center)
+)
+
+; ==========================================================
+; EDIFICIOS CASTLE AGE
+; ==========================================================
+(defrule
+    (current-age >= castle-age)
+    (building-type-count-total monastery == 0)
+    (can-build monastery)
+=>
+    (build monastery)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (building-type-count-total university == 0)
+    (can-build university)
+=>
+    (build university)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (building-type-count-total siege-workshop == 0)
+    (can-build siege-workshop)
+=>
+    (build siege-workshop)
+)
+
+; si el rival tiene asedio, taller adicional
+(defrule
+    (current-age >= castle-age)
+    (goal gl-enemy-siege-flag 1)
+    (building-type-count-total siege-workshop < 2)
+    (can-build siege-workshop)
+=>
+    (build siege-workshop)
+)
+
+; ==========================================================
+; INFRAESTRUCTURA POR BUILD STATE
+; ==========================================================
+
+; eco expand
+(defrule
+    (goal gl-build-state bd-eco-expand)
+    (current-age >= castle-age)
+    (building-type-count-total monastery < 1)
+    (can-build monastery)
+=>
+    (build monastery)
+)
+
+(defrule
+    (goal gl-build-state bd-eco-expand)
+    (current-age >= castle-age)
+    (building-type-count-total university < 1)
+    (can-build university)
+=>
+    (build university)
+)
+
+; defense core
+(defrule
+    (goal gl-build-state bd-defense-core)
+    (current-age >= castle-age)
+    (building-type-count-total siege-workshop < 1)
+    (can-build siege-workshop)
+=>
+    (build siege-workshop)
+)
+
+(defrule
+    (goal gl-build-state bd-defense-core)
+    (current-age >= castle-age)
+    (building-type-count-total monastery < 1)
+    (can-build monastery)
+=>
+    (build monastery)
+)
+
+; castle network
+(defrule
+    (goal gl-build-state bd-castle-network)
+    (current-age == imperial-age)
+    (building-type-count-total archery-range < 3)
+    (can-build archery-range)
+=>
+    (build archery-range)
+)
+
+(defrule
+    (goal gl-build-state bd-castle-network)
+    (current-age == imperial-age)
+    (building-type-count-total stable < 3)
+    (can-build stable)
+=>
+    (build stable)
+)
+
+(defrule
+    (goal gl-build-state bd-castle-network)
+    (current-age == imperial-age)
+    (building-type-count-total barracks < 3)
+    (can-build barracks)
+=>
+    (build barracks)
+)
+
+(defrule
+    (goal gl-build-state bd-castle-network)
+    (current-age == imperial-age)
+    (building-type-count-total siege-workshop < 2)
+    (can-build siege-workshop)
+=>
+    (build siege-workshop)
+)
+
+; land production
+(defrule
+    (goal gl-build-state bd-land-production)
+    (current-age == imperial-age)
+    (building-type-count-total archery-range < 4)
+    (can-build archery-range)
+=>
+    (build archery-range)
+)
+
+(defrule
+    (goal gl-build-state bd-land-production)
+    (current-age == imperial-age)
+    (building-type-count-total stable < 4)
+    (can-build stable)
+=>
+    (build stable)
+)
+
+(defrule
+    (goal gl-build-state bd-land-production)
+    (current-age == imperial-age)
+    (building-type-count-total barracks < 4)
+    (can-build barracks)
+=>
+    (build barracks)
+)
+
+(defrule
+    (goal gl-build-state bd-land-production)
+    (current-age == imperial-age)
+    (building-type-count-total siege-workshop < 3)
+    (can-build siege-workshop)
+=>
+    (build siege-workshop)
+)
+
+; front creep
+(defrule
+    (goal gl-build-state bd-front-creep)
+    (current-age == imperial-age)
+    (building-type-count-total barracks < 5)
+    (can-build barracks)
+=>
+    (build-forward barracks)
+)
+
+(defrule
+    (goal gl-build-state bd-front-creep)
+    (current-age == imperial-age)
+    (building-type-count-total archery-range < 5)
+    (can-build archery-range)
+=>
+    (build-forward archery-range)
+)
+
+(defrule
+    (goal gl-build-state bd-front-creep)
+    (current-age == imperial-age)
+    (building-type-count-total siege-workshop < 4)
+    (can-build siege-workshop)
+=>
+    (build-forward siege-workshop)
+)
+
+; naval production
+(defrule
+    (goal gl-build-state bd-naval-production)
+    (goal gl-water-permit 1)
+    (current-age >= feudal-age)
+    (building-type-count-total dock < 2)
+    (can-build dock)
+=>
+    (build dock)
+)
+
+(defrule
+    (goal gl-build-state bd-naval-production)
+    (goal gl-theater th-water)
+    (current-age >= castle-age)
+    (building-type-count-total dock < 4)
+    (can-build dock)
+=>
+    (build dock)
+)
+
+; rebuild
+(defrule
+    (goal gl-build-state bd-rebuild)
+    (current-age >= castle-age)
+    (building-type-count-total barracks < 2)
+    (can-build barracks)
+=>
+    (build barracks)
+)
+
+(defrule
+    (goal gl-build-state bd-rebuild)
+    (current-age >= castle-age)
+    (building-type-count-total archery-range < 2)
+    (can-build archery-range)
+=>
+    (build archery-range)
+)
+
+(defrule
+    (goal gl-build-state bd-rebuild)
+    (current-age >= castle-age)
+    (building-type-count-total stable < 2)
+    (can-build stable)
+=>
+    (build stable)
+)
+
+; ==========================================================
+; GRANJAS
+; ==========================================================
+(defrule
+    (current-age >= feudal-age)
+    (food-amount < 350)
+    (wood-amount > 60)
+    (can-build farm)
+=>
+    (build farm)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (food-amount < 500)
+    (wood-amount > 60)
+    (can-build farm)
+=>
+    (build farm)
+)
+
+(defrule
+    (goal gl-eco-state ec-reseed-farms)
+    (current-age >= castle-age)
+    (wood-amount > 60)
+    (can-build farm)
+=>
+    (build farm)
+)
+
+; ==========================================================
+; OUTPOSTS MINIMOS PARA GENERALISTA
+; ==========================================================
+(defrule
+    (current-age >= castle-age)
+    (building-type-count-total outpost < 1)
+    (can-build outpost)
+=>
+    (build outpost)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (building-type-count-total outpost < 3)
+    (can-build outpost)
+=>
+    (build outpost)
+)
+
+; ==========================================================
+; FIN BLOQUE 4/10
+; EL BLOQUE 5 VA INMEDIATAMENTE DEBAJO
+; ==========================================================
+
+; ==========================================================
+; semiUtils.per
+; BLOQUE 5/10
+; SUBIDAS DE EDAD + MERCADO/COMERCIO + TECNOLOGIAS
+; + ACTIVACION DE DOCTRINAS
+; ==========================================================
+
+; ==========================================================
+; SUBIDAS DE EDAD
+; ==========================================================
+
+(defrule
+    (current-age == dark-age)
+    (can-research feudal-age)
+=>
+    (research feudal-age)
+    (chat-to-all "semiUtils: avanzando a Feudal.")
+)
+
+(defrule
+    (current-age == feudal-age)
+    (can-research castle-age)
+=>
+    (research castle-age)
+    (chat-to-all "semiUtils: avanzando a Castillo.")
+)
+
+(defrule
+    (current-age == castle-age)
+    (can-research imperial-age)
+=>
+    (research imperial-age)
+    (chat-to-all "semiUtils: avanzando a Imperial.")
+)
+
+; ==========================================================
+; MERCADO - MODO Y COMPRAS BASICAS
+; ==========================================================
+
+(defrule
+    (current-age >= castle-age)
+    (gold-amount > 1200)
+    (food-amount < 500)
+=>
+    (set-goal gl-market-mode mm-buy-food)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (gold-amount > 1000)
+    (wood-amount < 300)
+=>
+    (set-goal gl-market-mode mm-buy-wood)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (gold-amount > 1100)
+    (stone-amount < 650)
+    (building-type-count-total castle == 0)
+=>
+    (set-goal gl-market-mode mm-buy-stone)
+)
+
+(defrule
+    (food-amount > 800)
+    (goal gl-market-mode mm-buy-food)
+=>
+    (set-goal gl-market-mode mm-idle)
+)
+
+(defrule
+    (wood-amount > 550)
+    (goal gl-market-mode mm-buy-wood)
+=>
+    (set-goal gl-market-mode mm-idle)
+)
+
+(defrule
+    (stone-amount >= 650)
+    (goal gl-market-mode mm-buy-stone)
+=>
+    (set-goal gl-market-mode mm-idle)
+)
+
+(defrule
+    (goal gl-market-mode mm-buy-food)
+    (can-buy-commodity food)
+=>
+    (buy-commodity food)
+)
+
+(defrule
+    (goal gl-market-mode mm-buy-wood)
+    (can-buy-commodity wood)
+=>
+    (buy-commodity wood)
+)
+
+(defrule
+    (goal gl-market-mode mm-buy-stone)
+    (can-buy-commodity stone)
+=>
+    (buy-commodity stone)
+)
+
+; ==========================================================
+; COMERCIO
+; ==========================================================
+
+(defrule
+    (players-building-type-count any-ally market > 0)
+    (current-age >= castle-age)
+=>
+    (set-goal gl-trade-permit 1)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (goal gl-trade-permit 1)
+    (can-train trade-cart)
+    (unit-type-count-total trade-cart < 8)
+=>
+    (train trade-cart)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-trade-permit 1)
+    (can-train trade-cart)
+    (unit-type-count-total trade-cart < 18)
+=>
+    (train trade-cart)
+)
+
+; ==========================================================
+; TECNOLOGIAS ECONOMICAS
+; ==========================================================
+
+(defrule
+    (current-age == dark-age)
+    (civilian-population >= 20)
+    (can-research ri-loom)
+=>
+    (research ri-loom)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (can-research ri-double-bit-axe)
+=>
+    (research ri-double-bit-axe)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (can-research ri-horse-collar)
+=>
+    (research ri-horse-collar)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (can-research ri-wheel-barrow)
+=>
+    (research ri-wheel-barrow)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-bow-saw)
+=>
+    (research ri-bow-saw)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-heavy-plow)
+=>
+    (research ri-heavy-plow)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-gold-mining)
+=>
+    (research ri-gold-mining)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-stone-mining)
+=>
+    (research ri-stone-mining)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-two-man-saw)
+=>
+    (research ri-two-man-saw)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-gold-shaft-mining)
+=>
+    (research ri-gold-shaft-mining)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-hand-cart)
+=>
+    (research ri-hand-cart)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-crop-rotation)
+=>
+    (research ri-crop-rotation)
+)
+
+; ==========================================================
+; TECNOLOGIAS DE MERCADO / COMERCIO
+; ==========================================================
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-coinage)
+=>
+    (research ri-coinage)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (goal gl-trade-permit 1)
+    (can-research ri-banking)
+=>
+    (research ri-banking)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-guilds)
+=>
+    (research ri-guilds)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (goal gl-trade-permit 1)
+    (can-research ri-caravan)
+=>
+    (research ri-caravan)
+)
+
+; ==========================================================
+; TECNOLOGIAS DEFENSIVAS / UNIVERSIDAD
+; ==========================================================
+
+(defrule
+    (can-research ri-town-watch)
+=>
+    (research ri-town-watch)
+)
+
+(defrule
+    (can-research ri-town-patrol)
+=>
+    (research ri-town-patrol)
+)
+
+(defrule
+    (can-research ri-masonry)
+=>
+    (research ri-masonry)
+)
+
+(defrule
+    (can-research ri-architecture)
+=>
+    (research ri-architecture)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-fortified-wall)
+=>
+    (research ri-fortified-wall)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (building-type-count-total watch-tower-line >= 2)
+    (can-research ri-guard-tower)
+=>
+    (research ri-guard-tower)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (building-type-count-total watch-tower-line >= 4)
+    (can-research ri-keep)
+=>
+    (research ri-keep)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-ballistics)
+=>
+    (research ri-ballistics)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-chemistry)
+=>
+    (research ri-chemistry)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-siege-engineers)
+=>
+    (research ri-siege-engineers)
+)
+
+; ==========================================================
+; TECNOLOGIAS BASE DE HERRERIA / LINEAS GENERALES
+; ==========================================================
+
+; arqueria / proyectiles
+(defrule
+    (can-research ri-fletching)
+=>
+    (research ri-fletching)
+)
+
+(defrule
+    (can-research ri-bodkin-arrow)
+=>
+    (research ri-bodkin-arrow)
+)
+
+(defrule
+    (can-research ri-bracer)
+=>
+    (research ri-bracer)
+)
+
+(defrule
+    (can-research ri-crossbow)
+=>
+    (research ri-crossbow)
+)
+
+(defrule
+    (can-research ri-arbalest)
+=>
+    (research ri-arbalest)
+)
+
+(defrule
+    (can-research ri-elite-skirmisher)
+=>
+    (research ri-elite-skirmisher)
+)
+
+(defrule
+    (can-research ri-thumb-ring)
+=>
+    (research ri-thumb-ring)
+)
+
+(defrule
+    (can-research ri-padded-archer-armor)
+=>
+    (research ri-padded-archer-armor)
+)
+
+(defrule
+    (can-research ri-leather-archer-armor)
+=>
+    (research ri-leather-archer-armor)
+)
+
+(defrule
+    (can-research ri-ring-archer-armor)
+=>
+    (research ri-ring-archer-armor)
+)
+
+; infanteria
+(defrule
+    (can-research ri-squires)
+=>
+    (research ri-squires)
+)
+
+(defrule
+    (can-research ri-pikeman)
+=>
+    (research ri-pikeman)
+)
+
+(defrule
+    (can-research ri-halberdier)
+=>
+    (research ri-halberdier)
+)
+
+(defrule
+    (can-research ri-forging)
+=>
+    (research ri-forging)
+)
+
+(defrule
+    (can-research ri-iron-casting)
+=>
+    (research ri-iron-casting)
+)
+
+(defrule
+    (can-research ri-blast-furnace)
+=>
+    (research ri-blast-furnace)
+)
+
+; caballeria
+(defrule
+    (can-research ri-scale-barding)
+=>
+    (research ri-scale-barding)
+)
+
+(defrule
+    (can-research ri-chain-barding)
+=>
+    (research ri-chain-barding)
+)
+
+(defrule
+    (can-research ri-plate-barding)
+=>
+    (research ri-plate-barding)
+)
+
+(defrule
+    (can-research ri-bloodlines)
+=>
+    (research ri-bloodlines)
+)
+
+(defrule
+    (can-research ri-husbandry)
+=>
+    (research ri-husbandry)
+)
+
+(defrule
+    (can-research ri-light-cavalry)
+=>
+    (research ri-light-cavalry)
+)
+
+(defrule
+    (can-research ri-hussar)
+=>
+    (research ri-hussar)
+)
+
+; monasterio
+(defrule
+    (can-research ri-sanctity)
+=>
+    (research ri-sanctity)
+)
+
+(defrule
+    (can-research ri-fervor)
+=>
+    (research ri-fervor)
+)
+
+(defrule
+    (can-research ri-redemption)
+=>
+    (research ri-redemption)
+)
+
+; asedio
+(defrule
+    (can-research ri-capped-ram)
+=>
+    (research ri-capped-ram)
+)
+
+(defrule
+    (can-research ri-siege-ram)
+=>
+    (research ri-siege-ram)
+)
+
+(defrule
+    (can-research ri-onager)
+=>
+    (research ri-onager)
+)
+
+(defrule
+    (can-research ri-bombard-cannon)
+=>
+    (research ri-bombard-cannon)
+)
+
+; castillo / unicas
+(defrule
+    (can-research my-unique-unit-upgrade)
+=>
+    (research my-unique-unit-upgrade)
+)
+
+(defrule
+    (can-research my-unique-research)
+=>
+    (research my-unique-research)
+)
+
+(defrule
+    (can-research ri-conscription)
+=>
+    (research ri-conscription)
+)
+
+; ==========================================================
+; TECNOLOGIAS NAVALES
+; ==========================================================
+
+(defrule
+    (goal gl-water-permit 1)
+    (can-research ri-careening)
+=>
+    (research ri-careening)
+)
+
+(defrule
+    (goal gl-water-permit 1)
+    (can-research ri-dry-dock)
+=>
+    (research ri-dry-dock)
+)
+
+(defrule
+    (goal gl-water-permit 1)
+    (can-research ri-shipwright)
+=>
+    (research ri-shipwright)
+)
+
+(defrule
+    (goal gl-water-permit 1)
+    (can-research ri-war-galley)
+=>
+    (research ri-war-galley)
+)
+
+(defrule
+    (goal gl-water-permit 1)
+    (can-research ri-galleon)
+=>
+    (research ri-galleon)
+)
+
+(defrule
+    (goal gl-water-permit 1)
+    (current-age >= imperial-age)
+    (can-research ri-fast-fire-ship)
+=>
+    (research ri-fast-fire-ship)
+)
+
+(defrule
+    (goal gl-water-permit 1)
+    (can-research ri-heavy-demolition-ship)
+=>
+    (research ri-heavy-demolition-ship)
+)
+
+(defrule
+    (goal gl-water-permit 1)
+    (can-research ri-cannon-galleon)
+=>
+    (research ri-cannon-galleon)
+)
+
+; ==========================================================
+; ACTIVACION DE DOCTRINAS TERRESTRES
+; ==========================================================
+
+; fallback generico
+(defrule
+    (current-age == dark-age)
+=>
+    (set-goal gl-doctrine-land dl-generic)
+)
+
+; en mapas abiertos, si hay caballeria disponible, tender a doctrina de caballeria
+(defrule
+    (goal gl-map-openness mo-open)
+    (current-age >= castle-age)
+    (can-train knight-line)
+=>
+    (set-goal gl-doctrine-land dl-cavalry)
+)
+
+; si el enemigo es de caballeria y tenemos camellos, pivotar
+(defrule
+    (goal gl-enemy-land-comp el-cavalry)
+    (current-age >= castle-age)
+    (can-train camel-line)
+=>
+    (set-goal gl-doctrine-land dl-camel)
+)
+
+; si el enemigo es de arqueria y podemos jugar CA, usar CA+situacion
+(defrule
+    (goal gl-enemy-land-comp el-archer)
+    (current-age >= castle-age)
+    (can-train cavalry-archer-line)
+=>
+    (set-goal gl-doctrine-land dl-ca-siege)
+)
+
+; si el enemigo es monk-siege y tenemos establos, tender a caballeria
+(defrule
+    (goal gl-enemy-land-comp el-monk-siege)
+    (current-age >= castle-age)
+    (can-train scout-cavalry-line)
+=>
+    (set-goal gl-doctrine-land dl-cavalry)
+)
+
+; cerrado o imperial larga = trash+siege
+(defrule
+    (goal gl-map-openness mo-closed)
+    (current-age >= imperial-age)
+=>
+    (set-goal gl-doctrine-land dl-trash-siege)
+)
+
+; si ya hay castillo y UU disponible, permitir UU core
+(defrule
+    (current-age >= castle-age)
+    (building-type-count-total castle > 0)
+    (can-train my-unique-unit-line)
+=>
+    (set-goal gl-doctrine-land dl-uu-core)
+)
+
+; si no se cumple nada mejor, volver a generic
+(defrule
+    (goal gl-enemy-land-comp el-unknown)
+    (current-age <= castle-age)
+=>
+    (set-goal gl-doctrine-land dl-generic)
+)
+
+; ==========================================================
+; ACTIVACION DE DOCTRINAS NAVALES
+; ==========================================================
+
+(defrule
+    (goal gl-water-permit 0)
+=>
+    (set-goal gl-doctrine-naval dn-none)
+)
+
+(defrule
+    (goal gl-water-permit 1)
+    (goal gl-enemy-naval-comp en-unknown)
+=>
+    (set-goal gl-doctrine-naval dn-galley-control)
+)
+
+(defrule
+    (goal gl-water-permit 1)
+    (goal gl-enemy-naval-comp en-galley)
+=>
+    (set-goal gl-doctrine-naval dn-fire-control)
+)
+
+(defrule
+    (goal gl-water-permit 1)
+    (goal gl-enemy-naval-comp en-fire)
+=>
+    (set-goal gl-doctrine-naval dn-galley-control)
+)
+
+(defrule
+    (goal gl-water-permit 1)
+    (goal gl-enemy-naval-comp en-demo)
+=>
+    (set-goal gl-doctrine-naval dn-demo-mix)
+)
+
+(defrule
+    (goal gl-water-permit 1)
+    (goal gl-enemy-naval-comp en-cannon)
+=>
+    (set-goal gl-doctrine-naval dn-cannon-control)
+)
+
+(defrule
+    (goal gl-naval-combat-state nc-transport-support)
+=>
+    (set-goal gl-doctrine-naval dn-transport-support)
+)
+
+; ==========================================================
+; AJUSTE DE DECISION MAYOR
+; ==========================================================
+
+(defrule
+    (current-age <= feudal-age)
+=>
+    (set-goal gl-last-major-decision md-tech)
+)
+
+(defrule
+    (current-age == castle-age)
+=>
+    (set-goal gl-last-major-decision md-eco)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-attack-permit 1)
+=>
+    (set-goal gl-last-major-decision md-attack)
+)
+
+; ==========================================================
+; FIN BLOQUE 5/10
+; EL BLOQUE 6 VA INMEDIATAMENTE DEBAJO
+; ==========================================================
+
+; ==========================================================
+; semiUtils.per
+; BLOQUE 6/10
+; PRODUCCION MILITAR TERRESTRE Y NAVAL
+; GENERALISTA + POR DOCTRINAS + REACTIVA
+; ==========================================================
+
+; ==========================================================
+; PRODUCCION TERRESTRE TEMPRANA - DARK
+; ==========================================================
+
+(defrule
+    (current-age == dark-age)
+    (building-type-count-total barracks > 0)
+    (goal gl-panic-flag 1)
+    (can-train militiaman-line)
+    (unit-type-count-total militiaman-line < 2)
+=>
+    (train militiaman-line)
+)
+
+; ==========================================================
+; PRODUCCION TERRESTRE TEMPRANA - FEUDAL
+; ==========================================================
+
+; base generalista
+(defrule
+    (current-age == feudal-age)
+    (goal gl-land-permit 1)
+    (can-train skirmisher-line)
+    (unit-type-count-total skirmisher-line < 6)
+=>
+    (train skirmisher-line)
+)
+
+(defrule
+    (current-age == feudal-age)
+    (goal gl-land-permit 1)
+    (can-train spearman-line)
+    (unit-type-count-total spearman-line < 6)
+=>
+    (train spearman-line)
+)
+
+(defrule
+    (current-age == feudal-age)
+    (goal gl-map-openness mo-open)
+    (can-train scout-cavalry-line)
+    (unit-type-count-total scout-cavalry-line < 4)
+=>
+    (train scout-cavalry-line)
+)
+
+(defrule
+    (current-age == feudal-age)
+    (goal gl-land-permit 1)
+    (can-train archer-line)
+    (unit-type-count-total archer-line < 6)
+=>
+    (train archer-line)
+)
+
+; reactividad anti-cab
+(defrule
+    (current-age == feudal-age)
+    (players-unit-type-count any-enemy scout-cavalry-line > 3)
+    (can-train spearman-line)
+    (unit-type-count-total spearman-line < 12)
+=>
+    (train spearman-line)
+)
+
+; reactividad anti-arqueria
+(defrule
+    (current-age == feudal-age)
+    (players-unit-type-count any-enemy archer-line > 4)
+    (can-train skirmisher-line)
+    (unit-type-count-total skirmisher-line < 12)
+=>
+    (train skirmisher-line)
+)
+
+; reactividad anti-milicia
+(defrule
+    (current-age == feudal-age)
+    (players-unit-type-count any-enemy militiaman-line > 3)
+    (can-train archer-line)
+    (unit-type-count-total archer-line < 10)
+=>
+    (train archer-line)
+)
+
+; ==========================================================
+; PRODUCCION TERRESTRE - CASTLE
+; ==========================================================
+
+; masa basica
+(defrule
+    (current-age == castle-age)
+    (goal gl-land-permit 1)
+    (can-train spearman-line)
+    (unit-type-count-total spearman-line < 14)
+=>
+    (train spearman-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (goal gl-land-permit 1)
+    (can-train skirmisher-line)
+    (unit-type-count-total skirmisher-line < 10)
+=>
+    (train skirmisher-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (goal gl-land-permit 1)
+    (can-train monk)
+    (unit-type-count-total monk < 3)
+=>
+    (train monk)
+)
+
+; doctrina generic
+(defrule
+    (current-age == castle-age)
+    (goal gl-doctrine-land dl-generic)
+    (can-train archer-line)
+    (unit-type-count-total archer-line < 14)
+=>
+    (train archer-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (goal gl-doctrine-land dl-generic)
+    (can-train scout-cavalry-line)
+    (unit-type-count-total scout-cavalry-line < 8)
+=>
+    (train scout-cavalry-line)
+)
+
+; doctrina archer
+(defrule
+    (current-age == castle-age)
+    (goal gl-doctrine-land dl-archer)
+    (can-train archer-line)
+    (unit-type-count-total archer-line < 20)
+=>
+    (train archer-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (goal gl-doctrine-land dl-archer)
+    (can-train skirmisher-line)
+    (unit-type-count-total skirmisher-line < 14)
+=>
+    (train skirmisher-line)
+)
+
+; doctrina cavalry
+(defrule
+    (current-age == castle-age)
+    (goal gl-doctrine-land dl-cavalry)
+    (can-train knight-line)
+    (unit-type-count-total knight-line < 16)
+=>
+    (train knight-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (goal gl-doctrine-land dl-cavalry)
+    (can-train scout-cavalry-line)
+    (unit-type-count-total scout-cavalry-line < 10)
+=>
+    (train scout-cavalry-line)
+)
+
+; doctrina camel
+(defrule
+    (current-age == castle-age)
+    (goal gl-doctrine-land dl-camel)
+    (can-train camel-line)
+    (unit-type-count-total camel-line < 14)
+=>
+    (train camel-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (goal gl-doctrine-land dl-camel)
+    (can-train spearman-line)
+    (unit-type-count-total spearman-line < 18)
+=>
+    (train spearman-line)
+)
+
+; doctrina monk-siege
+(defrule
+    (current-age == castle-age)
+    (goal gl-doctrine-land dl-monk-siege)
+    (can-train monk)
+    (unit-type-count-total monk < 6)
+=>
+    (train monk)
+)
+
+(defrule
+    (current-age == castle-age)
+    (goal gl-doctrine-land dl-monk-siege)
+    (can-train mangonel-line)
+    (unit-type-count-total mangonel-line < 3)
+=>
+    (train mangonel-line)
+)
+
+; doctrina trash-siege
+(defrule
+    (current-age == castle-age)
+    (goal gl-doctrine-land dl-trash-siege)
+    (can-train spearman-line)
+    (unit-type-count-total spearman-line < 22)
+=>
+    (train spearman-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (goal gl-doctrine-land dl-trash-siege)
+    (can-train skirmisher-line)
+    (unit-type-count-total skirmisher-line < 16)
+=>
+    (train skirmisher-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (goal gl-doctrine-land dl-trash-siege)
+    (can-train mangonel-line)
+    (unit-type-count-total mangonel-line < 2)
+=>
+    (train mangonel-line)
+)
+
+; doctrina CA+siege
+(defrule
+    (current-age == castle-age)
+    (goal gl-doctrine-land dl-ca-siege)
+    (can-train cavalry-archer-line)
+    (unit-type-count-total cavalry-archer-line < 14)
+=>
+    (train cavalry-archer-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (goal gl-doctrine-land dl-ca-siege)
+    (can-train mangonel-line)
+    (unit-type-count-total mangonel-line < 2)
+=>
+    (train mangonel-line)
+)
+
+; doctrina UU core
+(defrule
+    (current-age == castle-age)
+    (goal gl-doctrine-land dl-uu-core)
+    (building-type-count-total castle > 0)
+    (can-train my-unique-unit-line)
+    (unit-type-count-total my-unique-unit-line < 10)
+=>
+    (train my-unique-unit-line)
+)
+
+; doctrina infanteria
+(defrule
+    (current-age == castle-age)
+    (goal gl-doctrine-land dl-infantry)
+    (can-train militiaman-line)
+    (unit-type-count-total militiaman-line < 14)
+=>
+    (train militiaman-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (goal gl-doctrine-land dl-infantry)
+    (can-train spearman-line)
+    (unit-type-count-total spearman-line < 18)
+=>
+    (train spearman-line)
+)
+
+; ==========================================================
+; PRODUCCION TERRESTRE REACTIVA - CASTLE
+; ==========================================================
+
+(defrule
+    (current-age == castle-age)
+    (goal gl-enemy-siege-flag 1)
+    (can-train scout-cavalry-line)
+    (unit-type-count-total scout-cavalry-line < 14)
+=>
+    (train scout-cavalry-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (goal gl-enemy-monk-flag 1)
+    (can-train scout-cavalry-line)
+    (unit-type-count-total scout-cavalry-line < 16)
+=>
+    (train scout-cavalry-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (goal gl-enemy-land-comp el-cavalry)
+    (can-train spearman-line)
+    (unit-type-count-total spearman-line < 24)
+=>
+    (train spearman-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (goal gl-enemy-land-comp el-archer)
+    (can-train skirmisher-line)
+    (unit-type-count-total skirmisher-line < 18)
+=>
+    (train skirmisher-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (goal gl-enemy-land-comp el-infantry)
+    (can-train archer-line)
+    (unit-type-count-total archer-line < 16)
+=>
+    (train archer-line)
+)
+
+; ==========================================================
+; PRODUCCION TERRESTRE - IMPERIAL
+; ==========================================================
+
+; base generalista
+(defrule
+    (current-age == imperial-age)
+    (goal gl-land-permit 1)
+    (can-train spearman-line)
+    (unit-type-count-total spearman-line < 28)
+=>
+    (train spearman-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-land-permit 1)
+    (can-train skirmisher-line)
+    (unit-type-count-total skirmisher-line < 18)
+=>
+    (train skirmisher-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (can-train monk)
+    (unit-type-count-total monk < 5)
+=>
+    (train monk)
+)
+
+; generic
+(defrule
+    (current-age == imperial-age)
+    (goal gl-doctrine-land dl-generic)
+    (can-train archer-line)
+    (unit-type-count-total archer-line < 22)
+=>
+    (train archer-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-doctrine-land dl-generic)
+    (can-train scout-cavalry-line)
+    (unit-type-count-total scout-cavalry-line < 16)
+=>
+    (train scout-cavalry-line)
+)
+
+; archer
+(defrule
+    (current-age == imperial-age)
+    (goal gl-doctrine-land dl-archer)
+    (can-train archer-line)
+    (unit-type-count-total archer-line < 32)
+=>
+    (train archer-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-doctrine-land dl-archer)
+    (can-train skirmisher-line)
+    (unit-type-count-total skirmisher-line < 22)
+=>
+    (train skirmisher-line)
+)
+
+; cavalry
+(defrule
+    (current-age == imperial-age)
+    (goal gl-doctrine-land dl-cavalry)
+    (can-train knight-line)
+    (unit-type-count-total knight-line < 24)
+=>
+    (train knight-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-doctrine-land dl-cavalry)
+    (can-train scout-cavalry-line)
+    (unit-type-count-total scout-cavalry-line < 20)
+=>
+    (train scout-cavalry-line)
+)
+
+; camel
+(defrule
+    (current-age == imperial-age)
+    (goal gl-doctrine-land dl-camel)
+    (can-train camel-line)
+    (unit-type-count-total camel-line < 22)
+=>
+    (train camel-line)
+)
+
+; trash-siege
+(defrule
+    (current-age == imperial-age)
+    (goal gl-doctrine-land dl-trash-siege)
+    (can-train spearman-line)
+    (unit-type-count-total spearman-line < 50)
+=>
+    (train spearman-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-doctrine-land dl-trash-siege)
+    (can-train skirmisher-line)
+    (unit-type-count-total skirmisher-line < 28)
+=>
+    (train skirmisher-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-doctrine-land dl-trash-siege)
+    (can-train battering-ram-line)
+    (unit-type-count-total battering-ram-line < 4)
+=>
+    (train battering-ram-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-doctrine-land dl-trash-siege)
+    (can-train mangonel-line)
+    (unit-type-count-total mangonel-line < 4)
+=>
+    (train mangonel-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-doctrine-land dl-trash-siege)
+    (building-type-count-total castle > 0)
+    (can-train trebuchet)
+    (unit-type-count-total trebuchet < 4)
+=>
+    (train trebuchet)
+)
+
+; monk-siege
+(defrule
+    (current-age == imperial-age)
+    (goal gl-doctrine-land dl-monk-siege)
+    (can-train monk)
+    (unit-type-count-total monk < 8)
+=>
+    (train monk)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-doctrine-land dl-monk-siege)
+    (can-train mangonel-line)
+    (unit-type-count-total mangonel-line < 4)
+=>
+    (train mangonel-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-doctrine-land dl-monk-siege)
+    (can-train battering-ram-line)
+    (unit-type-count-total battering-ram-line < 4)
+=>
+    (train battering-ram-line)
+)
+
+; CA+siege
+(defrule
+    (current-age == imperial-age)
+    (goal gl-doctrine-land dl-ca-siege)
+    (can-train cavalry-archer-line)
+    (unit-type-count-total cavalry-archer-line < 22)
+=>
+    (train cavalry-archer-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-doctrine-land dl-ca-siege)
+    (can-train mangonel-line)
+    (unit-type-count-total mangonel-line < 4)
+=>
+    (train mangonel-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-doctrine-land dl-ca-siege)
+    (building-type-count-total castle > 0)
+    (can-train trebuchet)
+    (unit-type-count-total trebuchet < 4)
+=>
+    (train trebuchet)
+)
+
+; UU core
+(defrule
+    (current-age == imperial-age)
+    (goal gl-doctrine-land dl-uu-core)
+    (building-type-count-total castle > 0)
+    (can-train my-unique-unit-line)
+    (unit-type-count-total my-unique-unit-line < 18)
+=>
+    (train my-unique-unit-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-doctrine-land dl-uu-core)
+    (can-train spearman-line)
+    (unit-type-count-total spearman-line < 30)
+=>
+    (train spearman-line)
+)
+
+; infantry
+(defrule
+    (current-age == imperial-age)
+    (goal gl-doctrine-land dl-infantry)
+    (can-train militiaman-line)
+    (unit-type-count-total militiaman-line < 24)
+=>
+    (train militiaman-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-doctrine-land dl-infantry)
+    (can-train spearman-line)
+    (unit-type-count-total spearman-line < 32)
+=>
+    (train spearman-line)
+)
+
+; soporte gunpowder si existe
+(defrule
+    (current-age == imperial-age)
+    (goal gl-attack-permit 1)
+    (can-train hand-cannoneer)
+    (unit-type-count-total hand-cannoneer < 14)
+=>
+    (train hand-cannoneer)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-attack-permit 1)
+    (can-train bombard-cannon)
+    (unit-type-count-total bombard-cannon < 3)
+=>
+    (train bombard-cannon)
+)
+
+; asedio base imperial
+(defrule
+    (current-age == imperial-age)
+    (goal gl-attack-permit 1)
+    (can-train battering-ram-line)
+    (unit-type-count-total battering-ram-line < 5)
+=>
+    (train battering-ram-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-attack-permit 1)
+    (can-train mangonel-line)
+    (unit-type-count-total mangonel-line < 5)
+=>
+    (train mangonel-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-attack-permit 1)
+    (building-type-count-total castle > 0)
+    (can-train trebuchet)
+    (unit-type-count-total trebuchet < 5)
+=>
+    (train trebuchet)
+)
+
+; ==========================================================
+; PRODUCCION TERRESTRE REACTIVA - IMPERIAL
+; ==========================================================
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-enemy-land-comp el-cavalry)
+    (can-train spearman-line)
+    (unit-type-count-total spearman-line < 60)
+=>
+    (train spearman-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-enemy-land-comp el-archer)
+    (can-train skirmisher-line)
+    (unit-type-count-total skirmisher-line < 32)
+=>
+    (train skirmisher-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-enemy-monk-flag 1)
+    (can-train scout-cavalry-line)
+    (unit-type-count-total scout-cavalry-line < 24)
+=>
+    (train scout-cavalry-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-enemy-siege-flag 1)
+    (can-train scout-cavalry-line)
+    (unit-type-count-total scout-cavalry-line < 24)
+=>
+    (train scout-cavalry-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-enemy-land-comp el-gunpowder)
+    (can-train scout-cavalry-line)
+    (unit-type-count-total scout-cavalry-line < 20)
+=>
+    (train scout-cavalry-line)
+)
+
+; ==========================================================
+; PRODUCCION NAVAL - ECONOMIA
+; ==========================================================
+
+(defrule
+    (goal gl-water-permit 1)
+    (current-age >= dark-age)
+    (can-train fishing-ship)
+    (unit-type-count-total fishing-ship < 6)
+=>
+    (train fishing-ship)
+)
+
+(defrule
+    (goal gl-water-presence wp-full)
+    (current-age >= feudal-age)
+    (can-train fishing-ship)
+    (unit-type-count-total fishing-ship < 12)
+=>
+    (train fishing-ship)
+)
+
+(defrule
+    (goal gl-water-presence wp-full)
+    (current-age >= castle-age)
+    (can-train fishing-ship)
+    (unit-type-count-total fishing-ship < 18)
+=>
+    (train fishing-ship)
+)
+
+; ==========================================================
+; PRODUCCION NAVAL - FEUDAL/CASTLE
+; ==========================================================
+
+; doctrine galley control
+(defrule
+    (goal gl-doctrine-naval dn-galley-control)
+    (goal gl-water-permit 1)
+    (current-age >= feudal-age)
+    (can-train galley-line)
+    (unit-type-count-total galley-line < 10)
+=>
+    (train galley-line)
+)
+
+; doctrine fire control
+(defrule
+    (goal gl-doctrine-naval dn-fire-control)
+    (goal gl-water-permit 1)
+    (current-age >= feudal-age)
+    (can-train fire-ship-line)
+    (unit-type-count-total fire-ship-line < 10)
+=>
+    (train fire-ship-line)
+)
+
+; doctrine demo mix
+(defrule
+    (goal gl-doctrine-naval dn-demo-mix)
+    (goal gl-water-permit 1)
+    (current-age >= feudal-age)
+    (can-train demolition-ship-line)
+    (unit-type-count-total demolition-ship-line < 5)
+=>
+    (train demolition-ship-line)
+)
+
+(defrule
+    (goal gl-doctrine-naval dn-demo-mix)
+    (goal gl-water-permit 1)
+    (current-age >= feudal-age)
+    (can-train galley-line)
+    (unit-type-count-total galley-line < 8)
+=>
+    (train galley-line)
+)
+
+; cannon control
+(defrule
+    (goal gl-doctrine-naval dn-cannon-control)
+    (goal gl-water-permit 1)
+    (current-age >= castle-age)
+    (can-train cannon-galleon-line)
+    (unit-type-count-total cannon-galleon-line < 3)
+=>
+    (train cannon-galleon-line)
+)
+
+(defrule
+    (goal gl-doctrine-naval dn-cannon-control)
+    (goal gl-water-permit 1)
+    (current-age >= castle-age)
+    (can-train galley-line)
+    (unit-type-count-total galley-line < 10)
+=>
+    (train galley-line)
+)
+
+; transport support
+(defrule
+    (goal gl-doctrine-naval dn-transport-support)
+    (goal gl-water-permit 1)
+    (current-age >= castle-age)
+    (can-train transport-ship)
+    (unit-type-count-total transport-ship < 3)
+=>
+    (train transport-ship)
+)
+
+; ==========================================================
+; PRODUCCION NAVAL - REACTIVA
+; ==========================================================
+
+(defrule
+    (goal gl-water-permit 1)
+    (players-unit-type-count any-enemy galley-line > 4)
+    (can-train fire-ship-line)
+    (unit-type-count-total fire-ship-line < 12)
+=>
+    (train fire-ship-line)
+)
+
+(defrule
+    (goal gl-water-permit 1)
+    (players-unit-type-count any-enemy fire-ship-line > 4)
+    (can-train galley-line)
+    (unit-type-count-total galley-line < 14)
+=>
+    (train galley-line)
+)
+
+(defrule
+    (goal gl-water-permit 1)
+    (players-unit-type-count any-enemy demolition-ship-line > 2)
+    (can-train galley-line)
+    (unit-type-count-total galley-line < 12)
+=>
+    (train galley-line)
+)
+
+(defrule
+    (goal gl-water-permit 1)
+    (players-unit-type-count any-enemy cannon-galleon-line > 1)
+    (can-train cannon-galleon-line)
+    (unit-type-count-total cannon-galleon-line < 3)
+=>
+    (train cannon-galleon-line)
+)
+
+; ==========================================================
+; COMPRESION DE MASA NAVAL EN IMPERIAL
+; ==========================================================
+
+(defrule
+    (goal gl-water-permit 1)
+    (current-age == imperial-age)
+    (goal gl-doctrine-naval dn-galley-control)
+    (can-train galley-line)
+    (unit-type-count-total galley-line < 24)
+=>
+    (train galley-line)
+)
+
+(defrule
+    (goal gl-water-permit 1)
+    (current-age == imperial-age)
+    (goal gl-doctrine-naval dn-fire-control)
+    (can-train fire-ship-line)
+    (unit-type-count-total fire-ship-line < 22)
+=>
+    (train fire-ship-line)
+)
+
+(defrule
+    (goal gl-water-permit 1)
+    (current-age == imperial-age)
+    (goal gl-doctrine-naval dn-demo-mix)
+    (can-train demolition-ship-line)
+    (unit-type-count-total demolition-ship-line < 8)
+=>
+    (train demolition-ship-line)
+)
+
+(defrule
+    (goal gl-water-permit 1)
+    (current-age == imperial-age)
+    (goal gl-doctrine-naval dn-cannon-control)
+    (can-train cannon-galleon-line)
+    (unit-type-count-total cannon-galleon-line < 5)
+=>
+    (train cannon-galleon-line)
+)
+
+; ==========================================================
+; AJUSTES DE ESTADO DE COMBATE SEGUN MASA
+; ==========================================================
+
+(defrule
+    (current-age >= feudal-age)
+    (soldier-count >= 10)
+    (goal gl-land-combat-state lc-hold)
+    (goal gl-attack-permit 1)
+=>
+    (set-goal gl-land-combat-state lc-contain)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (soldier-count >= 28)
+    (goal gl-attack-permit 1)
+=>
+    (set-goal gl-land-combat-state lc-push)
+)
+
+(defrule
+    (goal gl-water-permit 1)
+    (unit-type-count-total galley-line >= 8)
+=>
+    (set-goal gl-naval-combat-state nc-gain-control)
+)
+
+(defrule
+    (goal gl-water-permit 1)
+    (unit-type-count-total cannon-galleon-line >= 2)
+    (current-age == imperial-age)
+=>
+    (set-goal gl-naval-combat-state nc-blockade)
+)
+
+; ==========================================================
+; semiUtils.per
+; BLOQUE 7/10
+; INTELIGENCIA + SCOUTING + LECTURA DE COMPOSICION ENEMIGA
+; + FLAGS DE AMENAZA + AJUSTES DE DOCTRINA
+; VERSION CORREGIDA
+; ==========================================================
+
+; ==========================================================
+; INTEL - ESTADO DE SCOUTING
+; ==========================================================
+(defrule
+    (current-age == dark-age)
+=>
+    (set-goal gl-intel-state in-home-scan)
+)
+
+(defrule
+    (current-age == dark-age)
+    (unit-type-count-total scout-cavalry-line > 0)
+=>
+    (set-goal gl-intel-state in-ring-scan)
+)
+
+(defrule
+    (current-age == dark-age)
+    (unit-type-count-total eagle-warrior-line > 0)
+=>
+    (set-goal gl-intel-state in-ring-scan)
+)
+
+(defrule
+    (player-in-game any-enemy)
+    (current-age >= feudal-age)
+=>
+    (set-goal gl-intel-state in-enemy-confirm)
+)
+
+(defrule
+    (player-in-game any-enemy)
+    (current-age >= castle-age)
+=>
+    (set-goal gl-intel-state in-comp-read)
+)
+
+(defrule
+    (goal gl-water-permit 1)
+    (player-in-game any-enemy)
+=>
+    (set-goal gl-intel-state in-water-read)
+)
+
+(defrule
+    (goal gl-enemy-forward-flag 1)
+=>
+    (set-goal gl-intel-state in-forward-read)
+)
+
+(defrule
+    (current-age == imperial-age)
+=>
+    (set-goal gl-intel-state in-late-tracking)
+)
+
+; ==========================================================
+; INTEL - ENEMIGO NAVAL / DOCKS
+; ==========================================================
+(defrule
+    (players-building-type-count any-enemy dock > 0)
+=>
+    (set-goal gl-enemy-dock-flag 1)
+    (set-goal gl-water-presence wp-shoreline)
+)
+
+(defrule
+    (players-building-type-count any-enemy dock > 1)
+    (building-type-count-total dock > 0)
+=>
+    (set-goal gl-theater th-water)
+    (set-goal gl-water-presence wp-full)
+    (set-goal gl-water-permit 1)
+)
+
+(defrule
+    (players-unit-type-count any-enemy fishing-ship > 2)
+=>
+    (set-goal gl-enemy-dock-flag 1)
+    (set-goal gl-water-presence wp-shoreline)
+)
+
+(defrule
+    (players-unit-type-count any-enemy fishing-ship > 6)
+=>
+    (set-goal gl-enemy-water-mass 1)
+    (set-goal gl-water-permit 1)
+)
+
+(defrule
+    (players-unit-type-count any-enemy galley-line > 4)
+=>
+    (set-goal gl-enemy-water-mass 2)
+    (set-goal gl-enemy-naval-comp en-galley)
+)
+
+(defrule
+    (players-unit-type-count any-enemy fire-ship-line > 3)
+=>
+    (set-goal gl-enemy-water-mass 2)
+    (set-goal gl-enemy-naval-comp en-fire)
+)
+
+(defrule
+    (players-unit-type-count any-enemy demolition-ship-line > 2)
+=>
+    (set-goal gl-enemy-water-mass 2)
+    (set-goal gl-enemy-naval-comp en-demo)
+)
+
+(defrule
+    (players-unit-type-count any-enemy cannon-galleon-line > 0)
+=>
+    (set-goal gl-enemy-water-mass 3)
+    (set-goal gl-enemy-naval-comp en-cannon)
+)
+
+(defrule
+    (building-type-count-total dock == 0)
+    (players-building-type-count any-enemy dock == 0)
+=>
+    (set-goal gl-enemy-naval-comp en-unknown)
+)
+
+; ==========================================================
+; INTEL - CASTILLOS / FORWARD / ASEDIO
+; ==========================================================
+(defrule
+    (players-building-type-count any-enemy castle > 0)
+=>
+    (set-goal gl-enemy-castle-flag 1)
+)
+
+(defrule
+    (players-building-type-count any-enemy siege-workshop > 0)
+=>
+    (set-goal gl-enemy-siege-flag 1)
+)
+
+(defrule
+    (players-unit-type-count any-enemy battering-ram-line > 0)
+=>
+    (set-goal gl-enemy-siege-flag 1)
+)
+
+(defrule
+    (players-unit-type-count any-enemy mangonel-line > 0)
+=>
+    (set-goal gl-enemy-siege-flag 1)
+)
+
+(defrule
+    (players-unit-type-count any-enemy scorpion-line > 0)
+=>
+    (set-goal gl-enemy-siege-flag 1)
+)
+
+(defrule
+    (players-unit-type-count any-enemy bombard-cannon > 0)
+=>
+    (set-goal gl-enemy-siege-flag 1)
+)
+
+(defrule
+    (players-unit-type-count any-enemy trebuchet > 0)
+=>
+    (set-goal gl-enemy-siege-flag 1)
+)
+
+(defrule
+    (town-under-attack)
+    (current-age >= castle-age)
+=>
+    (set-goal gl-enemy-forward-flag 1)
+    (set-goal gl-forward-risk 2)
+)
+
+(defrule
+    (not (town-under-attack))
+    (goal gl-enemy-forward-flag 1)
+    (current-age == imperial-age)
+=>
+    (set-goal gl-enemy-forward-flag 0)
+)
+
+; ==========================================================
+; INTEL - MONJES
+; ==========================================================
+(defrule
+    (players-unit-type-count any-enemy monk > 1)
+=>
+    (set-goal gl-enemy-monk-flag 1)
+)
+
+(defrule
+    (players-unit-type-count any-enemy monk == 0)
+    (goal gl-enemy-monk-flag 1)
+    (current-age == imperial-age)
+=>
+    (set-goal gl-enemy-monk-flag 0)
+)
+
+; ==========================================================
+; INTEL - CLASIFICACION DE COMPOSICION ENEMIGA TERRESTRE
+; ==========================================================
+
+; monk + siege
+(defrule
+    (players-unit-type-count any-enemy monk > 1)
+    (players-unit-type-count any-enemy mangonel-line > 0)
+=>
+    (set-goal gl-enemy-land-comp el-monk-siege)
+)
+
+(defrule
+    (players-unit-type-count any-enemy monk > 1)
+    (players-unit-type-count any-enemy battering-ram-line > 0)
+=>
+    (set-goal gl-enemy-land-comp el-monk-siege)
+)
+
+; gunpowder
+(defrule
+    (players-unit-type-count any-enemy hand-cannoneer > 2)
+=>
+    (set-goal gl-enemy-land-comp el-gunpowder)
+)
+
+(defrule
+    (players-unit-type-count any-enemy bombard-cannon > 0)
+=>
+    (set-goal gl-enemy-land-comp el-gunpowder)
+)
+
+; cavalry
+(defrule
+    (players-unit-type-count any-enemy knight-line > 5)
+=>
+    (set-goal gl-enemy-land-comp el-cavalry)
+)
+
+(defrule
+    (players-unit-type-count any-enemy scout-cavalry-line > 7)
+=>
+    (set-goal gl-enemy-land-comp el-cavalry)
+)
+
+; camel
+(defrule
+    (players-unit-type-count any-enemy camel-line > 4)
+=>
+    (set-goal gl-enemy-land-comp el-camel)
+)
+
+; archer
+(defrule
+    (players-unit-type-count any-enemy archer-line > 6)
+=>
+    (set-goal gl-enemy-land-comp el-archer)
+)
+
+(defrule
+    (players-unit-type-count any-enemy cavalry-archer-line > 5)
+=>
+    (set-goal gl-enemy-land-comp el-archer)
+)
+
+; infantry
+(defrule
+    (players-unit-type-count any-enemy militiaman-line > 5)
+=>
+    (set-goal gl-enemy-land-comp el-infantry)
+)
+
+; trash
+(defrule
+    (players-unit-type-count any-enemy spearman-line > 8)
+    (players-unit-type-count any-enemy skirmisher-line > 6)
+=>
+    (set-goal gl-enemy-land-comp el-trash)
+)
+
+; fallback si no se sabe
+(defrule
+    (current-age <= feudal-age)
+    (players-military-population any-enemy < 3)
+=>
+    (set-goal gl-enemy-land-comp el-unknown)
+)
+
+; ==========================================================
+; INTEL - RAIDING / BOOM ENEMIGO
+; ==========================================================
+(defrule
+    (town-under-attack)
+    (current-age >= feudal-age)
+=>
+    (set-goal gl-enemy-raiding-flag 1)
+)
+
+(defrule
+    (not (town-under-attack))
+    (goal gl-enemy-raiding-flag 1)
+    (current-age >= castle-age)
+=>
+    (set-goal gl-enemy-raiding-flag 0)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (players-civilian-population any-enemy > 70)
+    (players-military-population any-enemy < 15)
+=>
+    (set-goal gl-enemy-boom-flag 1)
+)
+
+(defrule
+    (players-military-population any-enemy >= 18)
+    (goal gl-enemy-boom-flag 1)
+=>
+    (set-goal gl-enemy-boom-flag 0)
+)
+
+; ==========================================================
+; AJUSTE DE DOCTRINAS TERRESTRES POR INFORMACION REAL
+; ==========================================================
+
+(defrule
+    (goal gl-enemy-land-comp el-cavalry)
+    (can-train camel-line)
+    (current-age >= castle-age)
+=>
+    (set-goal gl-doctrine-land dl-camel)
+)
+
+(defrule
+    (goal gl-enemy-land-comp el-cavalry)
+    (not (can-train camel-line))
+    (current-age >= castle-age)
+=>
+    (set-goal gl-doctrine-land dl-trash-siege)
+)
+
+(defrule
+    (goal gl-enemy-land-comp el-archer)
+    (can-train skirmisher-line)
+    (current-age >= feudal-age)
+=>
+    (set-goal gl-doctrine-land dl-archer)
+)
+
+(defrule
+    (goal gl-enemy-land-comp el-monk-siege)
+    (can-train scout-cavalry-line)
+    (current-age >= castle-age)
+=>
+    (set-goal gl-doctrine-land dl-cavalry)
+)
+
+(defrule
+    (goal gl-enemy-land-comp el-trash)
+    (current-age >= imperial-age)
+=>
+    (set-goal gl-doctrine-land dl-trash-siege)
+)
+
+(defrule
+    (goal gl-enemy-land-comp el-gunpowder)
+    (can-train scout-cavalry-line)
+    (current-age >= imperial-age)
+=>
+    (set-goal gl-doctrine-land dl-cavalry)
+)
+
+(defrule
+    (goal gl-enemy-boom-flag 1)
+    (goal gl-map-openness mo-open)
+    (can-train knight-line)
+    (current-age >= castle-age)
+=>
+    (set-goal gl-doctrine-land dl-cavalry)
+)
+
+; ==========================================================
+; AJUSTE DE DOCTRINAS NAVALES POR INFORMACION REAL
+; ==========================================================
+(defrule
+    (goal gl-enemy-naval-comp en-galley)
+    (goal gl-water-permit 1)
+=>
+    (set-goal gl-doctrine-naval dn-fire-control)
+)
+
+(defrule
+    (goal gl-enemy-naval-comp en-fire)
+    (goal gl-water-permit 1)
+=>
+    (set-goal gl-doctrine-naval dn-galley-control)
+)
+
+(defrule
+    (goal gl-enemy-naval-comp en-demo)
+    (goal gl-water-permit 1)
+=>
+    (set-goal gl-doctrine-naval dn-demo-mix)
+)
+
+(defrule
+    (goal gl-enemy-naval-comp en-cannon)
+    (goal gl-water-permit 1)
+=>
+    (set-goal gl-doctrine-naval dn-cannon-control)
+)
+
+; ==========================================================
+; OBJETIVO TERRESTRE PREFERIDO
+; ==========================================================
+(defrule
+    (goal gl-enemy-siege-flag 1)
+=>
+    (set-goal gl-target-class-land tg-land-siege)
+)
+
+(defrule
+    (goal gl-enemy-castle-flag 1)
+    (goal gl-enemy-siege-flag 0)
+=>
+    (set-goal gl-target-class-land tg-land-castle)
+)
+
+(defrule
+    (goal gl-enemy-forward-flag 1)
+=>
+    (set-goal gl-target-class-land tg-land-forward)
+)
+
+(defrule
+    (goal gl-enemy-monk-flag 1)
+    (goal gl-enemy-siege-flag 0)
+=>
+    (set-goal gl-target-class-land tg-land-monastery)
+)
+
+(defrule
+    (goal gl-enemy-boom-flag 1)
+    (goal gl-enemy-forward-flag 0)
+=>
+    (set-goal gl-target-class-land tg-land-eco)
+)
+
+(defrule
+    (goal gl-target-class-land tg-land-none)
+    (current-age >= castle-age)
+=>
+    (set-goal gl-target-class-land tg-land-production)
+)
+
+; ==========================================================
+; OBJETIVO NAVAL PREFERIDO
+; ==========================================================
+(defrule
+    (goal gl-enemy-naval-comp en-cannon)
+=>
+    (set-goal gl-target-class-water tg-water-cannon)
+)
+
+(defrule
+    (players-unit-type-count any-enemy fishing-ship > 3)
+    (goal gl-enemy-water-mass 0)
+=>
+    (set-goal gl-target-class-water tg-water-fish)
+)
+
+(defrule
+    (players-unit-type-count any-enemy fishing-ship > 3)
+    (goal gl-enemy-water-mass 1)
+=>
+    (set-goal gl-target-class-water tg-water-fish)
+)
+
+(defrule
+    (players-building-type-count any-enemy dock > 0)
+    (goal gl-enemy-water-mass 2)
+=>
+    (set-goal gl-target-class-water tg-water-dock)
+)
+
+(defrule
+    (players-building-type-count any-enemy dock > 0)
+    (goal gl-enemy-water-mass 3)
+=>
+    (set-goal gl-target-class-water tg-water-dock)
+)
+
+(defrule
+    (players-unit-type-count any-enemy transport-ship > 0)
+=>
+    (set-goal gl-target-class-water tg-water-transport)
+)
+
+(defrule
+    (goal gl-enemy-water-mass 2)
+=>
+    (set-goal gl-target-class-water tg-water-fleet)
+)
+
+(defrule
+    (goal gl-enemy-water-mass 3)
+=>
+    (set-goal gl-target-class-water tg-water-fleet)
+)
+
+; ==========================================================
+; AJUSTE DE ESTADOS DE COMBATE POR INTEL
+; ==========================================================
+
+; terrestre
+(defrule
+    (goal gl-enemy-forward-flag 1)
+    (current-age >= castle-age)
+=>
+    (set-goal gl-land-combat-state lc-local-defense)
+)
+
+(defrule
+    (goal gl-enemy-boom-flag 1)
+    (goal gl-attack-permit 1)
+    (current-age >= castle-age)
+=>
+    (set-goal gl-land-combat-state lc-raid)
+)
+
+(defrule
+    (goal gl-enemy-siege-flag 1)
+    (town-under-attack)
+=>
+    (set-goal gl-land-combat-state lc-local-defense)
+    (set-goal gl-duc-state duc-anti-siege)
+)
+
+; naval
+(defrule
+    (goal gl-enemy-water-mass 0)
+    (goal gl-water-permit 1)
+=>
+    (set-goal gl-naval-combat-state nc-defend-fish)
+)
+
+(defrule
+    (goal gl-enemy-water-mass 2)
+    (goal gl-water-permit 1)
+=>
+    (set-goal gl-naval-combat-state nc-contest-water)
+)
+
+(defrule
+    (goal gl-enemy-water-mass 3)
+    (goal gl-water-permit 1)
+    (current-age == imperial-age)
+=>
+    (set-goal gl-naval-combat-state nc-blockade)
+)
+
+; ==========================================================
+; SCOUTING LIGERO
+; ==========================================================
+(defrule
+    (timer-triggered t-intel)
+    (unit-type-count-total scout-cavalry-line > 0)
+    (current-age == dark-age)
+=>
+    (set-goal gl-intel-state in-ring-scan)
+)
+
+(defrule
+    (timer-triggered t-intel)
+    (unit-type-count-total eagle-warrior-line > 0)
+    (current-age == dark-age)
+=>
+    (set-goal gl-intel-state in-ring-scan)
+)
+
+(defrule
+    (timer-triggered t-intel)
+    (unit-type-count-total scout-cavalry-line > 0)
+    (current-age >= feudal-age)
+=>
+    (set-goal gl-intel-state in-enemy-confirm)
+)
+
+(defrule
+    (timer-triggered t-intel)
+    (unit-type-count-total eagle-warrior-line > 0)
+    (current-age >= feudal-age)
+=>
+    (set-goal gl-intel-state in-enemy-confirm)
+)
+
+; ==========================================================
+; TIMER RESET - INTEL
+; ==========================================================
+(defrule
+    (timer-triggered t-intel)
+=>
+    (disable-timer t-intel)
+    (enable-timer t-intel 18)
+)
+
+; ==========================================================
+; FIN BLOQUE 7/10
+; EL BLOQUE 8 VA INMEDIATAMENTE DEBAJO
+; ==========================================================
+
+; ==========================================================
+; semiUtils.per
+; BLOQUE 8/10
+; DIRECTOR MACRO + MOTOR DE COMBATE TERRESTRE Y NAVAL
+; + ATTACK-NOW + REAGRUPACION
+; ==========================================================
+
+; ==========================================================
+; DIRECTOR MACRO - APERTURA Y DEFENSA
+; ==========================================================
+
+(defrule
+    (timer-triggered t-master)
+    (goal gl-strat-state st-opening)
+=>
+    (set-goal gl-attack-permit 0)
+    (set-strategic-number sn-number-defend-groups 2)
+    (set-strategic-number sn-number-attack-groups 0)
+    (set-strategic-number sn-percent-attack-soldiers 0)
+    (set-strategic-number sn-task-ungrouped-soldiers 1)
+)
+
+(defrule
+    (timer-triggered t-master)
+    (goal gl-strat-state st-feudal-defense)
+=>
+    (set-goal gl-attack-permit 0)
+    (set-strategic-number sn-number-defend-groups 3)
+    (set-strategic-number sn-number-attack-groups 0)
+    (set-strategic-number sn-percent-attack-soldiers 0)
+    (set-strategic-number sn-task-ungrouped-soldiers 1)
+)
+
+(defrule
+    (timer-triggered t-master)
+    (goal gl-strat-state st-castle-boom)
+=>
+    (set-goal gl-attack-permit 0)
+    (set-strategic-number sn-number-defend-groups 3)
+    (set-strategic-number sn-number-attack-groups 0)
+    (set-strategic-number sn-percent-attack-soldiers 0)
+    (set-strategic-number sn-task-ungrouped-soldiers 1)
+)
+
+(defrule
+    (timer-triggered t-master)
+    (goal gl-strat-state st-recovery)
+=>
+    (set-goal gl-attack-permit 0)
+    (set-strategic-number sn-number-defend-groups 3)
+    (set-strategic-number sn-number-attack-groups 0)
+    (set-strategic-number sn-percent-attack-soldiers 0)
+    (set-strategic-number sn-task-ungrouped-soldiers 1)
+)
+
+; ==========================================================
+; DIRECTOR MACRO - CONTAIN / PRESION LIMITADA
+; ==========================================================
+
+(defrule
+    (timer-triggered t-master)
+    (goal gl-strat-state st-feudal-pressure)
+    (soldier-count >= 10)
+=>
+    (set-goal gl-attack-permit 1)
+    (set-strategic-number sn-number-defend-groups 1)
+    (set-strategic-number sn-number-attack-groups 2)
+    (set-strategic-number sn-percent-attack-soldiers 55)
+    (set-strategic-number sn-minimum-attack-group-size 6)
+    (set-strategic-number sn-maximum-attack-group-size 10)
+    (set-strategic-number sn-group-form-distance 90)
+    (set-strategic-number sn-task-ungrouped-soldiers 0)
+    (attack-now)
+)
+
+(defrule
+    (timer-triggered t-master)
+    (goal gl-strat-state st-castle-war)
+    (soldier-count >= 16)
+    (goal gl-attack-permit 1)
+=>
+    (set-strategic-number sn-number-defend-groups 1)
+    (set-strategic-number sn-number-attack-groups 2)
+    (set-strategic-number sn-percent-attack-soldiers 60)
+    (set-strategic-number sn-minimum-attack-group-size 8)
+    (set-strategic-number sn-maximum-attack-group-size 14)
+    (set-strategic-number sn-group-form-distance 100)
+    (set-strategic-number sn-task-ungrouped-soldiers 0)
+    (attack-now)
+)
+
+; si castillo pero sin masa, seguir conteniendo en casa
+(defrule
+    (timer-triggered t-master)
+    (goal gl-strat-state st-castle-war)
+    (soldier-count < 16)
+=>
+    (set-goal gl-attack-permit 0)
+    (set-strategic-number sn-number-defend-groups 2)
+    (set-strategic-number sn-number-attack-groups 0)
+    (set-strategic-number sn-percent-attack-soldiers 0)
+)
+
+; ==========================================================
+; DIRECTOR MACRO - IMPERIAL
+; ==========================================================
+
+(defrule
+    (timer-triggered t-master)
+    (goal gl-strat-state st-imp-prep)
+=>
+    (set-goal gl-attack-permit 0)
+    (set-strategic-number sn-number-defend-groups 2)
+    (set-strategic-number sn-number-attack-groups 0)
+    (set-strategic-number sn-percent-attack-soldiers 0)
+    (set-strategic-number sn-minimum-attack-group-size 8)
+    (set-strategic-number sn-maximum-attack-group-size 14)
+    (set-strategic-number sn-group-form-distance 100)
+    (set-strategic-number sn-task-ungrouped-soldiers 1)
+)
+
+(defrule
+    (timer-triggered t-master)
+    (goal gl-strat-state st-imp-control)
+    (soldier-count >= 26)
+=>
+    (set-goal gl-attack-permit 1)
+    (set-strategic-number sn-number-defend-groups 1)
+    (set-strategic-number sn-number-attack-groups 3)
+    (set-strategic-number sn-percent-attack-soldiers 75)
+    (set-strategic-number sn-minimum-attack-group-size 10)
+    (set-strategic-number sn-maximum-attack-group-size 16)
+    (set-strategic-number sn-group-form-distance 110)
+    (set-strategic-number sn-task-ungrouped-soldiers 0)
+    (attack-now)
+)
+
+(defrule
+    (timer-triggered t-master)
+    (goal gl-strat-state st-imp-push)
+    (population-cap <= 100)
+    (soldier-count >= 28)
+=>
+    (set-goal gl-attack-permit 1)
+    (set-strategic-number sn-number-defend-groups 0)
+    (set-strategic-number sn-number-attack-groups 4)
+    (set-strategic-number sn-percent-attack-soldiers 90)
+    (set-strategic-number sn-minimum-attack-group-size 10)
+    (set-strategic-number sn-maximum-attack-group-size 18)
+    (set-strategic-number sn-group-form-distance 115)
+    (set-strategic-number sn-task-ungrouped-soldiers 0)
+    (attack-now)
+)
+
+(defrule
+    (timer-triggered t-master)
+    (goal gl-strat-state st-imp-push)
+    (population-cap > 100)
+    (soldier-count >= 36)
+=>
+    (set-goal gl-attack-permit 1)
+    (set-strategic-number sn-number-defend-groups 0)
+    (set-strategic-number sn-number-attack-groups 5)
+    (set-strategic-number sn-percent-attack-soldiers 95)
+    (set-strategic-number sn-minimum-attack-group-size 12)
+    (set-strategic-number sn-maximum-attack-group-size 20)
+    (set-strategic-number sn-group-form-distance 120)
+    (set-strategic-number sn-task-ungrouped-soldiers 0)
+    (attack-now)
+)
+
+; ==========================================================
+; RELANZAMIENTO DE ATAQUES TERRESTRES
+; ==========================================================
+
+(defrule
+    (goal gl-attack-permit 1)
+    (attack-soldier-count == 0)
+    (soldier-count >= 12)
+    (current-age >= feudal-age)
+=>
+    (attack-now)
+)
+
+(defrule
+    (goal gl-strat-state st-imp-push)
+    (attack-soldier-count == 0)
+    (soldier-count >= 18)
+=>
+    (attack-now)
+)
+
+; ==========================================================
+; MOTOR DE COMBATE TERRESTRE - DEFENSA
+; ==========================================================
+
+(defrule
+    (timer-triggered t-land-combat)
+    (town-under-attack)
+    (soldier-count < 10)
+=>
+    (set-goal gl-land-combat-state lc-local-defense)
+    (set-goal gl-attack-permit 0)
+    (set-goal gl-last-major-decision md-defend)
+)
+
+(defrule
+    (timer-triggered t-land-combat)
+    (town-under-attack)
+    (goal gl-enemy-siege-flag 1)
+=>
+    (set-goal gl-land-combat-state lc-local-defense)
+    (set-goal gl-duc-state duc-anti-siege)
+    (set-goal gl-last-major-decision md-defend)
+)
+
+(defrule
+    (timer-triggered t-land-combat)
+    (town-under-attack)
+    (goal gl-enemy-raiding-flag 1)
+=>
+    (set-goal gl-land-combat-state lc-local-defense)
+    (set-goal gl-last-major-decision md-defend)
+)
+
+(defrule
+    (timer-triggered t-land-combat)
+    (goal gl-land-combat-state lc-local-defense)
+    (not (town-under-attack))
+    (soldier-count < 10)
+=>
+    (set-goal gl-land-combat-state lc-hold)
+)
+
+; ==========================================================
+; MOTOR DE COMBATE TERRESTRE - RAID / CONTAIN
+; ==========================================================
+
+(defrule
+    (timer-triggered t-land-combat)
+    (goal gl-enemy-boom-flag 1)
+    (goal gl-map-openness mo-open)
+    (goal gl-attack-permit 1)
+    (soldier-count >= 12)
+    (current-age >= castle-age)
+=>
+    (set-goal gl-land-combat-state lc-raid)
+    (set-goal gl-last-major-decision md-attack)
+)
+
+(defrule
+    (timer-triggered t-land-combat)
+    (goal gl-attack-permit 1)
+    (soldier-count >= 14)
+    (current-age >= castle-age)
+    (goal gl-land-combat-state lc-hold)
+=>
+    (set-goal gl-land-combat-state lc-contain)
+)
+
+(defrule
+    (timer-triggered t-land-combat)
+    (goal gl-land-combat-state lc-raid)
+    (soldier-count >= 14)
+=>
+    (attack-now)
+)
+
+(defrule
+    (timer-triggered t-land-combat)
+    (goal gl-land-combat-state lc-contain)
+    (soldier-count >= 16)
+=>
+    (attack-now)
+)
+
+; ==========================================================
+; MOTOR DE COMBATE TERRESTRE - PUSH / REGROUP / RETREAT
+; ==========================================================
+
+(defrule
+    (timer-triggered t-land-combat)
+    (current-age == imperial-age)
+    (goal gl-attack-permit 1)
+    (soldier-count >= 28)
+    (unit-type-count-total trebuchet >= 2)
+=>
+    (set-goal gl-land-combat-state lc-push)
+    (set-goal gl-anchor-ready-land 1)
+    (set-goal gl-last-major-decision md-attack)
+)
+
+(defrule
+    (timer-triggered t-land-combat)
+    (current-age == imperial-age)
+    (goal gl-attack-permit 1)
+    (soldier-count >= 28)
+    (unit-type-count-total bombard-cannon >= 2)
+=>
+    (set-goal gl-land-combat-state lc-push)
+    (set-goal gl-anchor-ready-land 1)
+    (set-goal gl-last-major-decision md-attack)
+)
+
+(defrule
+    (timer-triggered t-land-combat)
+    (goal gl-land-combat-state lc-push)
+    (soldier-count < 14)
+=>
+    (set-goal gl-land-combat-state lc-regroup)
+    (set-goal gl-attack-permit 0)
+    (set-goal gl-anchor-ready-land 0)
+    (set-goal gl-last-major-decision md-regroup)
+)
+
+(defrule
+    (timer-triggered t-land-combat)
+    (goal gl-land-combat-state lc-push)
+    (unit-type-count-total trebuchet < 1)
+    (unit-type-count-total bombard-cannon < 1)
+    (current-age == imperial-age)
+=>
+    (set-goal gl-land-combat-state lc-regroup)
+    (set-goal gl-anchor-ready-land 0)
+    (set-goal gl-last-major-decision md-regroup)
+)
+
+(defrule
+    (timer-triggered t-land-combat)
+    (goal gl-land-combat-state lc-regroup)
+    (soldier-count >= 20)
+    (goal gl-attack-permit 1)
+=>
+    (set-goal gl-land-combat-state lc-contain)
+)
+
+(defrule
+    (timer-triggered t-land-combat)
+    (goal gl-land-combat-state lc-regroup)
+    (town-under-attack)
+=>
+    (set-goal gl-land-combat-state lc-retreat)
+)
+
+(defrule
+    (timer-triggered t-land-combat)
+    (goal gl-land-combat-state lc-retreat)
+    (not (town-under-attack))
+=>
+    (set-goal gl-land-combat-state lc-hold)
+)
+
+; ==========================================================
+; REGLAS DE PERMISO DE ATAQUE TERRESTRE
+; ==========================================================
+
+(defrule
+    (goal gl-land-combat-state lc-hold)
+=>
+    (set-goal gl-attack-permit 0)
+)
+
+(defrule
+    (goal gl-land-combat-state lc-local-defense)
+=>
+    (set-goal gl-attack-permit 0)
+)
+
+(defrule
+    (goal gl-land-combat-state lc-regroup)
+=>
+    (set-goal gl-attack-permit 0)
+)
+
+(defrule
+    (goal gl-land-combat-state lc-retreat)
+=>
+    (set-goal gl-attack-permit 0)
+)
+
+(defrule
+    (goal gl-land-combat-state lc-raid)
+=>
+    (set-goal gl-attack-permit 1)
+)
+
+(defrule
+    (goal gl-land-combat-state lc-contain)
+=>
+    (set-goal gl-attack-permit 1)
+)
+
+(defrule
+    (goal gl-land-combat-state lc-push)
+=>
+    (set-goal gl-attack-permit 1)
+)
+
+; ==========================================================
+; MOTOR DE COMBATE NAVAL
+; ==========================================================
+
+; sin agua
+(defrule
+    (timer-triggered t-naval-combat)
+    (goal gl-water-permit 0)
+=>
+    (set-goal gl-naval-combat-state nc-ignore)
+)
+
+; defender pesca
+(defrule
+    (timer-triggered t-naval-combat)
+    (goal gl-water-permit 1)
+    (unit-type-count-total fishing-ship > 0)
+    (players-unit-type-count any-enemy galley-line > 0)
+=>
+    (set-goal gl-naval-combat-state nc-defend-fish)
+    (set-goal gl-last-major-decision md-water)
+)
+
+(defrule
+    (timer-triggered t-naval-combat)
+    (goal gl-water-permit 1)
+    (unit-type-count-total fishing-ship > 0)
+    (players-unit-type-count any-enemy fire-ship-line > 0)
+=>
+    (set-goal gl-naval-combat-state nc-defend-fish)
+    (set-goal gl-last-major-decision md-water)
+)
+
+; contestar agua
+(defrule
+    (timer-triggered t-naval-combat)
+    (goal gl-water-permit 1)
+    (players-building-type-count any-enemy dock > 0)
+    (unit-type-count-total galley-line >= 6)
+=>
+    (set-goal gl-naval-combat-state nc-contest-water)
+    (set-goal gl-last-major-decision md-water)
+)
+
+(defrule
+    (timer-triggered t-naval-combat)
+    (goal gl-water-permit 1)
+    (players-building-type-count any-enemy dock > 0)
+    (unit-type-count-total fire-ship-line >= 6)
+=>
+    (set-goal gl-naval-combat-state nc-contest-water)
+    (set-goal gl-last-major-decision md-water)
+)
+
+; ganar control
+(defrule
+    (timer-triggered t-naval-combat)
+    (goal gl-water-permit 1)
+    (goal gl-enemy-water-mass 0)
+    (unit-type-count-total galley-line >= 10)
+=>
+    (set-goal gl-naval-combat-state nc-gain-control)
+)
+
+(defrule
+    (timer-triggered t-naval-combat)
+    (goal gl-water-permit 1)
+    (goal gl-enemy-water-mass 1)
+    (unit-type-count-total galley-line >= 10)
+=>
+    (set-goal gl-naval-combat-state nc-gain-control)
+)
+
+(defrule
+    (timer-triggered t-naval-combat)
+    (goal gl-water-permit 1)
+    (goal gl-enemy-water-mass 2)
+    (unit-type-count-total galley-line >= 10)
+=>
+    (set-goal gl-naval-combat-state nc-gain-control)
+)
+
+(defrule
+    (timer-triggered t-naval-combat)
+    (goal gl-water-permit 1)
+    (goal gl-enemy-water-mass 0)
+    (unit-type-count-total fire-ship-line >= 10)
+=>
+    (set-goal gl-naval-combat-state nc-gain-control)
+)
+
+(defrule
+    (timer-triggered t-naval-combat)
+    (goal gl-water-permit 1)
+    (goal gl-enemy-water-mass 1)
+    (unit-type-count-total fire-ship-line >= 10)
+=>
+    (set-goal gl-naval-combat-state nc-gain-control)
+)
+
+(defrule
+    (timer-triggered t-naval-combat)
+    (goal gl-water-permit 1)
+    (goal gl-enemy-water-mass 2)
+    (unit-type-count-total fire-ship-line >= 10)
+=>
+    (set-goal gl-naval-combat-state nc-gain-control)
+)
+
+; bloqueo en imperial
+(defrule
+    (timer-triggered t-naval-combat)
+    (goal gl-water-permit 1)
+    (current-age == imperial-age)
+    (unit-type-count-total cannon-galleon-line >= 2)
+=>
+    (set-goal gl-naval-combat-state nc-blockade)
+    (set-goal gl-front-creep-mode fc-water)
+)
+
+; soporte de transporte
+(defrule
+    (timer-triggered t-naval-combat)
+    (goal gl-water-permit 1)
+    (goal gl-land-combat-state lc-push)
+    (unit-type-count-total transport-ship > 0)
+=>
+    (set-goal gl-naval-combat-state nc-transport-support)
+)
+
+; retirada naval
+(defrule
+    (timer-triggered t-naval-combat)
+    (goal gl-water-permit 1)
+    (goal gl-enemy-water-mass 3)
+    (unit-type-count-total galley-line < 4)
+    (unit-type-count-total fire-ship-line < 4)
+=>
+    (set-goal gl-naval-combat-state nc-retreat-port)
+)
+
+(defrule
+    (timer-triggered t-naval-combat)
+    (goal gl-naval-combat-state nc-retreat-port)
+    (goal gl-enemy-water-mass 0)
+=>
+    (set-goal gl-naval-combat-state nc-defend-fish)
+)
+
+(defrule
+    (timer-triggered t-naval-combat)
+    (goal gl-naval-combat-state nc-retreat-port)
+    (goal gl-enemy-water-mass 1)
+=>
+    (set-goal gl-naval-combat-state nc-defend-fish)
+)
+
+; ==========================================================
+; AJUSTE DE PERMISOS SEGUN COMBATE NAVAL
+; ==========================================================
+
+(defrule
+    (goal gl-naval-combat-state nc-ignore)
+=>
+    (set-goal gl-water-permit 0)
+)
+
+(defrule
+    (goal gl-naval-combat-state nc-defend-fish)
+=>
+    (set-goal gl-water-permit 1)
+)
+
+(defrule
+    (goal gl-naval-combat-state nc-contest-water)
+=>
+    (set-goal gl-water-permit 1)
+)
+
+(defrule
+    (goal gl-naval-combat-state nc-gain-control)
+=>
+    (set-goal gl-water-permit 1)
+)
+
+(defrule
+    (goal gl-naval-combat-state nc-blockade)
+=>
+    (set-goal gl-water-permit 1)
+)
+
+(defrule
+    (goal gl-naval-combat-state nc-transport-support)
+=>
+    (set-goal gl-water-permit 1)
+)
+
+(defrule
+    (goal gl-naval-combat-state nc-retreat-port)
+=>
+    (set-goal gl-water-permit 1)
+)
+
+; ==========================================================
+; AJUSTE DE FRENTE PRINCIPAL
+; ==========================================================
+
+(defrule
+    (goal gl-naval-combat-state nc-ignore)
+    (goal gl-land-combat-state lc-hold)
+=>
+    (set-goal gl-primary-front fr-home)
+)
+
+(defrule
+    (goal gl-land-combat-state lc-contain)
+=>
+    (set-goal gl-primary-front fr-mid)
+)
+
+(defrule
+    (goal gl-land-combat-state lc-push)
+=>
+    (set-goal gl-primary-front fr-forward)
+)
+
+(defrule
+    (goal gl-naval-combat-state nc-contest-water)
+=>
+    (set-goal gl-primary-front fr-water)
+)
+
+(defrule
+    (goal gl-naval-combat-state nc-blockade)
+=>
+    (set-goal gl-primary-front fr-water)
+)
+
+; ==========================================================
+; RESETEO DE TIMERS
+; ==========================================================
+
+(defrule
+    (timer-triggered t-master)
+=>
+    (disable-timer t-master)
+    (enable-timer t-master 14)
+)
+
+(defrule
+    (timer-triggered t-land-combat)
+=>
+    (disable-timer t-land-combat)
+    (enable-timer t-land-combat 6)
+)
+
+(defrule
+    (timer-triggered t-naval-combat)
+=>
+    (disable-timer t-naval-combat)
+    (enable-timer t-naval-combat 6)
+)
+
+; ==========================================================
+; FIN BLOQUE 8/10
+; EL BLOQUE 9 VA INMEDIATAMENTE DEBAJO
+; ==========================================================
+
+; ==========================================================
+; semiUtils.per
+; BLOQUE 9/10
+; MURALLAS + DEFENSA ESTRUCTURAL + CASTILLOS
+; + DUC ANTI-ASEDIO + DUC DE PUSH + DUC NAVAL
+; ==========================================================
+
+; ==========================================================
+; BUILDERS DE EMERGENCIA
+; ==========================================================
+
+(defrule
+    (goal gl-panic-flag 1)
+=>
+    (set-strategic-number sn-percent-civilian-builders 24)
+    (set-strategic-number sn-cap-civilian-builders 16)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (wall-completed-percentage 1 < 100)
+=>
+    (set-strategic-number sn-percent-civilian-builders 18)
+    (set-strategic-number sn-cap-civilian-builders 14)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (wall-completed-percentage 2 < 100)
+=>
+    (set-strategic-number sn-percent-civilian-builders 20)
+    (set-strategic-number sn-cap-civilian-builders 16)
+)
+
+(defrule
+    (goal gl-panic-flag 0)
+    (wall-completed-percentage 1 >= 100)
+    (wall-completed-percentage 2 >= 100)
+=>
+    (set-strategic-number sn-percent-civilian-builders 8)
+    (set-strategic-number sn-cap-civilian-builders 10)
+)
+
+; ==========================================================
+; PANIC WALL
+; ==========================================================
+
+(defrule
+    (current-age == dark-age)
+    (goal gl-panic-flag 1)
+    (can-build-wall 1 palisade-wall)
+=>
+    (build-wall 1 palisade-wall)
+)
+
+(defrule
+    (current-age == feudal-age)
+    (goal gl-panic-flag 1)
+    (can-build-wall 1 palisade-wall)
+=>
+    (build-wall 1 palisade-wall)
+)
+
+(defrule
+    (goal gl-panic-flag 1)
+    (wall-completed-percentage 1 > 15)
+    (can-build-gate 1)
+=>
+    (build-gate 1)
+)
+
+; ==========================================================
+; PERIMETRO PRINCIPAL
+; ==========================================================
+
+(defrule
+    (current-age == feudal-age)
+    (wall-completed-percentage 1 < 100)
+    (can-build-wall 1 palisade-wall)
+=>
+    (build-wall 1 palisade-wall)
+)
+
+(defrule
+    (current-age == feudal-age)
+    (wall-completed-percentage 1 > 20)
+    (can-build-gate 1)
+=>
+    (build-gate 1)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (wall-completed-percentage 1 < 100)
+    (can-build-wall 1 stone-wall)
+=>
+    (build-wall 1 stone-wall)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (wall-completed-percentage 1 > 20)
+    (can-build-gate 1)
+=>
+    (build-gate 1)
+)
+
+; ==========================================================
+; BACKUP WALL / SEGUNDO PERIMETRO
+; ==========================================================
+
+(defrule
+    (current-age >= castle-age)
+    (wall-completed-percentage 1 > 35)
+    (wall-completed-percentage 2 < 100)
+    (can-build-wall 2 stone-wall)
+=>
+    (build-wall 2 stone-wall)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (wall-completed-percentage 2 > 20)
+    (can-build-gate 2)
+=>
+    (build-gate 2)
+)
+
+; ==========================================================
+; CIERRE DE BRECHAS
+; ==========================================================
+
+(defrule
+    (timer-triggered t-wall-defense)
+    (current-age >= castle-age)
+    (town-under-attack)
+    (wall-completed-percentage 1 < 90)
+    (can-build-wall 1 stone-wall)
+=>
+    (build-wall 1 stone-wall)
+)
+
+(defrule
+    (timer-triggered t-wall-defense)
+    (current-age >= castle-age)
+    (town-under-attack)
+    (wall-completed-percentage 2 < 95)
+    (can-build-wall 2 stone-wall)
+=>
+    (build-wall 2 stone-wall)
+)
+
+(defrule
+    (timer-triggered t-wall-defense)
+    (current-age == feudal-age)
+    (town-under-attack)
+    (wall-completed-percentage 1 < 85)
+    (can-build-wall 1 palisade-wall)
+=>
+    (build-wall 1 palisade-wall)
+)
+
+; ==========================================================
+; TORRES / OUTPOSTS
+; ==========================================================
+
+(defrule
+    (current-age >= feudal-age)
+    (wall-completed-percentage 1 > 10)
+    (building-type-count-total watch-tower-line < 2)
+    (can-build watch-tower-line)
+=>
+    (build watch-tower-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (wall-completed-percentage 1 > 40)
+    (building-type-count-total watch-tower-line < 4)
+    (can-build watch-tower-line)
+=>
+    (build watch-tower-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (wall-completed-percentage 2 > 25)
+    (building-type-count-total watch-tower-line < 6)
+    (can-build watch-tower-line)
+=>
+    (build watch-tower-line)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (goal gl-build-state bd-defense-core)
+    (building-type-count-total outpost < 3)
+    (can-build outpost)
+=>
+    (build outpost)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-build-state bd-front-creep)
+    (building-type-count-total outpost < 5)
+    (can-build outpost)
+=>
+    (build outpost)
+)
+
+; ==========================================================
+; CASTILLOS
+; ==========================================================
+
+; primer castillo
+(defrule
+    (current-age >= castle-age)
+    (stone-amount >= 650)
+    (building-type-count-total castle == 0)
+    (can-build castle)
+=>
+    (build castle)
+)
+
+; segundo castillo defensivo
+(defrule
+    (current-age >= castle-age)
+    (town-under-attack)
+    (stone-amount >= 650)
+    (building-type-count-total castle < 2)
+    (can-build castle)
+=>
+    (build castle)
+)
+
+; castillo en imperial como red defensiva
+(defrule
+    (current-age == imperial-age)
+    (stone-amount >= 750)
+    (building-type-count-total castle < 3)
+    (can-build castle)
+=>
+    (build castle)
+)
+
+; castillos forward en control/push
+(defrule
+    (current-age == imperial-age)
+    (goal gl-build-state bd-castle-network)
+    (stone-amount >= 850)
+    (building-type-count-total castle < 4)
+    (player-in-game any-enemy)
+    (can-build castle)
+=>
+    (build-forward castle)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-build-state bd-front-creep)
+    (stone-amount >= 900)
+    (building-type-count-total castle < 5)
+    (player-in-game any-enemy)
+    (can-build castle)
+=>
+    (build-forward castle)
+)
+
+; ==========================================================
+; PIEDRA DEFENSIVA
+; ==========================================================
+
+(defrule
+    (current-age >= castle-age)
+    (building-type-count-total castle == 0)
+    (stone-amount < 650)
+    (gold-amount > 900)
+    (can-buy-commodity stone)
+=>
+    (buy-commodity stone)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (wall-completed-percentage 1 < 100)
+    (stone-amount < 250)
+    (gold-amount > 900)
+    (can-buy-commodity stone)
+=>
+    (buy-commodity stone)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (wall-completed-percentage 2 < 100)
+    (stone-amount < 300)
+    (gold-amount > 1100)
+    (can-buy-commodity stone)
+=>
+    (buy-commodity stone)
+)
+
+; ==========================================================
+; DUC ANTI-ASEDIO
+; Salida corta con caballeria rapida / camellos / knight
+; ==========================================================
+
+(defrule
+    (timer-triggered t-duc-sortie)
+    (current-age >= castle-age)
+    (town-under-attack)
+=>
+    (up-find-player enemy find-closest gl-primary-enemy)
+    (up-modify-sn sn-focus-player-number g:= gl-primary-enemy)
+    (up-full-reset-search)
+    (up-find-local c: scout-cavalry-line c: 6)
+    (up-find-local c: knight-line c: 4)
+    (up-find-local c: camel-line c: 4)
+    (up-find-remote c: battering-ram-line c: 1)
+    (up-find-remote c: mangonel-line c: 1)
+    (up-find-remote c: scorpion-line c: 1)
+    (up-find-remote c: trebuchet c: 1)
+    (up-find-remote c: bombard-cannon c: 1)
+    (up-get-search-state gl-search-main)
+)
+
+(defrule
+    (timer-triggered t-duc-sortie)
+    (current-age >= castle-age)
+    (town-under-attack)
+    (up-compare-goal gl-search-main c:> 0)
+=>
+    (set-goal gl-duc-state duc-anti-siege)
+    (up-target-objects 0 action-default -1 -1)
+)
+
+(defrule
+    (timer-triggered t-duc-sortie)
+    (goal gl-duc-state duc-anti-siege)
+    (not (town-under-attack))
+=>
+    (up-full-reset-search)
+    (up-find-local c: scout-cavalry-line c: 10)
+    (up-find-local c: knight-line c: 8)
+    (up-find-local c: camel-line c: 8)
+    (up-get-search-state gl-search-main)
+)
+
+(defrule
+    (timer-triggered t-duc-sortie)
+    (goal gl-duc-state duc-anti-siege)
+    (not (town-under-attack))
+    (up-compare-goal gl-search-main c:> 0)
+=>
+    (up-target-point gl-home-x action-move -1 -1)
+    (set-goal gl-duc-state duc-idle)
+)
+
+; ==========================================================
+; DUC DE PUSH TERRESTRE
+; 1) trebs/BBC enfocan objetivos estructurales
+; ==========================================================
+
+(defrule
+    (timer-triggered t-duc-anchor)
+    (goal gl-land-combat-state lc-push)
+    (current-age == imperial-age)
+=>
+    (up-find-player enemy find-closest gl-primary-enemy)
+    (up-modify-sn sn-focus-player-number g:= gl-primary-enemy)
+    (up-full-reset-search)
+    (up-find-local c: trebuchet c: 8)
+    (up-find-local c: bombard-cannon c: 4)
+    (up-find-remote c: castle c: 1)
+    (up-find-remote c: town-center c: 1)
+    (up-find-remote c: siege-workshop c: 1)
+    (up-find-remote c: archery-range c: 1)
+    (up-find-remote c: stable c: 1)
+    (up-find-remote c: barracks c: 1)
+    (up-get-search-state gl-search-main)
+)
+
+(defrule
+    (timer-triggered t-duc-anchor)
+    (goal gl-land-combat-state lc-push)
+    (current-age == imperial-age)
+    (up-compare-goal gl-search-main c:> 0)
+=>
+    (set-goal gl-duc-state duc-land-focus-fire)
+    (up-target-objects 0 action-default -1 -1)
+)
+
+; 2) si entramos en regroup/retreat, devolver unidades de alto valor
+(defrule
+    (timer-triggered t-duc-anchor)
+    (goal gl-land-combat-state lc-regroup)
+=>
+    (up-full-reset-search)
+    (up-find-local c: trebuchet c: 8)
+    (up-find-local c: bombard-cannon c: 4)
+    (up-find-local c: mangonel-line c: 6)
+    (up-get-search-state gl-search-main)
+)
+
+(defrule
+    (timer-triggered t-duc-anchor)
+    (goal gl-land-combat-state lc-regroup)
+    (up-compare-goal gl-search-main c:> 0)
+=>
+    (set-goal gl-duc-state duc-fallback)
+    (up-target-point gl-fallback-x action-move -1 -1)
+)
+
+(defrule
+    (timer-triggered t-duc-anchor)
+    (goal gl-land-combat-state lc-retreat)
+=>
+    (up-full-reset-search)
+    (up-find-local c: trebuchet c: 8)
+    (up-find-local c: bombard-cannon c: 4)
+    (up-find-local c: mangonel-line c: 6)
+    (up-get-search-state gl-search-main)
+)
+
+(defrule
+    (timer-triggered t-duc-anchor)
+    (goal gl-land-combat-state lc-retreat)
+    (up-compare-goal gl-search-main c:> 0)
+=>
+    (set-goal gl-duc-state duc-fallback)
+    (up-target-point gl-home-x action-move -1 -1)
+)
+
+; ==========================================================
+; DUC NAVAL PUNTUAL
+; ==========================================================
+
+; foco contra cannon galleons o docks
+(defrule
+    (timer-triggered t-duc-naval)
+    (goal gl-water-permit 1)
+    (goal gl-naval-combat-state nc-blockade)
+=>
+    (up-find-player enemy find-closest gl-primary-enemy)
+    (up-modify-sn sn-focus-player-number g:= gl-primary-enemy)
+    (up-full-reset-search)
+    (up-find-local c: cannon-galleon-line c: 4)
+    (up-find-local c: galley-line c: 12)
+    (up-find-remote c: cannon-galleon-line c: 1)
+    (up-find-remote c: dock c: 1)
+    (up-get-search-state gl-search-main)
+)
+
+(defrule
+    (timer-triggered t-duc-naval)
+    (goal gl-water-permit 1)
+    (goal gl-naval-combat-state nc-blockade)
+    (up-compare-goal gl-search-main c:> 0)
+=>
+    (set-goal gl-duc-state duc-cannon-focus)
+    (up-target-objects 0 action-default -1 -1)
+)
+
+; strike puntual con demos
+(defrule
+    (timer-triggered t-duc-naval)
+    (goal gl-water-permit 1)
+    (goal gl-doctrine-naval dn-demo-mix)
+=>
+    (up-find-player enemy find-closest gl-primary-enemy)
+    (up-modify-sn sn-focus-player-number g:= gl-primary-enemy)
+    (up-full-reset-search)
+    (up-find-local c: demolition-ship-line c: 4)
+    (up-find-remote c: galley-line c: 1)
+    (up-find-remote c: fire-ship-line c: 1)
+    (up-get-search-state gl-search-main)
+)
+
+(defrule
+    (timer-triggered t-duc-naval)
+    (goal gl-water-permit 1)
+    (goal gl-doctrine-naval dn-demo-mix)
+    (up-compare-goal gl-search-main c:> 0)
+=>
+    (set-goal gl-duc-state duc-naval-demo-strike)
+    (up-target-objects 0 action-default -1 -1)
+)
+
+; ==========================================================
+; AJUSTE DE FALLBACK / CASA
+; ==========================================================
+
+(defrule
+    (current-age >= castle-age)
+    (building-type-count-total town-center > 0)
+=>
+    (up-get-point position-self gl-home-x)
+)
+
+(defrule
+    (goal gl-land-combat-state lc-push)
+    (current-age == imperial-age)
+=>
+    (up-get-point position-self gl-fallback-x)
+)
+
+; ==========================================================
+; TIMER RESET
+; ==========================================================
+
+(defrule
+    (timer-triggered t-wall-defense)
+=>
+    (disable-timer t-wall-defense)
+    (enable-timer t-wall-defense 3)
+)
+
+(defrule
+    (timer-triggered t-duc-sortie)
+=>
+    (disable-timer t-duc-sortie)
+    (enable-timer t-duc-sortie 3)
+)
+
+(defrule
+    (timer-triggered t-duc-anchor)
+=>
+    (disable-timer t-duc-anchor)
+    (enable-timer t-duc-anchor 4)
+)
+
+(defrule
+    (timer-triggered t-duc-naval)
+=>
+    (disable-timer t-duc-naval)
+    (enable-timer t-duc-naval 4)
+)
+
+; ==========================================================
+; FIN BLOQUE 9/10
+; EL BLOQUE 10 VA INMEDIATAMENTE DEBAJO
+; ==========================================================
+
+; ==========================================================
+; semiUtils.per
+; BLOQUE 10/10
+; CORRECCION ECONOMICA + MERCADO/TRADE + WATCHDOG
+; + LIMPIEZA DE FLAGS + RESET FINAL DE TIMERS
+; ==========================================================
+
+; ==========================================================
+; ECO FAST - DETECCION DE CUELLOS DE BOTELLA
+; ==========================================================
+
+(defrule
+    (timer-triggered t-eco-fast)
+    (food-amount < 250)
+=>
+    (set-goal gl-eco-state ec-need-food)
+)
+
+(defrule
+    (timer-triggered t-eco-fast)
+    (wood-amount < 180)
+=>
+    (set-goal gl-eco-state ec-need-wood)
+)
+
+(defrule
+    (timer-triggered t-eco-fast)
+    (current-age >= feudal-age)
+    (gold-amount < 120)
+=>
+    (set-goal gl-eco-state ec-need-gold)
+)
+
+(defrule
+    (timer-triggered t-eco-fast)
+    (current-age >= castle-age)
+    (stone-amount < 120)
+    (building-type-count-total castle == 0)
+=>
+    (set-goal gl-eco-state ec-need-stone)
+)
+
+(defrule
+    (timer-triggered t-eco-fast)
+    (current-age >= castle-age)
+    (food-amount < 350)
+    (wood-amount > 250)
+=>
+    (set-goal gl-eco-state ec-reseed-farms)
+)
+
+(defrule
+    (timer-triggered t-eco-fast)
+    (goal gl-water-permit 1)
+    (unit-type-count-total fishing-ship < 4)
+    (current-age <= castle-age)
+=>
+    (set-goal gl-eco-state ec-need-fish)
+)
+
+; ==========================================================
+; ECO FAST - REBALANCEO CORRECTIVO
+; ==========================================================
+
+(defrule
+    (timer-triggered t-eco-fast)
+    (goal gl-eco-state ec-need-food)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 48)
+    (set-strategic-number sn-wood-gatherer-percentage 26)
+    (set-strategic-number sn-gold-gatherer-percentage 18)
+    (set-strategic-number sn-stone-gatherer-percentage 8)
+)
+
+(defrule
+    (timer-triggered t-eco-fast)
+    (goal gl-eco-state ec-need-wood)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 38)
+    (set-strategic-number sn-wood-gatherer-percentage 40)
+    (set-strategic-number sn-gold-gatherer-percentage 16)
+    (set-strategic-number sn-stone-gatherer-percentage 6)
+)
+
+(defrule
+    (timer-triggered t-eco-fast)
+    (goal gl-eco-state ec-need-gold)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 36)
+    (set-strategic-number sn-wood-gatherer-percentage 24)
+    (set-strategic-number sn-gold-gatherer-percentage 32)
+    (set-strategic-number sn-stone-gatherer-percentage 8)
+)
+
+(defrule
+    (timer-triggered t-eco-fast)
+    (goal gl-eco-state ec-need-stone)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 34)
+    (set-strategic-number sn-wood-gatherer-percentage 24)
+    (set-strategic-number sn-gold-gatherer-percentage 22)
+    (set-strategic-number sn-stone-gatherer-percentage 20)
+)
+
+(defrule
+    (timer-triggered t-eco-fast)
+    (goal gl-eco-state ec-need-fish)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 30)
+    (set-strategic-number sn-wood-gatherer-percentage 40)
+    (set-strategic-number sn-gold-gatherer-percentage 20)
+    (set-strategic-number sn-stone-gatherer-percentage 10)
+)
+
+(defrule
+    (timer-triggered t-eco-fast)
+    (goal gl-eco-state ec-reseed-farms)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 44)
+    (set-strategic-number sn-wood-gatherer-percentage 30)
+    (set-strategic-number sn-gold-gatherer-percentage 18)
+    (set-strategic-number sn-stone-gatherer-percentage 8)
+)
+
+; ==========================================================
+; ECO SLOW - NORMALIZACION Y EXPANSION
+; ==========================================================
+
+(defrule
+    (timer-triggered t-eco-slow)
+    (food-amount >= 450)
+    (wood-amount >= 350)
+    (current-age == feudal-age)
+=>
+    (set-goal gl-eco-state ec-balanced)
+)
+
+(defrule
+    (timer-triggered t-eco-slow)
+    (food-amount >= 550)
+    (wood-amount >= 450)
+    (gold-amount >= 220)
+    (current-age == castle-age)
+=>
+    (set-goal gl-eco-state ec-balanced)
+)
+
+(defrule
+    (timer-triggered t-eco-slow)
+    (food-amount >= 650)
+    (wood-amount >= 500)
+    (gold-amount >= 350)
+    (current-age == imperial-age)
+=>
+    (set-goal gl-eco-state ec-balanced)
+)
+
+(defrule
+    (timer-triggered t-eco-slow)
+    (civilian-population >= 40)
+    (building-type-count-total lumber-camp < 3)
+=>
+    (set-goal gl-eco-state ec-expand-dropsites)
+)
+
+(defrule
+    (timer-triggered t-eco-slow)
+    (civilian-population >= 50)
+    (building-type-count-total mill < 3)
+=>
+    (set-goal gl-eco-state ec-expand-dropsites)
+)
+
+(defrule
+    (timer-triggered t-eco-slow)
+    (civilian-population >= 55)
+    (building-type-count-total mining-camp < 2)
+=>
+    (set-goal gl-eco-state ec-expand-dropsites)
+)
+
+; ==========================================================
+; ECO SLOW - ESTADO BALANCEADO POR TEATRO
+; ==========================================================
+
+(defrule
+    (timer-triggered t-eco-slow)
+    (goal gl-eco-state ec-balanced)
+    (goal gl-theater th-land-open)
+    (current-age == castle-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 40)
+    (set-strategic-number sn-wood-gatherer-percentage 28)
+    (set-strategic-number sn-gold-gatherer-percentage 22)
+    (set-strategic-number sn-stone-gatherer-percentage 10)
+)
+
+(defrule
+    (timer-triggered t-eco-slow)
+    (goal gl-eco-state ec-balanced)
+    (goal gl-theater th-land-open)
+    (current-age == imperial-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 33)
+    (set-strategic-number sn-wood-gatherer-percentage 24)
+    (set-strategic-number sn-gold-gatherer-percentage 28)
+    (set-strategic-number sn-stone-gatherer-percentage 15)
+)
+
+(defrule
+    (timer-triggered t-eco-slow)
+    (goal gl-eco-state ec-balanced)
+    (goal gl-map-openness mo-closed)
+    (current-age >= castle-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 38)
+    (set-strategic-number sn-wood-gatherer-percentage 24)
+    (set-strategic-number sn-gold-gatherer-percentage 20)
+    (set-strategic-number sn-stone-gatherer-percentage 18)
+)
+
+(defrule
+    (timer-triggered t-eco-slow)
+    (goal gl-eco-state ec-balanced)
+    (goal gl-theater th-hybrid)
+    (current-age >= castle-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 34)
+    (set-strategic-number sn-wood-gatherer-percentage 34)
+    (set-strategic-number sn-gold-gatherer-percentage 22)
+    (set-strategic-number sn-stone-gatherer-percentage 10)
+)
+
+(defrule
+    (timer-triggered t-eco-slow)
+    (goal gl-eco-state ec-balanced)
+    (goal gl-theater th-water)
+    (current-age >= castle-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 30)
+    (set-strategic-number sn-wood-gatherer-percentage 35)
+    (set-strategic-number sn-gold-gatherer-percentage 25)
+    (set-strategic-number sn-stone-gatherer-percentage 10)
+)
+
+; ==========================================================
+; BUILD / RECOVERY AUXILIAR
+; ==========================================================
+
+(defrule
+    (timer-triggered t-build)
+    (current-age >= castle-age)
+    (soldier-count < 8)
+=>
+    (set-goal gl-build-state bd-rebuild)
+)
+
+(defrule
+    (timer-triggered t-build)
+    (goal gl-strat-state st-imp-push)
+=>
+    (set-goal gl-build-state bd-front-creep)
+)
+
+(defrule
+    (timer-triggered t-build)
+    (goal gl-strat-state st-imp-control)
+=>
+    (set-goal gl-build-state bd-castle-network)
+)
+
+(defrule
+    (timer-triggered t-build)
+    (goal gl-theater th-water)
+    (goal gl-water-permit 1)
+=>
+    (set-goal gl-build-state bd-naval-production)
+)
+
+; ==========================================================
+; MARKET / TRADE TIMER
+; ==========================================================
+
+(defrule
+    (timer-triggered t-market-trade)
+    (players-building-type-count any-ally market > 0)
+    (current-age >= castle-age)
+=>
+    (set-goal gl-trade-permit 1)
+)
+
+(defrule
+    (timer-triggered t-market-trade)
+    (goal gl-trade-permit 1)
+    (gold-amount > 1800)
+    (food-amount < 600)
+    (can-buy-commodity food)
+=>
+    (buy-commodity food)
+)
+
+(defrule
+    (timer-triggered t-market-trade)
+    (goal gl-trade-permit 1)
+    (gold-amount > 1600)
+    (wood-amount < 400)
+    (can-buy-commodity wood)
+=>
+    (buy-commodity wood)
+)
+
+(defrule
+    (timer-triggered t-market-trade)
+    (building-type-count-total castle < 2)
+    (current-age >= castle-age)
+    (gold-amount > 1500)
+    (stone-amount < 650)
+    (can-buy-commodity stone)
+=>
+    (buy-commodity stone)
+)
+
+; ==========================================================
+; LIMPIEZA DE FLAGS ENEMIGOS
+; ==========================================================
+
+(defrule
+    (players-building-type-count any-enemy siege-workshop == 0)
+    (players-unit-type-count any-enemy battering-ram-line == 0)
+    (players-unit-type-count any-enemy mangonel-line == 0)
+    (players-unit-type-count any-enemy scorpion-line == 0)
+    (players-unit-type-count any-enemy bombard-cannon == 0)
+    (players-unit-type-count any-enemy trebuchet == 0)
+=>
+    (set-goal gl-enemy-siege-flag 0)
+)
+
+(defrule
+    (players-unit-type-count any-enemy monk == 0)
+=>
+    (set-goal gl-enemy-monk-flag 0)
+)
+
+(defrule
+    (players-building-type-count any-enemy castle == 0)
+=>
+    (set-goal gl-enemy-castle-flag 0)
+)
+
+(defrule
+    (players-building-type-count any-enemy dock == 0)
+    (players-unit-type-count any-enemy fishing-ship == 0)
+    (players-unit-type-count any-enemy galley-line == 0)
+    (players-unit-type-count any-enemy fire-ship-line == 0)
+    (players-unit-type-count any-enemy demolition-ship-line == 0)
+    (players-unit-type-count any-enemy cannon-galleon-line == 0)
+=>
+    (set-goal gl-enemy-dock-flag 0)
+    (set-goal gl-enemy-water-mass 0)
+    (set-goal gl-enemy-naval-comp en-unknown)
+)
+
+(defrule
+    (not (town-under-attack))
+=>
+    (set-goal gl-enemy-raiding-flag 0)
+)
+
+; ==========================================================
+; WATCHDOG - CORRECCION DE ESTADOS INVALIDOS
+; ==========================================================
+
+; sin enemigos: no atacar
+(defrule
+    (timer-triggered t-watchdog)
+    (not (player-in-game any-enemy))
+=>
+    (set-goal gl-attack-permit 0)
+    (set-goal gl-land-combat-state lc-hold)
+    (set-goal gl-naval-combat-state nc-ignore)
+    (set-goal gl-last-major-decision md-none)
+)
+
+; sin agua: apagar naval
+(defrule
+    (timer-triggered t-watchdog)
+    (goal gl-water-permit 0)
+=>
+    (set-goal gl-doctrine-naval dn-none)
+    (set-goal gl-naval-combat-state nc-ignore)
+    (set-goal gl-target-class-water tg-water-none)
+)
+
+; sin masa terrestre: no empujar
+(defrule
+    (timer-triggered t-watchdog)
+    (soldier-count < 8)
+=>
+    (set-goal gl-attack-permit 0)
+    (set-goal gl-land-combat-state lc-hold)
+    (set-goal gl-anchor-ready-land 0)
+)
+
+; push sin ancla real -> volver a control
+(defrule
+    (timer-triggered t-watchdog)
+    (goal gl-land-combat-state lc-push)
+    (current-age == imperial-age)
+    (unit-type-count-total trebuchet == 0)
+    (unit-type-count-total bombard-cannon == 0)
+    (unit-type-count-total battering-ram-line == 0)
+    (unit-type-count-total mangonel-line == 0)
+=>
+    (set-goal gl-land-combat-state lc-contain)
+    (set-goal gl-anchor-ready-land 0)
+)
+
+; si el agua se pierde totalmente, volver a defensa de fish / ignore
+(defrule
+    (timer-triggered t-watchdog)
+    (goal gl-water-permit 1)
+    (unit-type-count-total dock == 0)
+    (unit-type-count-total fishing-ship == 0)
+    (unit-type-count-total galley-line == 0)
+    (unit-type-count-total fire-ship-line == 0)
+    (unit-type-count-total demolition-ship-line == 0)
+    (unit-type-count-total cannon-galleon-line == 0)
+=>
+    (set-goal gl-naval-combat-state nc-ignore)
+)
+
+; doctrine fallback si algo raro queda sin definir
+(defrule
+    (timer-triggered t-watchdog)
+    (current-age == dark-age)
+=>
+    (set-goal gl-doctrine-land dl-generic)
+)
+
+(defrule
+    (timer-triggered t-watchdog)
+    (goal gl-water-permit 0)
+=>
+    (set-goal gl-doctrine-naval dn-none)
+)
+
+(defrule
+    (timer-triggered t-watchdog)
+    (goal gl-water-permit 1)
+    (goal gl-enemy-naval-comp en-unknown)
+=>
+    (set-goal gl-doctrine-naval dn-galley-control)
+)
+
+; target fallback
+(defrule
+    (timer-triggered t-watchdog)
+    (goal gl-target-class-land tg-land-none)
+    (current-age >= castle-age)
+=>
+    (set-goal gl-target-class-land tg-land-production)
+)
+
+(defrule
+    (timer-triggered t-watchdog)
+    (goal gl-target-class-water tg-water-none)
+    (goal gl-water-permit 1)
+    (players-building-type-count any-enemy dock > 0)
+=>
+    (set-goal gl-target-class-water tg-water-dock)
+)
+
+(defrule
+    (timer-triggered t-watchdog)
+    (goal gl-target-class-water tg-water-none)
+    (goal gl-water-permit 1)
+    (players-building-type-count any-enemy dock == 0)
+=>
+    (set-goal gl-target-class-water tg-water-fleet)
+)
+
+; mantener frente coherente
+(defrule
+    (timer-triggered t-watchdog)
+    (goal gl-land-combat-state lc-hold)
+    (goal gl-naval-combat-state nc-ignore)
+=>
+    (set-goal gl-primary-front fr-home)
+)
+
+; ==========================================================
+; WATCHDOG - PUNTOS BASE DUC
+; ==========================================================
+
+(defrule
+    (timer-triggered t-watchdog)
+    (building-type-count-total town-center > 0)
+=>
+    (up-get-point position-self gl-home-x)
+)
+
+(defrule
+    (timer-triggered t-watchdog)
+    (goal gl-land-combat-state lc-push)
+=>
+    (up-get-point position-self gl-fallback-x)
+)
+
+; ==========================================================
+; LIMPIEZA DE SCRATCH / SCORE BANK
+; ==========================================================
+
+(defrule
+    (timer-triggered t-watchdog)
+=>
+    (set-goal gl-score-a 0)
+    (set-goal gl-score-b 0)
+    (set-goal gl-score-c 0)
+    (set-goal gl-score-d 0)
+    (set-goal gl-best-score 0)
+    (set-goal gl-alt-score 0)
+)
+
+; ==========================================================
+; RESET DE TIMERS RESTANTES
+; ==========================================================
+
+(defrule
+    (timer-triggered t-eco-fast)
+=>
+    (disable-timer t-eco-fast)
+    (enable-timer t-eco-fast 5)
+)
+
+(defrule
+    (timer-triggered t-eco-slow)
+=>
+    (disable-timer t-eco-slow)
+    (enable-timer t-eco-slow 11)
+)
+
+(defrule
+    (timer-triggered t-build)
+=>
+    (disable-timer t-build)
+    (enable-timer t-build 7)
+)
+
+(defrule
+    (timer-triggered t-train-land)
+=>
+    (disable-timer t-train-land)
+    (enable-timer t-train-land 4)
+)
+
+(defrule
+    (timer-triggered t-train-naval)
+=>
+    (disable-timer t-train-naval)
+    (enable-timer t-train-naval 4)
+)
+
+(defrule
+    (timer-triggered t-tech)
+=>
+    (disable-timer t-tech)
+    (enable-timer t-tech 9)
+)
+
+(defrule
+    (timer-triggered t-market-trade)
+=>
+    (disable-timer t-market-trade)
+    (enable-timer t-market-trade 10)
+)
+
+(defrule
+    (timer-triggered t-watchdog)
+=>
+    (disable-timer t-watchdog)
+    (enable-timer t-watchdog 15)
+)
+
+; ==========================================================
+; FIN BLOQUE 10/10
+; FIN DE semiUtils.per
+; ==========================================================;--------------------------------------
+; Define FactId Constants
+;--------------------------------------
+(defconst game-time 0)
+(defconst population-cap 1)
+(defconst population-headroom 2)
+(defconst housing-headroom 3)
+(defconst idle-farm-count 4)
+(defconst food-amount 5)
+(defconst wood-amount 6)
+(defconst stone-amount 7)
+(defconst gold-amount 8)
+(defconst escrow-amount 9)
+(defconst commodity-buying-price 10)
+(defconst commodity-selling-price 11)
+(defconst dropsite-min-distance 12)
+(defconst soldier-count 13)
+(defconst attack-soldier-count 14)
+(defconst defend-soldier-count 15)
+(defconst warboat-count 16)
+(defconst attack-warboat-count 17)
+(defconst defend-warboat-count 18)
+(defconst current-age 19)					;any
+(defconst current-score 20)					;any
+(defconst civilization 21)					;any
+(defconst player-number 22)					;any
+(defconst player-in-game 23)				;any
+(defconst unit-count 24)					;any
+(defconst unit-type-count 25)				;any
+(defconst unit-type-count-total 26)
+(defconst building-count 27)				;any
+(defconst building-type-count 28)			;any
+(defconst building-type-count-total 29)
+(defconst population 30)					;any
+(defconst military-population 31)			;any
+(defconst civilian-population 32)			;any
+(defconst random-number 33)
+(defconst resource-amount 34)				;any
+(defconst player-distance 35)				;any
+(defconst allied-goal 36)					;any
+(defconst allied-sn 37)						;any
+(defconst resource-percent 38)				;any
+(defconst enemy-buildings-in-town 39)
+(defconst enemy-units-in-town 40)
+(defconst enemy-villagers-in-town 41)
+(defconst players-in-game 42)
+(defconst defender-count 43)
+(defconst building-type-in-town 44)
+(defconst unit-type-in-town 45)
+(defconst villager-type-in-town 46)
+(defconst gaia-type-count 47)
+(defconst gaia-type-count-total 48)
+(defconst cc-gaia-type-count 49)
+(defconst current-age-time 50)				;any
+(defconst timer-status 51)
+(defconst players-tribute 52)				;any
+(defconst players-tribute-memory 53)			;any
+
+;--------------------------------------
+; Define ObjectId Constants
+;--------------------------------------
+(defconst flare 274)
+(defconst villager-class 904)
+(defconst building-class 903)
+(defconst ocean-fish-class 905)
+(defconst shore-fish-class 933)
+(defconst farm-class 949)
+(defconst tower-class 952)
+(defconst wall-class 927)
+(defconst gate-class 939)
+(defconst king-class 959)
+(defconst livestock-class 958)
+(defconst infantry-class 906)
+(defconst archery-class 900)
+(defconst archery-cannon-class 944)
+(defconst cavalry-class 912)
+(defconst cavalry-archer-class 936)
+(defconst cavalry-cannon-class 923)
+(defconst monastery-class 918)
+(defconst siege-weapon-class 913)
+(defconst scorpion-class 955)
+(defconst packed-trebuchet-class 951)
+(defconst unpacked-trebuchet-class 954)
+(defconst petard-class 935)
+(defconst warship-class 922)
+(defconst all-units-class -1)
+
+;--------------------------------------
+; Define FoundationId Constants
+;--------------------------------------
+(defconst town-center-foundation 621)
+(defconst gate-ascending 487)
+(defconst gate-ascending-closed 64)
+(defconst gate-ascending-open 78)
+(defconst gate-descending 490)
+(defconst gate-descending-closed 88)
+(defconst gate-descending-open 91)  ;is incorrectly set to 99 in the original UserPatchConst.per
+(defconst gate-horizontal 665)
+(defconst gate-horizontal-closed 659)
+(defconst gate-horizontal-open 661)
+(defconst gate-vertical 673)
+(defconst gate-vertical-closed 667)
+(defconst gate-vertical-open 669)
+
+;--------------------------------------
+; Define ResearchState Constants
+;--------------------------------------
+(defconst research-unavailable 0)
+(defconst research-available 1)
+(defconst research-pending 2)
+(defconst research-complete 3)
+
+;--------------------------------------
+; Define TimerState Constants
+;--------------------------------------
+(defconst timer-disabled 0)
+(defconst timer-triggered 1)
+(defconst timer-running 2)
+
+;--------------------------------------
+; Define GroupType Constants
+;--------------------------------------
+(defconst group-type-land-attack 100)
+(defconst group-type-land-explore 101)
+(defconst group-type-land-trade 109)
+(defconst group-type-water-attack 102)
+(defconst group-type-water-explore 103)
+(defconst group-type-water-trade 106)
+(defconst group-type-transport-ship 104)
+(defconst group-type-fishing-ship 105)
+(defconst group-type-forward-builder 107)
+(defconst group-type-monk 108)
+
+;--------------------------------------
+; Define IdleType Constants
+;--------------------------------------
+(defconst idle-type-villager 0)
+(defconst idle-type-trade-cart 1)
+(defconst idle-type-fishing-ship 2)
+(defconst idle-type-trade-cog 3)
+
+;--------------------------------------
+; Define AttackStance Constants
+;--------------------------------------
+(defconst stance-aggressive 0)
+(defconst stance-defensive 1)
+(defconst stance-stand-ground 2)
+(defconst stance-no-attack 3)
+
+;--------------------------------------
+; Define ResourceAmount Constants
+;--------------------------------------
+(defconst amount-food 0)
+(defconst amount-wood 1)
+(defconst amount-stone 2)
+(defconst amount-gold 3)
+(defconst amount-population-cap 4)
+(defconst amount-religion 5)
+(defconst amount-current-age 6)
+(defconst amount-relics 7)
+(defconst amount-trade-bonus 8)
+(defconst amount-trade-goods 9)
+(defconst amount-trade-production 10)
+(defconst amount-population 11)
+(defconst amount-decay 12)
+(defconst amount-discovery 13)
+(defconst amount-ruins 14)
+(defconst amount-meat 15)
+(defconst amount-berries 16)
+(defconst amount-fish 17)
+(defconst amount-kills 20)
+(defconst amount-research-count 21)
+(defconst amount-exploration 22)
+(defconst amount-convert-priest 27)
+(defconst amount-convert-building 28)
+(defconst amount-building-limit 30)
+(defconst amount-food-limit 31)
+(defconst amount-unit-limit 32)
+(defconst amount-maintenance 33)
+(defconst amount-faith 34)
+(defconst amount-faith-recharge-rate 35)
+(defconst amount-farm-food 36)
+(defconst amount-civilian-population 37)
+(defconst amount-all-techs-achieved 39)
+(defconst amount-military-population 40)
+(defconst amount-conversions 41)
+(defconst amount-wonder 42)
+(defconst amount-razings 43)
+(defconst amount-kill-ratio 44)
+(defconst amount-player-killed 45)
+(defconst amount-tribute-inefficiency 46)
+(defconst amount-gold-bonus 47)
+(defconst amount-town-center-unavailable 48)
+(defconst amount-gold-counter 49)
+(defconst amount-writing 50)
+(defconst amount-monasteries 52)
+(defconst amount-tribute 53)
+(defconst amount-hold-ruins 54)
+(defconst amount-hold-relics 55)
+(defconst amount-ore 56)
+(defconst amount-captured-unit 57)
+(defconst amount-trade-good-quality 59)
+(defconst amount-trade-market-level 60)
+(defconst amount-formations 61)
+(defconst amount-building-housing-rate 62)
+(defconst amount-gather-tax-rate 63)
+(defconst amount-gather-accumulator 64)
+(defconst amount-salvage-decay-rate 65)
+(defconst amount-allow-formations 66)
+(defconst amount-can-convert 67)
+(defconst amount-player1-kills 69)
+(defconst amount-player2-kills 70)
+(defconst amount-player3-kills 71)
+(defconst amount-player4-kills 72)
+(defconst amount-player5-kills 73)
+(defconst amount-player6-kills 74)
+(defconst amount-player7-kills 75)
+(defconst amount-player8-kills 76)
+(defconst amount-convert-resistance 77)
+(defconst amount-trade-vig-rate 78)
+(defconst amount-stone-bonus 79)
+(defconst amount-queued-count 80)
+(defconst amount-training-count 81)
+(defconst amount-raider 82)
+(defconst amount-boarding-recharge-rate 83)
+(defconst amount-starting-villagers 84)
+(defconst amount-research-cost-mod 85)
+(defconst amount-research-time-mod 86)
+(defconst amount-convert-boats 87)
+(defconst amount-fish-trap-food 88)
+(defconst amount-heal-rate-modifier 89)
+(defconst amount-heal-range 90)
+(defconst amount-starting-food 91)
+(defconst amount-starting-wood 92)
+(defconst amount-starting-stone 93)
+(defconst amount-starting-gold 94)
+(defconst amount-raider-ability 95)
+(defconst amount-berserker-heal-timer 96)
+(defconst amount-dominant-sheep-control 97)
+(defconst amount-object-cost-summation 98)
+(defconst amount-research-cost-summation 99)
+(defconst amount-relic-income-summation 100)
+(defconst amount-trade-income-summation 101)
+(defconst amount-player1-tribute 102)
+(defconst amount-player2-tribute 103)
+(defconst amount-player3-tribute 104)
+(defconst amount-player4-tribute 105)
+(defconst amount-player5-tribute 106)
+(defconst amount-player6-tribute 107)
+(defconst amount-player7-tribute 108)
+(defconst amount-player8-tribute 109)
+(defconst amount-player1-kill-value 110)
+(defconst amount-player2-kill-value 111)
+(defconst amount-player3-kill-value 112)
+(defconst amount-player4-kill-value 113)
+(defconst amount-player5-kill-value 114)
+(defconst amount-player6-kill-value 115)
+(defconst amount-player7-kill-value 116)
+(defconst amount-player8-kill-value 117)
+(defconst amount-player1-razings 118)
+(defconst amount-player2-razings 119)
+(defconst amount-player3-razings 120)
+(defconst amount-player4-razings 121)
+(defconst amount-player5-razings 122)
+(defconst amount-player6-razings 123)
+(defconst amount-player7-razings 124)
+(defconst amount-player8-razings 125)
+(defconst amount-player1-razing-value 126)
+(defconst amount-player2-razing-value 127)
+(defconst amount-player3-razing-value 128)
+(defconst amount-player4-razing-value 129)
+(defconst amount-player5-razing-value 130)
+(defconst amount-player6-razing-value 131)
+(defconst amount-player7-razing-value 132)
+(defconst amount-player8-razing-value 133)
+(defconst amount-castle 134)
+(defconst amount-kills-by-player1 136)
+(defconst amount-kills-by-player2 137)
+(defconst amount-kills-by-player3 138)
+(defconst amount-kills-by-player4 139)
+(defconst amount-kills-by-player5 140)
+(defconst amount-kills-by-player6 141)
+(defconst amount-kills-by-player7 142)
+(defconst amount-kills-by-player8 143)
+(defconst amount-razings-by-player1 144)
+(defconst amount-razings-by-player2 145)
+(defconst amount-razings-by-player3 146)
+(defconst amount-razings-by-player4 147)
+(defconst amount-razings-by-player5 148)
+(defconst amount-razings-by-player6 149)
+(defconst amount-razings-by-player7 150)
+(defconst amount-razings-by-player8 151)
+(defconst amount-value-killed-by-others 152)
+(defconst amount-value-razed-by-others 153)
+(defconst amount-killed-by-others 154)
+(defconst amount-razed-by-others 155)
+(defconst amount-tribute-from-player1 156)
+(defconst amount-tribute-from-player2 157)
+(defconst amount-tribute-from-player3 158)
+(defconst amount-tribute-from-player4 159)
+(defconst amount-tribute-from-player5 160)
+(defconst amount-tribute-from-player6 161)
+(defconst amount-tribute-from-player7 162)
+(defconst amount-tribute-from-player8 163)
+(defconst amount-value-current-units 164)
+(defconst amount-value-current-buildings 165)
+(defconst amount-food-total 166)
+(defconst amount-wood-total 167)
+(defconst amount-stone-total 168)
+(defconst amount-gold-total 169)
+(defconst amount-total-value-of-kills 170)
+(defconst amount-total-tribute-received 171)
+(defconst amount-total-value-of-razings 172)
+(defconst amount-total-castles-built 173)
+(defconst amount-total-wonders-built 174)
+(defconst amount-tribute-score 175)
+(defconst amount-convert-min-adj 176)
+(defconst amount-convert-max-adj 177)
+(defconst amount-convert-resist-min-adj 178)
+(defconst amount-convert-resist-max-adj 179)
+(defconst amount-convert-building-min 180)
+(defconst amount-convert-building-max 181)
+(defconst amount-convert-building-chance 182)
+(defconst amount-spies 183)
+(defconst amount-value-wonders-castles 184)
+(defconst amount-food-score 185)
+(defconst amount-wood-score 186)
+(defconst amount-stone-score 187)
+(defconst amount-gold-score 188)
+(defconst amount-wood-bonus 189)
+(defconst amount-food-bonus 190)
+(defconst amount-relic-rate 191)
+(defconst amount-heresy 192)
+(defconst amount-theocracy 193)
+(defconst amount-crenellations 194)
+(defconst amount-construction-rate-mod 195)
+(defconst amount-hun-wonder-bonus 196)
+(defconst amount-spies-discount 197)
+(defconst amount-unused-0 220)
+(defconst amount-unused-1 221)
+(defconst amount-unused-2 222)
+(defconst amount-unused-3 223)
+(defconst amount-unused-4 224)
+
+;--------------------------------------
+; Unused ResourceAmount Constants
+;--------------------------------------
+;(defconst amount-houses 51)
+;(defconst amount-hit-points-killed 68)
+;(defconst amount-hit-points-razings 135)
+
+;--------------------------------------
+; Define ProjectileType Constants
+;--------------------------------------
+(defconst projectile-town-center 0)
+(defconst projectile-castle 1)
+(defconst projectile-watch-tower 2)
+(defconst projectile-bombard-tower 3)
+(defconst projectile-ship 4)
+(defconst projectile-siege 5)
+(defconst projectile-fortification 6)
+(defconst projectile-any 7)
+
+;--------------------------------------
+; Define EscrowState Constants
+;--------------------------------------
+(defconst with-escrow 0)
+(defconst without-escrow 1)
+
+;--------------------------------------
+; Define ExploredState Constants
+;--------------------------------------
+(defconst explored-no 0)
+(defconst explored-yes 128)					;point has been seen in the past
+(defconst explored-active 15)				;point is currently visible by an object
+
+;--------------------------------------
+; Define PlacementType Constants
+;--------------------------------------
+(defconst place-normal 0)
+(defconst place-forward 1)
+(defconst place-control 2)
+(defconst place-point 3)
+
+;--------------------------------------
+; Define PriorityType Constants
+;--------------------------------------
+(defconst priority-offense 0)
+(defconst priority-defense 1)
+
+;--------------------------------------
+; Define PositionType Constants
+;--------------------------------------
+(defconst position-center 0)
+(defconst position-opposite 1)
+(defconst position-corner 2)
+(defconst position-enemy 3)
+(defconst position-border 4)
+(defconst position-mirror 5)
+(defconst position-flank 6)
+(defconst position-zero 7)
+(defconst position-map-size 8)
+(defconst position-self 9)
+(defconst position-target 10)
+(defconst position-focus 11)
+(defconst position-object 12)
+(defconst position-point 13)
+
+;--------------------------------------
+; Define SearchSource Constants
+;--------------------------------------
+(defconst search-local 1)
+(defconst search-remote 2)
+
+;--------------------------------------
+; Define ObjectList Constants
+;--------------------------------------
+(defconst list-active 0)
+(defconst list-inactive 1)
+
+;--------------------------------------
+; Define ObjectStatus Constants
+;--------------------------------------
+(defconst status-pending 0)
+(defconst status-ready 2)
+(defconst status-resource 3)
+(defconst status-down 4)
+(defconst status-gather 5)
+
+;--------------------------------------
+; Define SearchOrder Constants
+;--------------------------------------
+(defconst search-order-none 0)
+(defconst search-order-asc 1)
+(defconst search-order-desc 2)
+
+;--------------------------------------
+; Define GuardFlag Constants
+;--------------------------------------
+(defconst guard-flag-victory 1)
+(defconst guard-flag-resource 2)
+(defconst guard-flag-inverse 4)
+
+;--------------------------------------
+; Define ProgressType Constants
+;--------------------------------------
+(defconst progress-type-train 102)
+(defconst progress-type-research 103)
+
+;--------------------------------------
+; Define TargetAction Constants
+;--------------------------------------
+(defconst action-default 0)	;target-point -> action-move
+(defconst action-move 1)	;target-point + target-objects
+(defconst action-patrol 2)	;target-point + target-objects
+(defconst action-guard 3)	;target-point -> action-move
+(defconst action-follow 4)	;target-point -> action-move
+(defconst action-stop 5)	;target-point + target-objects
+(defconst action-ground 6)	;target-point + target-objects
+(defconst action-garrison 7)	;target-point -> action-move
+(defconst action-delete 8)	;target-point + target-objects
+(defconst action-unload 9)	;target-objects -> action-none
+(defconst action-train 10)	;target-objects -> action-none
+(defconst action-gather 11)	;target-point + target-objects
+(defconst action-lock 12)	;target-objects -> action-none
+(defconst action-work 13)	;target-objects -> action-none
+(defconst action-ungarrison 14)	;target-objects -> action-none
+(defconst action-drop-relic 15)	;target-objects -> action-none
+(defconst action-pack 16)	;target-objects -> action-none
+(defconst action-unpack 17)	;target-objects -> action-none
+(defconst action-none 18)	;target-point + target-objects
+
+; action-unload: buildings ungarrison to gather point, siege (913) eject in-place, transports to target-point
+; action-ungarrison: selected units from inside an object are ungarrisoned
+; action-gather: set gather point (for buildings only)
+; action-work: send villagers back to work
+
+; action-train: (up-target-point inGoalEscrowState action-train typeOp inOpTypeId)
+; inGoalEscrowState must be either 0 for without-escrow or an extended goal from 41-510
+
+;--------------------------------------
+; Define Formation Constants
+;--------------------------------------
+(defconst formation-line 2)
+(defconst formation-box 4)
+(defconst formation-stagger 7)
+(defconst formation-flank 8)
+
+;--------------------------------------
+; Define CmdId Constants
+;--------------------------------------
+(defconst cmdid-flag 0)
+(defconst cmdid-livestock-gaia 1)
+(defconst cmdid-civilian-building 2)
+(defconst cmdid-villager 3)
+(defconst cmdid-military 4)
+(defconst cmdid-trade 5)
+(defconst cmdid-monk 6)
+(defconst cmdid-transport 7)
+(defconst cmdid-relic 8)					;includes monk-with-relic
+(defconst cmdid-fishing-ship 9)
+(defconst cmdid-military-building 10)
+
+;--------------------------------------
+; Define ActionId Constants
+;--------------------------------------
+(defconst actionid-attack 600)
+(defconst actionid-defend 601)
+(defconst actionid-build 602)
+(defconst actionid-heal 603)
+(defconst actionid-convert 604)
+(defconst actionid-explore 605)
+(defconst actionid-stop 606)
+(defconst actionid-runaway 607)
+(defconst actionid-retreat 608)
+(defconst actionid-gather 609)
+(defconst actionid-move 610)
+(defconst actionid-patrol 611)
+(defconst actionid-follow 612)
+(defconst actionid-hunt 613)
+(defconst actionid-transport 614)
+(defconst actionid-trade 615)
+(defconst actionid-evade 616)
+(defconst actionid-enter 617)
+(defconst actionid-repair 618)
+(defconst actionid-train 619)
+(defconst actionid-research 620)
+(defconst actionid-unload 621)
+(defconst actionid-relic 631)
+
+;--------------------------------------
+; Define OrderId Constants
+;--------------------------------------
+(defconst orderid-attack 700)
+(defconst orderid-defend 701)
+(defconst orderid-build 702)
+(defconst orderid-heal 703)
+(defconst orderid-convert 704)
+(defconst orderid-explore 705)
+(defconst orderid-stop 706)
+(defconst orderid-runaway 707)
+(defconst orderid-retreat 708)
+(defconst orderid-gather 709)
+(defconst orderid-move 710)
+(defconst orderid-patrol 711)
+(defconst orderid-follow 712)
+(defconst orderid-hunt 713)
+(defconst orderid-transport 714)
+(defconst orderid-trade 715)
+(defconst orderid-evade 716)
+(defconst orderid-enter 717)
+(defconst orderid-repair 718)
+(defconst orderid-train 719)
+(defconst orderid-research 720)
+(defconst orderid-unload 721)
+(defconst orderid-relic 731)
+
+;--------------------------------------
+; Define Mainland Constants
+;--------------------------------------
+(defconst off-mainland 0)
+(defconst on-mainland 1)
+
+;--------------------------------------
+; Define ObjectData Constants
+;--------------------------------------
+(defconst object-data-index -1)				;only use with up-remove-objects
+(defconst object-data-id 0)
+(defconst object-data-type 1)
+(defconst object-data-class 2)
+(defconst object-data-category 3)
+(defconst object-data-cmdid 4)
+(defconst object-data-action 5)
+(defconst object-data-order 6)
+(defconst object-data-target 7)
+(defconst object-data-point-x 8)
+(defconst object-data-point-y 9)
+(defconst object-data-hitpoints 10)
+(defconst object-data-maxhp 11)
+(defconst object-data-range 12)
+(defconst object-data-speed 13)
+(defconst object-data-dropsite 14)
+(defconst object-data-resource 15)
+(defconst object-data-carry 16)
+(defconst object-data-garrisoned 17)
+(defconst object-data-garrison-count 18)
+(defconst object-data-status 19)			;0:incomplete, 2:active, 3:resource, >=4:inactive
+(defconst object-data-player 20)
+(defconst object-data-attack-stance 21)
+(defconst object-data-action-time 22)
+(defconst object-data-target-id 23)
+(defconst object-data-formation-id 24)
+(defconst object-data-patrolling 25)
+(defconst object-data-strike-armor 26)
+(defconst object-data-pierce-armor 27)
+(defconst object-data-base-attack 28)
+(defconst object-data-locked 29)
+(defconst object-data-garrison-id 30)
+(defconst object-data-train-count 31)
+(defconst object-data-tasks-count 32)		;increased for internal tasks performed on the object (may be more than 1 per event)
+(defconst object-data-attacker-count 33)	;not increased for certain situations like hunting
+(defconst object-data-attacker-id 34)		;not set for certain situations like hunting
+(defconst object-data-under-attack 35)		;not set for certain situations like hunting
+(defconst object-data-attack-timer 36)		;resets to 60s for each attack (buildings only)
+(defconst object-data-point-z 37)
+(defconst object-data-precise-x 38)		;point x100.0
+(defconst object-data-precise-y 39)
+(defconst object-data-precise-z 40)
+(defconst object-data-researching 41)
+(defconst object-data-tile-position 42)		;match with sn-target-point-adjustment
+(defconst object-data-tile-inverse 43)
+(defconst object-data-distance 44)		;based on target-point
+(defconst object-data-precise-distance 45)	;distance x100
+(defconst object-data-full-distance 46)
+(defconst object-data-map-zone-id 47)
+(defconst object-data-on-mainland 48)		;compares map-zone-id to home TC map-zone-id
+(defconst object-data-idling 49)
+(defconst object-data-move-x 50)
+(defconst object-data-move-y 51)
+(defconst object-data-precise-move-x 52)
+(defconst object-data-precise-move-y 53)
+(defconst object-data-reload-time 54)		;in milliseconds
+(defconst object-data-next-attack 55)		;in milliseconds
+(defconst object-data-train-site 56)
+(defconst object-data-train-time 57)		;in seconds
+(defconst object-data-blast-radius 58)		;radius x100.0
+(defconst object-data-blast-level 59)
+(defconst object-data-progress-type 60)
+(defconst object-data-progress-value 61)
+(defconst object-data-min-range 62)
+(defconst object-data-target-time 63)		;in milliseconds (not for villagers)
+(defconst object-data-heresy 64)		;checks amount-heresy
+(defconst object-data-faith 65)			;checks amount-convert-resistance
+(defconst object-data-redemption 66)		;checks amount-convert-building
+(defconst object-data-atonement 67)		;checks amount-convert-priest
+(defconst object-data-theocracy 68)		;checks amount-theocracy
+(defconst object-data-spies 69)			;checks amount-spies
+(defconst object-data-ballistics 70)
+(defconst object-data-gather-type 71)		;food, wood, gold, stone, or -1 for none
+(defconst object-data-language-id 72)		;can use to check villager types
+(defconst object-data-group-flag 73)		;group id from 0 to 9 or -2 for none
+(defconst object-data-hero-flags 74)		;combined hero status flags
+(defconst object-data-hero 75)			;has actual hero flag set
+(defconst object-data-auto-heal 76)		;will hero heal (non-berserk)
+(defconst object-data-no-convert 77)		;cannot be converted
+(defconst object-data-frame-delay 78)		;number of frames for projectile delay
+(defconst object-data-attack-count 79)		;consecutive attack count
+(defconst object-data-to-precise 80)		;precise distance to a precise target-point
+(defconst object-data-base-type 81)		;object base type id
+(defconst object-data-upgrade-type 82)		;object upgrade type id
+
+;--------------------------------------
+; Define LangId Constants (aoc)
+;--------------------------------------
+(defconst lid-villager-idle 5121)
+(defconst lid-villager-shepherd 5496)
+(defconst lid-villager-farmer 5123)
+(defconst lid-villager-forager 5402)
+(defconst lid-villager-hunter 5124)
+(defconst lid-villager-fisherman 5499)
+(defconst lid-villager-lumberjack 5125)
+(defconst lid-villager-gold-miner 5482)
+(defconst lid-villager-stone-miner 5126)
+(defconst lid-villager-builder 5122)
+(defconst lid-villager-repairer 5127)
+
+;--------------------------------------
+; Define Terrain Constants
+;--------------------------------------
+(defconst terrain-grass 0)
+(defconst terrain-grass2 12)
+(defconst terrain-grass3 9)
+(defconst terrain-grass-snow 34)
+(defconst terrain-grass-old 16)
+(defconst terrain-water 1)
+(defconst terrain-water-deep 22)
+(defconst terrain-water-medium 23)
+(defconst terrain-water-bridge 28)
+(defconst terrain-water-old 15)
+(defconst terrain-water-beach 2)
+(defconst terrain-shallows 4)
+(defconst terrain-ice 26)
+(defconst terrain-ice2 35)
+(defconst terrain-ice-beach 37)
+(defconst terrain-desert 14)
+(defconst terrain-dirt 6)
+(defconst terrain-dirt2 11)
+(defconst terrain-dirt3 3)
+(defconst terrain-dirt-snow 33)
+(defconst terrain-farm 7)
+(defconst terrain-farm1 29)
+(defconst terrain-farm2 30)
+(defconst terrain-farm3 31)
+(defconst terrain-farm-dead 8)
+(defconst terrain-forest 10)
+(defconst terrain-forest-bamboo 18)
+(defconst terrain-forest-jungle 17)
+(defconst terrain-forest-oak 20)
+(defconst terrain-forest-palm 13)
+(defconst terrain-forest-pine 19)
+(defconst terrain-forest-snow 21)
+(defconst terrain-foundation 27)
+(defconst terrain-foundation-snow 36)
+(defconst terrain-koh 40)
+(defconst terrain-leaves 5)
+(defconst terrain-road 24)
+(defconst terrain-road-broken 25)
+(defconst terrain-road-snow 38)
+(defconst terrain-road-fungus 39)
+(defconst terrain-snow 32)
+(defconst terrain-unknown 41)
+
+;--------------------------------------
+; Define SortTargetMethod Constants
+;--------------------------------------
+(defconst sort-targets 0)
+(defconst sort-random 1)
+(defconst sort-distance 2)
+(defconst sort-hitpoints 3)
+(defconst sort-range 4)
+
+;--------------------------------------
+; Define FindPlayerMethod Constants
+;--------------------------------------
+(defconst find-attacker 0)
+(defconst find-random 1)
+(defconst find-closest 2)
+(defconst find-ordered 3)
+
+;--------------------------------------
+; Define ScoutMethod Constants
+;--------------------------------------
+(defconst scout-center 0)
+(defconst scout-opposite 1)
+(defconst scout-corner 2)
+(defconst scout-enemy 3)
+(defconst scout-border 4)
+(defconst scout-mirror 5)
+(defconst scout-flank 6)
+
+;--------------------------------------
+; Define AdjustPoint Constants
+;--------------------------------------
+(defconst adjust-default 0)
+(defconst adjust-left 1)
+(defconst adjust-top 2)
+(defconst adjust-right 3)
+(defconst adjust-bottom 4)
+(defconst adjust-middle 5)
+(defconst adjust-precise 6)
+
+;--------------------------------------
+; Define PlayerStance Constants
+;--------------------------------------
+;(defconst ally 0)
+;(defconst neutral 1)
+;(defconst enemy 3)
+;(defconst any 2)
+
+;--------------------------------------
+; Define DropsiteMinDistance Constants
+;--------------------------------------
+;(defconst hunting 4)
+;(defconst boar-hunting 5)
+;(defconst deer-hunting 6)
+;(defconst live-boar 7)
+
+;--------------------------------------
+; Define Counting Constants
+;--------------------------------------
+;(defconst monk-set 970)
+;(defconst trebuchet-set 971)
+;(defconst huskarl-set 972)
+;(defconst villager-shepherd 973)
+;(defconst villager-forager 974)
+;(defconst villager-farmer 975)
+;(defconst villager-hunter 976)
+;(defconst villager-fisherman 977)
+;(defconst villager-food 978)
+;(defconst villager-wood 979)
+;(defconst villager-stone 980)
+;(defconst villager-gold 981)
+;(defconst villager-builder 982)
+;(defconst villager-repairer 983)
+;(defconst villager-base 984)
+
+;--------------------------------------
+; Define Extended Strategic Numbers
+;--------------------------------------
+;(defconst sn-enable-new-building-system 242)
+;(defconst sn-percent-building-cancellation 243)
+;(defconst sn-enable-boar-hunting 244)
+;(defconst sn-minimum-number-hunters 245)
+;(defconst sn-object-repair-level 246)
+;(defconst sn-enable-patrol-attack 247)
+;(defconst sn-dropsite-separation-distance 248)
+;(defconst sn-target-player-number 249)
+;(defconst sn-safe-town-size 250)
+;(defconst sn-focus-player-number 251)
+;(defconst sn-minimum-boar-lure-group-size 252)
+;(defconst sn-preferred-mill-placement 253)
+;(defconst sn-enable-offensive-priority 254)
+;(defconst sn-building-targeting-mode 255)
+;(defconst sn-home-exploration-time 256)
+;(defconst sn-number-civilian-militia 257)
+;(defconst sn-allow-civilian-offense 258)
+;(defconst sn-preferred-trade-distance 259)
+;(defconst sn-lumber-camp-max-distance 260)
+;(defconst sn-mining-camp-max-distance 261)
+;(defconst sn-wall-targeting-mode 262)
+;(defconst sn-livestock-to-town-center 263)
+;(defconst sn-enable-training-queue 264)
+;(defconst sn-ignore-tower-elevation 265)
+;(defconst sn-town-center-placement 266)
+;(defconst sn-disable-tower-priority 267)
+;(defconst sn-placement-zone-size 268)
+;(defconst sn-placement-fail-delta 269)
+;(defconst sn-placement-to-center 270)
+;(defconst sn-disable-attack-groups 271)
+;(defconst sn-allow-adjacent-dropsites 272)
+;(defconst sn-defer-dropsite-update 273)
+;(defconst sn-maximum-garrison-fill 274)
+;(defconst sn-number-garrison-units 275)
+;(defconst sn-filter-under-attack 276)
+;(defconst sn-disable-defend-groups 277)
+;(defconst sn-dock-placement-mode 278)
+;(defconst sn-dock-proximity-factor 279)
+;(defconst sn-dock-avoidance-factor 280)
+;(defconst sn-dock-training-filter 281)
+;(defconst sn-free-siege-targeting 282)
+;(defconst sn-warship-targeting-mode 283)
+;(defconst sn-disable-sighted-response-cap 284)
+;(defconst sn-disable-builder-assistance 285)
+;(defconst sn-local-targeting-mode 286)
+;(defconst sn-livestock-defend-priority 287)
+;(defconst sn-number-tasked-units 288)
+;(defconst sn-minimum-tasked-units 289)
+;(defconst sn-maximum-tasked-units 290)
+;(defconst sn-disable-villager-garrison 291)
+;(defconst sn-target-point-adjustment 292)
+;(defconst sn-unexplored-construction 293)
+;(defconst sn-disable-trade-evasion 294)
+;(defconst sn-boar-lure-destination 295)

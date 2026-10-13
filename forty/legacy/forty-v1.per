@@ -1,0 +1,1759 @@
+; ==========================================================
+; FORTY.PER
+; REINO FORTIFICADO
+; IA DEFENSIVA STANDALONE
+; UserPatch 1.5 / The Conquerors
+; VERSION FINAL:
+; - SIN MICRO
+; - TORTUGA DARK/FEUDAL/CASTILLO
+; - IMPERIAL CON MANEJO MILITAR TIPO SEMIUTILS
+; - DROPSITES ADICIONALES
+; - CASTILLOS DESBLOQUEADOS
+; - BOOM DE PRODUCCION MILITAR EN IMPERIAL
+; ==========================================================
+
+; ==========================================================
+; GOALS
+; ==========================================================
+(defconst gl-mode 1)
+
+; ==========================================================
+; MODOS
+; ==========================================================
+(defconst m-boom   0)
+(defconst m-defend 1)
+(defconst m-attack 2)
+
+; ==========================================================
+; TIMERS
+; ==========================================================
+(defconst t-director 1)
+(defconst t-pulse    2)
+
+; ==========================================================
+; INIT 1
+; ==========================================================
+(defrule
+    (true)
+=>
+    (set-goal gl-mode m-boom)
+    (enable-timer t-director 18)
+    (enable-timer t-pulse 14)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 2 - exploracion y economia
+; ==========================================================
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-do-not-scale-for-difficulty-level 1)
+    (set-strategic-number sn-build-frequency 1)
+    (set-strategic-number sn-initial-exploration-required 0)
+    (set-strategic-number sn-percent-exploration-required 0)
+    (set-strategic-number sn-percent-civilian-explorers 1)
+    (set-strategic-number sn-cap-civilian-explorers 1)
+    (set-strategic-number sn-total-number-explorers 1)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 3 - base compacta
+; ==========================================================
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-camp-max-distance 20)
+    (set-strategic-number sn-mill-max-distance 20)
+    (set-strategic-number sn-food-dropsite-distance 8)
+    (set-strategic-number sn-wood-dropsite-distance 8)
+    (set-strategic-number sn-gold-dropsite-distance 8)
+    (set-strategic-number sn-stone-dropsite-distance 8)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 4 - grupos y defensa base
+; ==========================================================
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-number-defend-groups 3)
+    (set-strategic-number sn-percent-attack-soldiers 0)
+    (set-strategic-number sn-number-attack-groups 0)
+    (set-strategic-number sn-minimum-attack-group-size 14)
+    (set-strategic-number sn-maximum-attack-group-size 22)
+    (set-strategic-number sn-group-form-distance 110)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 5 - comportamiento militar base
+; ==========================================================
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-scale-minimum-attack-group-size 0)
+    (set-strategic-number sn-scale-maximum-attack-group-size 0)
+    (set-strategic-number sn-task-ungrouped-soldiers 1)
+    (set-strategic-number sn-consecutive-idle-unit-limit 1)
+    (set-strategic-number sn-zero-priority-distance 255)
+    (set-strategic-number sn-attack-intelligence 0)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 6 - builders y objetivos
+; ==========================================================
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-cap-civilian-builders 12)
+    (set-strategic-number sn-special-attack-type1 663)
+    (set-strategic-number sn-special-attack-influence1 100)
+    (set-strategic-number sn-target-evaluation-distance 50)
+    (set-strategic-number sn-target-evaluation-continent 160)
+    (set-strategic-number sn-target-evaluation-in-progress 15)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 7 - saludo
+; ==========================================================
+(defrule
+    (true)
+=>
+    (chat-to-all "Reino Fortificado activo. Base compacta y defensa pesada.")
+    (disable-self)
+)
+
+; ==========================================================
+; INIT EXTRA - ACTIVAR PLANIFICACION DE MURALLAS
+; ==========================================================
+(defrule
+    (true)
+=>
+    (enable-wall-placement 1)
+    (enable-wall-placement 2)
+    (disable-self)
+)
+
+; ==========================================================
+; CRECIMIENTO ORGANICO DE LA BASE
+; ==========================================================
+(defrule
+    (current-age == dark-age)
+=>
+    (set-strategic-number sn-maximum-town-size 16)
+    (set-strategic-number sn-camp-max-distance 20)
+    (set-strategic-number sn-mill-max-distance 20)
+)
+
+(defrule
+    (current-age == feudal-age)
+=>
+    (set-strategic-number sn-maximum-town-size 24)
+    (set-strategic-number sn-camp-max-distance 28)
+    (set-strategic-number sn-mill-max-distance 28)
+)
+
+(defrule
+    (current-age == castle-age)
+=>
+    (set-strategic-number sn-maximum-town-size 34)
+    (set-strategic-number sn-camp-max-distance 36)
+    (set-strategic-number sn-mill-max-distance 36)
+    (set-strategic-number sn-food-dropsite-distance 9)
+    (set-strategic-number sn-wood-dropsite-distance 9)
+    (set-strategic-number sn-gold-dropsite-distance 9)
+    (set-strategic-number sn-stone-dropsite-distance 9)
+)
+
+(defrule
+    (current-age == imperial-age)
+=>
+    (set-strategic-number sn-maximum-town-size 46)
+    (set-strategic-number sn-camp-max-distance 45)
+    (set-strategic-number sn-mill-max-distance 45)
+    (set-strategic-number sn-food-dropsite-distance 10)
+    (set-strategic-number sn-wood-dropsite-distance 10)
+    (set-strategic-number sn-gold-dropsite-distance 10)
+    (set-strategic-number sn-stone-dropsite-distance 10)
+)
+
+; ==========================================================
+; PERSONALIDAD MILITAR SEMIUTILS EN IMPERIAL
+; Dividida para evitar rule too long
+; ==========================================================
+(defrule
+    (current-age == imperial-age)
+=>
+    (set-strategic-number sn-number-defend-groups 0)
+    (set-strategic-number sn-number-attack-groups 4)
+    (set-strategic-number sn-minimum-attack-group-size 8)
+    (set-strategic-number sn-maximum-attack-group-size 14)
+    (set-strategic-number sn-group-form-distance 110)
+    (set-strategic-number sn-scale-minimum-attack-group-size 0)
+    (disable-self)
+)
+
+(defrule
+    (current-age == imperial-age)
+=>
+    (set-strategic-number sn-scale-maximum-attack-group-size 0)
+    (set-strategic-number sn-task-ungrouped-soldiers 0)
+    (set-strategic-number sn-garrison-rams 1)
+    (set-strategic-number sn-enable-patrol-attack 1)
+    (set-strategic-number sn-attack-intelligence 0)
+    (set-strategic-number sn-special-attack-type1 663)
+    (disable-self)
+)
+
+(defrule
+    (current-age == imperial-age)
+=>
+    (set-strategic-number sn-special-attack-influence1 180)
+    (set-strategic-number sn-target-evaluation-distance 55)
+    (set-strategic-number sn-target-evaluation-continent 160)
+    (set-strategic-number sn-target-evaluation-siege-weapon 20)
+    (set-strategic-number sn-target-evaluation-in-progress 20)
+    (disable-self)
+)
+
+; ==========================================================
+; POSTURA ESTRATEGICA POR EDAD
+; ==========================================================
+(defrule
+    (current-age <= castle-age)
+    (not (town-under-attack))
+=>
+    (set-goal gl-mode m-boom)
+    (set-strategic-number sn-percent-attack-soldiers 0)
+    (set-strategic-number sn-number-attack-groups 0)
+    (set-strategic-number sn-number-defend-groups 3)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (not (goal gl-mode m-attack))
+=>
+    (set-strategic-number sn-percent-attack-soldiers 60)
+    (set-strategic-number sn-number-attack-groups 4)
+    (set-strategic-number sn-number-defend-groups 0)
+)
+
+; ==========================================================
+; REPARTO ECONOMICO
+; ==========================================================
+(defrule
+    (current-age == dark-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 75)
+    (set-strategic-number sn-wood-gatherer-percentage 25)
+    (set-strategic-number sn-gold-gatherer-percentage 0)
+    (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+    (current-age == feudal-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 48)
+    (set-strategic-number sn-wood-gatherer-percentage 32)
+    (set-strategic-number sn-gold-gatherer-percentage 10)
+    (set-strategic-number sn-stone-gatherer-percentage 10)
+)
+
+(defrule
+    (current-age == castle-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 42)
+    (set-strategic-number sn-wood-gatherer-percentage 28)
+    (set-strategic-number sn-gold-gatherer-percentage 15)
+    (set-strategic-number sn-stone-gatherer-percentage 15)
+)
+
+(defrule
+    (current-age == imperial-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 35)
+    (set-strategic-number sn-wood-gatherer-percentage 30)
+    (set-strategic-number sn-gold-gatherer-percentage 25)
+    (set-strategic-number sn-stone-gatherer-percentage 10)
+)
+
+; ==========================================================
+; ALDEANOS
+; ==========================================================
+(defrule
+    (current-age == dark-age)
+    (can-train villager)
+    (civilian-population < 26)
+=>
+    (train villager)
+)
+
+(defrule
+    (current-age == feudal-age)
+    (can-train villager)
+    (civilian-population < 46)
+=>
+    (train villager)
+)
+
+(defrule
+    (current-age == castle-age)
+    (can-train villager)
+    (civilian-population < 95)
+=>
+    (train villager)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (can-train villager)
+    (civilian-population < 110)
+=>
+    (train villager)
+)
+
+; ==========================================================
+; SUBIDAS DE EDAD
+; ==========================================================
+(defrule
+    (current-age == dark-age)
+    (can-research feudal-age)
+=>
+    (research feudal-age)
+    (chat-to-all "Reino Fortificado: avanzando a Feudal.")
+)
+
+(defrule
+    (current-age == feudal-age)
+    (can-research castle-age)
+=>
+    (research castle-age)
+    (chat-to-all "Reino Fortificado: avanzando a Castillo.")
+)
+
+(defrule
+    (current-age == castle-age)
+    (can-research imperial-age)
+=>
+    (research imperial-age)
+    (chat-to-all "Reino Fortificado: avanzando a Imperial.")
+)
+
+; ==========================================================
+; EDIFICIOS BASE
+; ==========================================================
+(defrule
+    (housing-headroom < 6)
+    (can-build house)
+=>
+    (build house)
+)
+
+(defrule
+    (building-type-count-total lumber-camp == 0)
+    (can-build lumber-camp)
+=>
+    (build lumber-camp)
+)
+
+(defrule
+    (building-type-count-total mill == 0)
+    (can-build mill)
+=>
+    (build mill)
+)
+
+(defrule
+    (civilian-population >= 10)
+    (building-type-count-total barracks == 0)
+    (can-build barracks)
+=>
+    (build barracks)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (building-type-count-total barracks < 2)
+    (can-build barracks)
+=>
+    (build barracks)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (building-type-count-total archery-range < 2)
+    (can-build archery-range)
+=>
+    (build archery-range)
+)
+
+; establos
+(defrule
+    (current-age >= feudal-age)
+    (building-type-count-total stable == 0)
+    (can-build stable)
+=>
+    (build stable)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (building-type-count-total stable < 2)
+    (can-build stable)
+=>
+    (build stable)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (building-type-count-total stable < 4)
+    (can-build stable)
+=>
+    (build stable)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (building-type-count-total blacksmith == 0)
+    (can-build blacksmith)
+=>
+    (build blacksmith)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (building-type-count-total market == 0)
+    (can-build market)
+=>
+    (build market)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (building-type-count-total mining-camp < 2)
+    (can-build mining-camp)
+=>
+    (build mining-camp)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (building-type-count-total town-center < 2)
+    (can-build town-center)
+=>
+    (build town-center)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (building-type-count-total town-center < 3)
+    (can-build town-center)
+=>
+    (build town-center)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (building-type-count-total town-center < 4)
+    (can-build town-center)
+=>
+    (build town-center)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (building-type-count-total monastery == 0)
+    (can-build monastery)
+=>
+    (build monastery)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (building-type-count-total university == 0)
+    (can-build university)
+=>
+    (build university)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (building-type-count-total siege-workshop == 0)
+    (can-build siege-workshop)
+=>
+    (build siege-workshop)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (building-type-count-total archery-range < 4)
+    (can-build archery-range)
+=>
+    (build archery-range)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (building-type-count-total siege-workshop < 2)
+    (can-build siege-workshop)
+=>
+    (build siege-workshop)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (food-amount < 350)
+    (wood-amount > 80)
+    (can-build farm)
+=>
+    (build farm)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (food-amount < 500)
+    (wood-amount > 60)
+    (can-build farm)
+=>
+    (build farm)
+)
+
+; ==========================================================
+; EXCEPCIONES AL CRECIMIENTO ORGANICO
+; mas dropsites para que no se ahogue la produccion
+; ==========================================================
+
+; lumber camps extra
+(defrule
+    (current-age >= feudal-age)
+    (civilian-population >= 18)
+    (building-type-count-total lumber-camp < 2)
+    (can-build lumber-camp)
+=>
+    (build lumber-camp)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (civilian-population >= 40)
+    (building-type-count-total lumber-camp < 3)
+    (can-build lumber-camp)
+=>
+    (build lumber-camp)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (civilian-population >= 70)
+    (building-type-count-total lumber-camp < 4)
+    (can-build lumber-camp)
+=>
+    (build lumber-camp)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (civilian-population >= 90)
+    (building-type-count-total lumber-camp < 5)
+    (can-build lumber-camp)
+=>
+    (build lumber-camp)
+)
+
+; mining camps extra
+(defrule
+    (current-age >= castle-age)
+    (civilian-population >= 35)
+    (building-type-count-total mining-camp < 3)
+    (can-build mining-camp)
+=>
+    (build mining-camp)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (civilian-population >= 70)
+    (building-type-count-total mining-camp < 4)
+    (can-build mining-camp)
+=>
+    (build mining-camp)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (civilian-population >= 95)
+    (building-type-count-total mining-camp < 5)
+    (can-build mining-camp)
+=>
+    (build mining-camp)
+)
+
+; mills extra
+(defrule
+    (current-age >= feudal-age)
+    (civilian-population >= 20)
+    (building-type-count-total mill < 2)
+    (can-build mill)
+=>
+    (build mill)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (civilian-population >= 45)
+    (building-type-count-total mill < 3)
+    (can-build mill)
+=>
+    (build mill)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (civilian-population >= 80)
+    (building-type-count-total mill < 4)
+    (can-build mill)
+=>
+    (build mill)
+)
+
+; ==========================================================
+; BOOM DE PRODUCCION MILITAR EN IMPERIAL
+; ==========================================================
+
+(defrule
+    (current-age == imperial-age)
+    (building-type-count-total barracks < 3)
+    (can-build barracks)
+=>
+    (build barracks)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-mode m-attack)
+    (building-type-count-total barracks < 4)
+    (can-build barracks)
+=>
+    (build barracks)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (building-type-count-total archery-range < 5)
+    (can-build archery-range)
+=>
+    (build archery-range)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-mode m-attack)
+    (building-type-count-total archery-range < 6)
+    (can-build archery-range)
+=>
+    (build archery-range)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (building-type-count-total stable < 5)
+    (can-build stable)
+=>
+    (build stable)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-mode m-attack)
+    (building-type-count-total stable < 6)
+    (can-build stable)
+=>
+    (build stable)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (building-type-count-total siege-workshop < 3)
+    (can-build siege-workshop)
+=>
+    (build siege-workshop)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-mode m-attack)
+    (building-type-count-total siege-workshop < 4)
+    (can-build siege-workshop)
+=>
+    (build siege-workshop)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (building-type-count-total monastery < 2)
+    (can-build monastery)
+=>
+    (build monastery)
+)
+
+; ==========================================================
+; CONSTRUCCION DEFENSIVA
+; ==========================================================
+
+; builders de emergencia
+(defrule
+    (current-age >= feudal-age)
+    (wall-completed-percentage 1 < 100)
+=>
+    (set-strategic-number sn-percent-civilian-builders 20)
+    (set-strategic-number sn-cap-civilian-builders 18)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (wall-completed-percentage 2 < 100)
+=>
+    (set-strategic-number sn-percent-civilian-builders 22)
+    (set-strategic-number sn-cap-civilian-builders 20)
+)
+
+(defrule
+    (current-age == feudal-age)
+    (wall-completed-percentage 1 >= 100)
+=>
+    (set-strategic-number sn-percent-civilian-builders 10)
+    (set-strategic-number sn-cap-civilian-builders 10)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (wall-completed-percentage 1 >= 100)
+    (wall-completed-percentage 2 >= 100)
+=>
+    (set-strategic-number sn-percent-civilian-builders 10)
+    (set-strategic-number sn-cap-civilian-builders 10)
+)
+
+; en imperial, con la base ya montada, sube builders para boom militar
+(defrule
+    (current-age == imperial-age)
+    (wall-completed-percentage 1 >= 100)
+=>
+    (set-strategic-number sn-percent-civilian-builders 14)
+    (set-strategic-number sn-cap-civilian-builders 16)
+)
+
+; muralla exterior feudal
+(defrule
+    (current-age == feudal-age)
+    (wall-completed-percentage 1 < 100)
+    (can-build-wall 1 palisade-wall)
+=>
+    (build-wall 1 palisade-wall)
+)
+
+(defrule
+    (current-age == feudal-age)
+    (wall-completed-percentage 1 > 15)
+    (can-build-gate 1)
+=>
+    (build-gate 1)
+)
+
+; muralla exterior castillo/imperial
+(defrule
+    (current-age >= castle-age)
+    (wall-completed-percentage 1 < 100)
+    (can-build-wall 1 stone-wall)
+=>
+    (build-wall 1 stone-wall)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (wall-completed-percentage 1 > 15)
+    (can-build-gate 1)
+=>
+    (build-gate 1)
+)
+
+; muralla interior
+(defrule
+    (current-age >= castle-age)
+    (wall-completed-percentage 1 > 45)
+    (wall-completed-percentage 2 < 100)
+    (can-build-wall 2 stone-wall)
+=>
+    (build-wall 2 stone-wall)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (wall-completed-percentage 2 > 15)
+    (can-build-gate 2)
+=>
+    (build-gate 2)
+)
+
+; reforzar brechas
+(defrule
+    (current-age >= castle-age)
+    (wall-completed-percentage 1 < 85)
+    (can-build-wall 1 stone-wall)
+=>
+    (build-wall 1 stone-wall)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (wall-completed-percentage 2 < 90)
+    (can-build-wall 2 stone-wall)
+=>
+    (build-wall 2 stone-wall)
+)
+
+; torres
+(defrule
+    (current-age >= feudal-age)
+    (wall-completed-percentage 1 > 10)
+    (building-type-count-total watch-tower-line < 2)
+    (can-build watch-tower-line)
+=>
+    (build watch-tower-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (wall-completed-percentage 1 > 40)
+    (building-type-count-total watch-tower-line < 4)
+    (can-build watch-tower-line)
+=>
+    (build watch-tower-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (wall-completed-percentage 2 > 30)
+    (building-type-count-total watch-tower-line < 6)
+    (can-build watch-tower-line)
+=>
+    (build watch-tower-line)
+)
+
+; ==========================================================
+; CASTILLOS
+; Se quita la dependencia fuerte de murallas
+; ==========================================================
+
+; primer castillo en castillo/imperial: siempre que pueda
+(defrule
+    (current-age >= castle-age)
+    (stone-amount >= 650)
+    (building-type-count-total castle == 0)
+    (can-build castle)
+=>
+    (build castle)
+)
+
+; segundo castillo defensivo si hay piedra o presion
+(defrule
+    (current-age >= castle-age)
+    (town-under-attack)
+    (stone-amount >= 650)
+    (building-type-count-total castle < 2)
+    (can-build castle)
+=>
+    (build castle)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (stone-amount >= 750)
+    (building-type-count-total castle < 2)
+    (can-build castle)
+=>
+    (build castle)
+)
+
+; boom de castillos en imperial
+(defrule
+    (current-age == imperial-age)
+    (stone-amount >= 850)
+    (building-type-count-total castle < 3)
+    (player-in-game any-enemy)
+    (can-build castle)
+=>
+    (build-forward castle)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (stone-amount >= 1000)
+    (building-type-count-total castle < 4)
+    (player-in-game any-enemy)
+    (can-build castle)
+=>
+    (build-forward castle)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (stone-amount >= 1200)
+    (building-type-count-total castle < 5)
+    (player-in-game any-enemy)
+    (can-build castle)
+=>
+    (build-forward castle)
+)
+
+; comprar piedra si esta abierta la defensa o falta para castillos
+(defrule
+    (current-age >= castle-age)
+    (building-type-count-total castle == 0)
+    (stone-amount < 650)
+    (gold-amount > 900)
+    (can-buy-commodity stone)
+=>
+    (buy-commodity stone)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (wall-completed-percentage 1 < 100)
+    (stone-amount < 200)
+    (gold-amount > 900)
+    (can-buy-commodity stone)
+=>
+    (buy-commodity stone)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (wall-completed-percentage 2 < 100)
+    (stone-amount < 250)
+    (gold-amount > 1100)
+    (can-buy-commodity stone)
+=>
+    (buy-commodity stone)
+)
+
+; ==========================================================
+; TECNOLOGIAS ECONOMICAS
+; ==========================================================
+(defrule
+    (current-age == dark-age)
+    (civilian-population >= 20)
+    (can-research ri-loom)
+=>
+    (research ri-loom)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (can-research ri-double-bit-axe)
+=>
+    (research ri-double-bit-axe)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (can-research ri-horse-collar)
+=>
+    (research ri-horse-collar)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (can-research ri-wheel-barrow)
+=>
+    (research ri-wheel-barrow)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-bow-saw)
+=>
+    (research ri-bow-saw)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-heavy-plow)
+=>
+    (research ri-heavy-plow)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-gold-mining)
+=>
+    (research ri-gold-mining)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-stone-mining)
+=>
+    (research ri-stone-mining)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-two-man-saw)
+=>
+    (research ri-two-man-saw)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-gold-shaft-mining)
+=>
+    (research ri-gold-shaft-mining)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-hand-cart)
+=>
+    (research ri-hand-cart)
+)
+
+; ==========================================================
+; TECNOLOGIAS DE MERCADO / COMERCIO
+; ==========================================================
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-coinage)
+=>
+    (research ri-coinage)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-guilds)
+=>
+    (research ri-guilds)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-caravan)
+=>
+    (research ri-caravan)
+)
+
+; ==========================================================
+; PRIORIDADES MILITARES IMPORTANTES
+; ==========================================================
+
+; guerrilleros / arqueria
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-elite-skirmisher)
+=>
+    (research ri-elite-skirmisher)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (can-research ri-padded-archer-armor)
+=>
+    (research ri-padded-archer-armor)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-leather-archer-armor)
+=>
+    (research ri-leather-archer-armor)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-ring-archer-armor)
+=>
+    (research ri-ring-archer-armor)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (can-research ri-fletching)
+=>
+    (research ri-fletching)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-bodkin-arrow)
+=>
+    (research ri-bodkin-arrow)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-bracer)
+=>
+    (research ri-bracer)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-crossbow)
+=>
+    (research ri-crossbow)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-arbalest)
+=>
+    (research ri-arbalest)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-ballistics)
+=>
+    (research ri-ballistics)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-thumb-ring)
+=>
+    (research ri-thumb-ring)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-chemistry)
+=>
+    (research ri-chemistry)
+)
+
+; caballeria ligera
+(defrule
+    (current-age >= feudal-age)
+    (can-research ri-forging)
+=>
+    (research ri-forging)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (can-research ri-scale-barding)
+=>
+    (research ri-scale-barding)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-bloodlines)
+=>
+    (research ri-bloodlines)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-husbandry)
+=>
+    (research ri-husbandry)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-iron-casting)
+=>
+    (research ri-iron-casting)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-chain-barding)
+=>
+    (research ri-chain-barding)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-light-cavalry)
+=>
+    (research ri-light-cavalry)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-blast-furnace)
+=>
+    (research ri-blast-furnace)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-plate-barding)
+=>
+    (research ri-plate-barding)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-hussar)
+=>
+    (research ri-hussar)
+)
+
+; barracks / picas
+(defrule
+    (can-research ri-pikeman)
+=>
+    (research ri-pikeman)
+)
+
+(defrule
+    (can-research ri-halberdier)
+=>
+    (research ri-halberdier)
+)
+
+; defensa / universidad / castillo
+(defrule
+    (can-research ri-town-watch)
+=>
+    (research ri-town-watch)
+)
+
+(defrule
+    (can-research ri-town-patrol)
+=>
+    (research ri-town-patrol)
+)
+
+(defrule
+    (can-research ri-masonry)
+=>
+    (research ri-masonry)
+)
+
+(defrule
+    (can-research ri-architecture)
+=>
+    (research ri-architecture)
+)
+
+(defrule
+    (can-research ri-hoardings)
+=>
+    (research ri-hoardings)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-fortified-wall)
+=>
+    (research ri-fortified-wall)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (building-type-count-total watch-tower-line >= 2)
+    (can-research ri-guard-tower)
+=>
+    (research ri-guard-tower)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (building-type-count-total watch-tower-line >= 4)
+    (can-research ri-keep)
+=>
+    (research ri-keep)
+)
+
+; asedio
+(defrule
+    (can-research ri-capped-ram)
+=>
+    (research ri-capped-ram)
+)
+
+(defrule
+    (can-research ri-siege-ram)
+=>
+    (research ri-siege-ram)
+)
+
+(defrule
+    (can-research ri-onager)
+=>
+    (research ri-onager)
+)
+
+(defrule
+    (can-research ri-siege-engineers)
+=>
+    (research ri-siege-engineers)
+)
+
+; ==========================================================
+; AJUSTES DE MERCADO
+; ==========================================================
+(defrule
+    (current-age == castle-age)
+    (gold-amount > 1400)
+    (food-amount < 900)
+    (can-buy-commodity food)
+=>
+    (buy-commodity food)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (gold-amount > 1600)
+    (stone-amount < 650)
+    (can-buy-commodity stone)
+=>
+    (buy-commodity stone)
+)
+
+; ==========================================================
+; COMERCIO
+; ==========================================================
+(defrule
+    (current-age >= castle-age)
+    (players-building-type-count any-ally market > 0)
+    (can-train trade-cart)
+    (unit-type-count-total trade-cart < 10)
+=>
+    (train trade-cart)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (players-building-type-count any-ally market > 0)
+    (can-train trade-cart)
+    (unit-type-count-total trade-cart < 18)
+=>
+    (train trade-cart)
+)
+
+; ==========================================================
+; PRODUCCION MILITAR
+; Dark a Castillo = defensa local
+; Imperial = personalidad ofensiva semiutils
+; ==========================================================
+
+; ---------- FEUDAL ----------
+(defrule
+    (current-age == feudal-age)
+    (can-train archer-line)
+    (unit-type-count-total archer-line < 8)
+=>
+    (train archer-line)
+)
+
+(defrule
+    (current-age == feudal-age)
+    (can-train skirmisher-line)
+    (unit-type-count-total skirmisher-line < 10)
+=>
+    (train skirmisher-line)
+)
+
+(defrule
+    (current-age == feudal-age)
+    (can-train spearman-line)
+    (unit-type-count-total spearman-line < 10)
+=>
+    (train spearman-line)
+)
+
+(defrule
+    (current-age == feudal-age)
+    (can-train scout-cavalry-line)
+    (unit-type-count-total scout-cavalry-line < 4)
+=>
+    (train scout-cavalry-line)
+)
+
+(defrule
+    (current-age == feudal-age)
+    (players-unit-type-count any-enemy scout-cavalry-line > 4)
+    (can-train spearman-line)
+    (unit-type-count-total spearman-line < 14)
+=>
+    (train spearman-line)
+)
+
+(defrule
+    (current-age == feudal-age)
+    (players-unit-type-count any-enemy archer-line > 5)
+    (can-train skirmisher-line)
+    (unit-type-count-total skirmisher-line < 14)
+=>
+    (train skirmisher-line)
+)
+
+; ---------- CASTILLO ----------
+(defrule
+    (current-age == castle-age)
+    (can-train archer-line)
+    (unit-type-count-total archer-line < 18)
+=>
+    (train archer-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (can-train skirmisher-line)
+    (unit-type-count-total skirmisher-line < 14)
+=>
+    (train skirmisher-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (can-train spearman-line)
+    (unit-type-count-total spearman-line < 20)
+=>
+    (train spearman-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (can-train scout-cavalry-line)
+    (unit-type-count-total scout-cavalry-line < 10)
+=>
+    (train scout-cavalry-line)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-train monk)
+    (unit-type-count-total monk < 5)
+=>
+    (train monk)
+)
+
+(defrule
+    (current-age == castle-age)
+    (building-type-count-total castle > 0)
+    (can-train my-unique-unit-line)
+    (unit-type-count-total my-unique-unit-line < 6)
+=>
+    (train my-unique-unit-line)
+)
+
+; reactivo anti-caballeria
+(defrule
+    (current-age == castle-age)
+    (players-unit-type-count any-enemy knight-line > 5)
+    (can-train spearman-line)
+    (unit-type-count-total spearman-line < 26)
+=>
+    (train spearman-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (players-unit-type-count any-enemy scout-cavalry-line > 6)
+    (can-train spearman-line)
+    (unit-type-count-total spearman-line < 26)
+=>
+    (train spearman-line)
+)
+
+; reactivo anti-proyectiles
+(defrule
+    (current-age == castle-age)
+    (players-unit-type-count any-enemy archer-line > 8)
+    (can-train skirmisher-line)
+    (unit-type-count-total skirmisher-line < 18)
+=>
+    (train skirmisher-line)
+)
+
+; monjes/siege enemigos -> mas cab ligera
+(defrule
+    (current-age >= castle-age)
+    (players-unit-type-count any-enemy monk > 1)
+    (can-train scout-cavalry-line)
+    (unit-type-count-total scout-cavalry-line < 14)
+=>
+    (train scout-cavalry-line)
+)
+
+; asedio defensivo local
+(defrule
+    (current-age == castle-age)
+    (town-under-attack)
+    (can-train mangonel-line)
+    (unit-type-count-total mangonel-line < 2)
+=>
+    (train mangonel-line)
+)
+
+; ---------- IMPERIAL ----------
+(defrule
+    (current-age == imperial-age)
+    (can-train archer-line)
+    (unit-type-count-total archer-line < 36)
+=>
+    (train archer-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (can-train skirmisher-line)
+    (unit-type-count-total skirmisher-line < 24)
+=>
+    (train skirmisher-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (can-train spearman-line)
+    (unit-type-count-total spearman-line < 30)
+=>
+    (train spearman-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-mode m-boom)
+    (can-train scout-cavalry-line)
+    (unit-type-count-total scout-cavalry-line < 18)
+=>
+    (train scout-cavalry-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-mode m-attack)
+    (can-train scout-cavalry-line)
+    (unit-type-count-total scout-cavalry-line < 30)
+=>
+    (train scout-cavalry-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (players-unit-type-count any-enemy archer-line > 10)
+    (can-train skirmisher-line)
+    (unit-type-count-total skirmisher-line < 28)
+=>
+    (train skirmisher-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (players-unit-type-count any-enemy knight-line > 8)
+    (can-train spearman-line)
+    (unit-type-count-total spearman-line < 36)
+=>
+    (train spearman-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (players-unit-type-count any-enemy monk > 1)
+    (can-train scout-cavalry-line)
+    (unit-type-count-total scout-cavalry-line < 36)
+=>
+    (train scout-cavalry-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (can-train monk)
+    (unit-type-count-total monk < 6)
+=>
+    (train monk)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (building-type-count-total castle > 0)
+    (can-train my-unique-unit-line)
+    (unit-type-count-total my-unique-unit-line < 14)
+=>
+    (train my-unique-unit-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (building-type-count-total castle > 1)
+    (can-train my-unique-unit-line)
+    (unit-type-count-total my-unique-unit-line < 20)
+=>
+    (train my-unique-unit-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (can-train battering-ram-line)
+    (unit-type-count-total battering-ram-line < 6)
+=>
+    (train battering-ram-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (can-train mangonel-line)
+    (unit-type-count-total mangonel-line < 4)
+=>
+    (train mangonel-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (building-type-count-total castle > 0)
+    (can-train trebuchet)
+    (unit-type-count-total trebuchet < 3)
+=>
+    (train trebuchet)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (building-type-count-total castle > 1)
+    (can-train trebuchet)
+    (unit-type-count-total trebuchet < 5)
+=>
+    (train trebuchet)
+)
+
+; ==========================================================
+; DIRECTOR DEFENSIVO / OFENSIVO
+; Dark-Castillo = tortuga
+; Imperial = manejo militar estilo semiutils
+; ==========================================================
+
+; si nos atacan antes de Imperial, defender y no salir
+(defrule
+    (timer-triggered t-director)
+    (current-age <= castle-age)
+    (town-under-attack)
+=>
+    (set-goal gl-mode m-defend)
+    (set-strategic-number sn-percent-attack-soldiers 0)
+    (set-strategic-number sn-number-attack-groups 0)
+    (disable-timer t-director)
+    (enable-timer t-director 15)
+)
+
+; dark a castillo: tortuga pura
+(defrule
+    (timer-triggered t-director)
+    (current-age <= castle-age)
+    (not (town-under-attack))
+=>
+    (set-goal gl-mode m-boom)
+    (set-strategic-number sn-percent-attack-soldiers 0)
+    (set-strategic-number sn-number-attack-groups 0)
+    (disable-timer t-director)
+    (enable-timer t-director 18)
+)
+
+; imperial: si nos golpean y el ejercito es chico, defender
+(defrule
+    (timer-triggered t-director)
+    (current-age == imperial-age)
+    (town-under-attack)
+    (soldier-count < 10)
+=>
+    (set-goal gl-mode m-defend)
+    (set-strategic-number sn-percent-attack-soldiers 60)
+    (disable-timer t-director)
+    (enable-timer t-director 15)
+)
+
+; ataque imperial estilo semiutils - pop 75/100
+(defrule
+    (timer-triggered t-director)
+    (current-age == imperial-age)
+    (player-in-game any-enemy)
+    (population-cap <= 100)
+    (soldier-count >= 18)
+=>
+    (set-goal gl-mode m-attack)
+    (set-strategic-number sn-number-attack-groups 4)
+    (set-strategic-number sn-percent-attack-soldiers 90)
+    (attack-now)
+    (chat-to-all "Reino Fortificado: la fortaleza abre sus puertas. ¡Marchad!")
+    (disable-timer t-director)
+    (enable-timer t-director 12)
+)
+
+; ataque imperial estilo semiutils - pop 150/200+
+(defrule
+    (timer-triggered t-director)
+    (current-age == imperial-age)
+    (player-in-game any-enemy)
+    (population-cap > 100)
+    (soldier-count >= 26)
+=>
+    (set-goal gl-mode m-attack)
+    (set-strategic-number sn-number-attack-groups 4)
+    (set-strategic-number sn-percent-attack-soldiers 90)
+    (attack-now)
+    (chat-to-all "Reino Fortificado: la fortaleza abre sus puertas. ¡Marchad!")
+    (disable-timer t-director)
+    (enable-timer t-director 12)
+)
+
+; si el ejercito baja demasiado, vuelve a boom imperial
+(defrule
+    (timer-triggered t-director)
+    (current-age == imperial-age)
+    (soldier-count < 8)
+=>
+    (set-goal gl-mode m-boom)
+    (set-strategic-number sn-percent-attack-soldiers 60)
+    (disable-timer t-director)
+    (enable-timer t-director 15)
+)
+
+; si el ataque murio pero aun hay ejercito, relanzar
+(defrule
+    (goal gl-mode m-attack)
+    (current-age == imperial-age)
+    (attack-soldier-count == 0)
+    (soldier-count >= 10)
+=>
+    (attack-now)
+)
+
+(defrule
+    (timer-triggered t-director)
+=>
+    (disable-timer t-director)
+    (enable-timer t-director 15)
+)
+
+; ==========================================================
+; PULSO DE REFUERZOS
+; Imperial estilo semiutils
+; ==========================================================
+(defrule
+    (timer-triggered t-pulse)
+    (goal gl-mode m-attack)
+    (current-age == imperial-age)
+    (player-in-game any-enemy)
+    (defend-soldier-count >= 2)
+=>
+    (attack-now)
+    (disable-timer t-pulse)
+    (enable-timer t-pulse 12)
+)
+
+(defrule
+    (timer-triggered t-pulse)
+=>
+    (disable-timer t-pulse)
+    (enable-timer t-pulse 12)
+)

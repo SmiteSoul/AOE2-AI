@@ -1,0 +1,58 @@
+; Automatically construct a house when there
+; is no more headroom available.
+
+; Huns do not need houses.
+#load-if-not-defined HUN-CIV
+
+; Build a new house if there is less than 4 headroom.
+(defrule
+    (goal g-allow-building gv-yes)
+    (housing-headroom < 4)
+    (population-headroom > 3)
+    (not
+        (or
+            (or
+                (building-type-count barracks >= 2)
+                (building-type-count archery-range >= 2)
+            )
+            (or
+                (building-type-count stable >= 2)'
+                (building-type-count siege-workshop >= 2)
+            )
+        )
+    )
+    (up-pending-objects c: house < 1)
+    (can-build-house)
+    =>
+    (build-house)
+)
+
+; Build a new house if there is less that 9 headroom
+; if we 2 Barracks/Archery Ranges/Barracks/Workshops.
+(defrule
+    (goal g-allow-building gv-yes)
+    (housing-headroom < 9)
+    (population-headroom > 3)
+    (building-type-count barracks == 0)
+    (or
+        (or
+            (building-type-count barracks >= 2)
+            (building-type-count archery-range >= 2)
+        )
+        (or
+            (building-type-count stable >= 2)'
+            (building-type-count siege-workshop >= 2)
+        )
+    )
+    (up-pending-objects c: house < 2)
+    (can-build-house)
+    =>
+    (build-house)
+)
+
+#end-if
+
+; Mongols don't need housing after the Nomad research.
+; So after we got that research, we can delete all the 
+; houses that have been constructed to clear space for other
+; buildings in the base.

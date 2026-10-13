@@ -1,0 +1,203 @@
+; =====================================================================
+; SIEGE - economia
+; Reparto de aldeanos, escrow, mercado y avance de edad.
+; Todo orientado a acumular madera y oro para la maquinaria de asedio
+; y comida para la infanteria que guarniciona los arietes.
+; =====================================================================
+
+; ---------- Loom ----------
+(defrule
+	(current-age == dark-age)
+	(unit-type-count villager >= 8)
+	(can-research ri-loom)
+=>
+	(research ri-loom)
+)
+
+; ---------- Produccion de aldeanos ----------
+(defrule
+	(unit-type-count-total villager g:< gl-villager-want)
+	(can-train villager)
+=>
+	(train villager)
+)
+
+; ---------- Deseo de aldeanos por edad ----------
+(defrule
+	(current-age == dark-age)
+=>
+	(set-goal gl-villager-want 24)
+	(disable-self)
+)
+(defrule
+	(current-age == feudal-age)
+=>
+	(set-goal gl-villager-want 30)
+	(disable-self)
+)
+(defrule
+	(current-age == castle-age)
+=>
+	(set-goal gl-villager-want 55)
+	(disable-self)
+)
+(defrule
+	(current-age == imperial-age)
+=>
+	(set-goal gl-villager-want 90)
+	(disable-self)
+)
+
+; ---------- Reparto de aldeanos por edad ----------
+(defrule
+	(current-age == dark-age)
+=>
+	(set-strategic-number sn-food-gatherer-percentage 65)
+	(set-strategic-number sn-wood-gatherer-percentage 30)
+	(set-strategic-number sn-gold-gatherer-percentage 5)
+	(set-strategic-number sn-stone-gatherer-percentage 0)
+	(disable-self)
+)
+(defrule
+	(current-age == feudal-age)
+=>
+	(set-strategic-number sn-food-gatherer-percentage 55)
+	(set-strategic-number sn-wood-gatherer-percentage 30)
+	(set-strategic-number sn-gold-gatherer-percentage 10)
+	(set-strategic-number sn-stone-gatherer-percentage 5)
+	(disable-self)
+)
+(defrule
+	(current-age == castle-age)
+=>
+	(set-strategic-number sn-food-gatherer-percentage 40)
+	(set-strategic-number sn-wood-gatherer-percentage 30)
+	(set-strategic-number sn-gold-gatherer-percentage 20)
+	(set-strategic-number sn-stone-gatherer-percentage 10)
+	(disable-self)
+)
+(defrule
+	(current-age == imperial-age)
+=>
+	(set-strategic-number sn-food-gatherer-percentage 35)
+	(set-strategic-number sn-wood-gatherer-percentage 30)
+	(set-strategic-number sn-gold-gatherer-percentage 25)
+	(set-strategic-number sn-stone-gatherer-percentage 10)
+	(disable-self)
+)
+
+; ---------- Reajuste dinamico (la maquinaria vive de madera y oro) ----------
+(defrule
+	(timer-triggered t-eco)
+	(wood-amount < 250)
+	(gold-amount > 600)
+	(strategic-number sn-gold-gatherer-percentage > 10)
+=>
+	(up-modify-sn sn-gold-gatherer-percentage c:- 5)
+	(up-modify-sn sn-wood-gatherer-percentage c:+ 5)
+)
+(defrule
+	(timer-triggered t-eco)
+	(food-amount < 250)
+	(wood-amount > 800)
+	(strategic-number sn-wood-gatherer-percentage > 15)
+=>
+	(up-modify-sn sn-wood-gatherer-percentage c:- 5)
+	(up-modify-sn sn-food-gatherer-percentage c:+ 5)
+)
+(defrule
+	(timer-triggered t-eco)
+	(gold-amount < 250)
+	(food-amount > 1200)
+	(strategic-number sn-food-gatherer-percentage > 20)
+=>
+	(up-modify-sn sn-food-gatherer-percentage c:- 5)
+	(up-modify-sn sn-gold-gatherer-percentage c:+ 5)
+)
+
+; ---------- Escrow para las mejoras de asedio ----------
+(defrule
+	(current-age == castle-age)
+=>
+	(set-escrow-percentage food 15)
+	(set-escrow-percentage wood 15)
+	(set-escrow-percentage gold 15)
+	(set-escrow-percentage stone 10)
+	(disable-self)
+)
+(defrule
+	(current-age == imperial-age)
+=>
+	(set-escrow-percentage food 20)
+	(set-escrow-percentage wood 20)
+	(set-escrow-percentage gold 20)
+	(set-escrow-percentage stone 10)
+	(disable-self)
+)
+
+; ---------- Mercado: equilibrar para asedio ----------
+(defrule
+	(timer-triggered t-eco)
+	(can-sell-commodity food)
+	(food-amount > 1300)
+	(gold-amount < 500)
+=>
+	(sell-commodity food)
+)
+(defrule
+	(timer-triggered t-eco)
+	(can-sell-commodity wood)
+	(wood-amount > 1300)
+	(gold-amount < 500)
+=>
+	(sell-commodity wood)
+)
+(defrule
+	(timer-triggered t-eco)
+	(can-buy-commodity wood)
+	(wood-amount < 200)
+	(gold-amount > 900)
+=>
+	(buy-commodity wood)
+)
+(defrule
+	(timer-triggered t-eco)
+	(can-buy-commodity stone)
+	(stone-amount < 200)
+	(gold-amount > 900)
+=>
+	(buy-commodity stone)
+)
+
+; ---------- Avance de edad ----------
+(defrule
+	(current-age == dark-age)
+	(or	(unit-type-count-total villager >= 22)
+		(game-time > 720))
+	(can-research-with-escrow feudal-age)
+=>
+	(release-escrow food)
+	(research feudal-age)
+)
+(defrule
+	(current-age == feudal-age)
+	(or	(unit-type-count-total villager >= 28)
+		(game-time > 1100))
+	(can-research-with-escrow castle-age)
+=>
+	(release-escrow food)
+	(release-escrow gold)
+	(research castle-age)
+)
+(defrule
+	(current-age == castle-age)
+	(building-type-count siege-workshop > 0)
+	(or	(military-population >= 15)
+		(game-time > 2100))
+	(can-research-with-escrow imperial-age)
+=>
+	(release-escrow food)
+	(release-escrow gold)
+	(research imperial-age)
+)
+

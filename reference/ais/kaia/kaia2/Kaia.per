@@ -1,0 +1,17 @@
+; Kaia AI (v2)
+
+; Loading all shared modules.
+load('shared\goals')
+load('shared\constants')
+
+; Initialize all the strategic numbers and goals.
+load('main\init')
+
+; Default base builder.
+load('build\base-economy')
+
+; Default gatherer distributions for resources.
+load('strategy\auto-resource-distribution')
+
+; Feudal rush strategy.
+load('strategy\feudal-rush')

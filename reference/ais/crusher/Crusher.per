@@ -1,0 +1,26 @@
+(load "Crusher\UserPatchConst")
+(load "Crusher\moreconst")
+(load "Crusher\glx")
+(load "Crusher\background")
+
+(defconst villager-feudal 50)
+
+(defconst end-strategy 1)
+
+
+(defrule
+    (game-time > 5)
+=>
+    (up-reset-filters)
+    (up-reset-search 1 1 1 1);resets found objects each pass
+    (up-find-local c: town-center c: 1)
+    (up-set-target-object search-local c: 0)
+    (up-get-point position-object gl-position-self-x)   
+    (up-set-target-point gl-position-self-x)
+    (disable-self)
+)
+
+(load "Crusher\dark\normal")
+
+
+(load "Crusher\debug")

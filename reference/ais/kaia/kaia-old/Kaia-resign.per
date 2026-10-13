@@ -1,0 +1,57 @@
+; Resignation rules
+(defrule
+    (game-time > 300)
+    (soldier-count == 0)
+    (building-type-count wonder < 1)
+    (unit-type-count villager < 5)
+    (nand
+        (players-stance any-human ally)
+        (stance-toward any-human ally)
+    )
+    (not(can-train villager))
+    =>
+    (set-goal g-resign gv-yes)
+    (disable-self)
+)
+
+; Tribute all resources to ally.
+(defrule
+    (goal g-resign gv-yes)
+    (players-population any-ally > 10)
+    =>
+    (release-escrow wood)
+    (release-escrow food)
+    (release-escrow gold)
+    (release-escrow stone)
+    (tribute-to-player this-any-ally wood 100000)
+    (tribute-to-player this-any-ally food 100000)
+    (tribute-to-player this-any-ally gold 100000)
+    (tribute-to-player this-any-ally stone 100000)
+    (chat-to-allies "Take my resources, I have been defeated.")
+    (disable-self)
+)
+
+; Delete all military buildings
+(defrule
+    (goal g-resign gv-yes)
+    =>
+    (delete-building watch-tower)
+    (delete-building guard-tower)
+    (delete-building keep)
+    (delete-building bombard-tower)
+    (delete-building castle)
+)
+
+; Resign when all buildings are deleted.
+(defrule
+    (goal g-resign gv-yes)
+    (building-type-count watch-tower == 0)
+    (building-type-count guard-tower == 0)
+    (building-type-count keep == 0)
+    (building-type-count bombard-tower == 0)
+    (building-type-count castle == 0)
+    =>
+    (chat-to-all "GG!")
+    (resign)
+    (disable-self)
+)

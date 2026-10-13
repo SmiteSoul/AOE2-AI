@@ -1,0 +1,352 @@
+; =====================================================================
+; SIEGE - produccion y mejoras
+; Unidades: maquinaria (ariete, mangonel, escorpion, trebuchet),
+; infanteria para guarnicionar (piquero/alabardero) y tiro a distancia.
+; =====================================================================
+
+; ---------- Objetivos de produccion por edad ----------
+(defrule
+	(current-age == castle-age)
+=>
+	(set-goal gl-ram-want 2)
+	(set-goal gl-mango-want 1)
+	(set-goal gl-scorp-want 1)
+	(set-goal gl-archer-want 12)
+	(set-goal gl-halb-want 8)
+	(disable-self)
+)
+(defrule
+	(current-age == imperial-age)
+=>
+	(set-goal gl-ram-want 4)
+	(set-goal gl-mango-want 2)
+	(set-goal gl-scorp-want 3)
+	(set-goal gl-archer-want 20)
+	(set-goal gl-halb-want 24)
+	(disable-self)
+)
+
+; ---------- Ajuste contra enemigos con arqueros ----------
+(defrule
+	(timer-triggered t-eco)
+	(or	(players-unit-type-count any-enemy archer-line > 5)
+		(players-unit-type-count any-enemy skirmisher-line > 5))
+	(current-age >= castle-age)
+=>
+	(set-goal gl-skirm-want 10)
+)
+
+; ---------- Maquinaria de asedio ----------
+(defrule
+	(unit-type-count-total battering-ram-line g:< gl-ram-want)
+	(can-train battering-ram-line)
+=>
+	(train battering-ram-line)
+)
+(defrule
+	(unit-type-count-total mangonel-line g:< gl-mango-want)
+	(can-train mangonel-line)
+=>
+	(train mangonel-line)
+)
+(defrule
+	(unit-type-count-total scorpion-line g:< gl-scorp-want)
+	(can-train scorpion-line)
+=>
+	(train scorpion-line)
+)
+(defrule
+	(current-age == imperial-age)
+	(unit-type-count-total trebuchet-set < 4)
+	(can-train trebuchet)
+=>
+	(train trebuchet)
+)
+
+; ---------- Infanteria de guarnicion y escolta ----------
+(defrule
+	(unit-type-count-total spearman-line g:< gl-halb-want)
+	(can-train spearman-line)
+=>
+	(train spearman-line)
+)
+
+; ---------- Unidades a distancia ----------
+(defrule
+	(unit-type-count-total archer-line g:< gl-archer-want)
+	(can-train archer-line)
+=>
+	(train archer-line)
+)
+(defrule
+	(unit-type-count-total skirmisher-line g:< gl-skirm-want)
+	(can-train skirmisher-line)
+=>
+	(train skirmisher-line)
+)
+
+; ---------- Monjes: reliquias (oro para asedio) y conversion ----------
+(defrule
+	(current-age >= castle-age)
+	(unit-type-count-total monastery-class < 4)
+	(can-train monk)
+=>
+	(train monk)
+)
+
+; =====================================================================
+; MEJORAS
+; =====================================================================
+
+; ---------- Economia ----------
+(defrule
+	(can-research ri-double-bit-axe)
+=>
+	(research ri-double-bit-axe)
+)
+(defrule
+	(can-research ri-horse-collar)
+=>
+	(research ri-horse-collar)
+)
+(defrule
+	(current-age >= castle-age)
+	(can-research ri-gold-mining)
+=>
+	(research ri-gold-mining)
+)
+(defrule
+	(current-age >= castle-age)
+	(can-research ri-stone-mining)
+=>
+	(research ri-stone-mining)
+)
+(defrule
+	(current-age >= feudal-age)
+	(can-research ri-bow-saw)
+=>
+	(research ri-bow-saw)
+)
+(defrule
+	(current-age >= castle-age)
+	(can-research ri-heavy-plow)
+=>
+	(research ri-heavy-plow)
+)
+(defrule
+	(current-age >= castle-age)
+	(unit-type-count-total villager > 35)
+	(can-research ri-wheel-barrow)
+=>
+	(research ri-wheel-barrow)
+)
+(defrule
+	(current-age == imperial-age)
+	(can-research ri-hand-cart)
+=>
+	(research ri-hand-cart)
+)
+(defrule
+	(current-age == imperial-age)
+	(can-research ri-crop-rotation)
+=>
+	(research ri-crop-rotation)
+)
+
+; ---------- ASEDIO: las joyas de la corona ----------
+(defrule
+	(unit-type-count-total battering-ram-line > 0)
+	(can-research-with-escrow ri-capped-ram)
+=>
+	(release-escrow food)
+	(research ri-capped-ram)
+)
+(defrule
+	(current-age == imperial-age)
+	(unit-type-count-total battering-ram-line > 1)
+	(can-research-with-escrow ri-siege-ram)
+=>
+	(release-escrow food)
+	(research ri-siege-ram)
+)
+(defrule
+	(current-age == imperial-age)
+	(unit-type-count-total mangonel-line > 0)
+	(can-research-with-escrow ri-onager)
+=>
+	(release-escrow food)
+	(release-escrow gold)
+	(research ri-onager)
+)
+(defrule
+	(current-age == imperial-age)
+	(research-completed ri-onager)
+	(unit-type-count-total mangonel-line > 0)
+	(can-research-with-escrow ri-siege-onager)
+=>
+	(release-escrow food)
+	(release-escrow gold)
+	(research ri-siege-onager)
+)
+(defrule
+	(current-age == imperial-age)
+	(unit-type-count-total scorpion-line > 1)
+	(can-research-with-escrow ri-heavy-scorpion)
+=>
+	(release-escrow wood)
+	(release-escrow gold)
+	(research ri-heavy-scorpion)
+)
+(defrule
+	(current-age == imperial-age)
+	(can-research-with-escrow ri-siege-engineers)
+=>
+	(release-escrow food)
+	(release-escrow gold)
+	(research ri-siege-engineers)
+)
+
+; ---------- Apoyo a distancia ----------
+(defrule
+	(unit-type-count-total archer-line > 5)
+	(can-research ri-leather-archer-armor)
+=>
+	(research ri-leather-archer-armor)
+)
+(defrule
+	(unit-type-count-total archer-line > 5)
+	(can-research ri-ring-archer-armor)
+=>
+	(research ri-ring-archer-armor)
+)
+(defrule
+	(unit-type-count-total archer-line > 5)
+	(can-research ri-fletching)
+=>
+	(research ri-fletching)
+)
+(defrule
+	(unit-type-count-total archer-line > 5)
+	(can-research ri-bodkin-arrow)
+=>
+	(research ri-bodkin-arrow)
+)
+(defrule
+	(unit-type-count-total archer-line > 5)
+	(can-research-with-escrow ri-crossbow)
+=>
+	(release-escrow food)
+	(release-escrow gold)
+	(research ri-crossbow)
+)
+(defrule
+	(unit-type-count-total archer-line > 5)
+	(can-research-with-escrow ri-ballistics)
+=>
+	(release-escrow wood)
+	(release-escrow gold)
+	(research ri-ballistics)
+)
+(defrule
+	(current-age == imperial-age)
+	(unit-type-count-total archer-line > 5)
+	(can-research-with-escrow ri-arbalest)
+=>
+	(release-escrow food)
+	(release-escrow gold)
+	(research ri-arbalest)
+)
+(defrule
+	(current-age == imperial-age)
+	(or	(unit-type-count-total archer-line > 5)
+		(unit-type-count-total battering-ram-line > 1))
+	(can-research-with-escrow ri-chemistry)
+=>
+	(release-escrow food)
+	(release-escrow gold)
+	(research ri-chemistry)
+)
+(defrule
+	(current-age == imperial-age)
+	(unit-type-count-total archer-line > 9)
+	(can-research-with-escrow ri-bracer)
+=>
+	(release-escrow food)
+	(release-escrow gold)
+	(research ri-bracer)
+)
+
+; ---------- Infanteria: mas dura dentro del ariete ----------
+(defrule
+	(unit-type-count-total spearman-line > 3)
+	(can-research ri-scale-mail)
+=>
+	(research ri-scale-mail)
+)
+(defrule
+	(unit-type-count-total spearman-line > 3)
+	(can-research ri-chain-mail)
+=>
+	(research ri-chain-mail)
+)
+(defrule
+	(current-age == imperial-age)
+	(unit-type-count-total spearman-line > 5)
+	(can-research-with-escrow ri-plate-mail)
+=>
+	(release-escrow food)
+	(release-escrow gold)
+	(research ri-plate-mail)
+)
+(defrule
+	(unit-type-count-total spearman-line > 3)
+	(can-research ri-forging)
+=>
+	(research ri-forging)
+)
+(defrule
+	(unit-type-count-total spearman-line > 3)
+	(can-research ri-iron-casting)
+=>
+	(research ri-iron-casting)
+)
+(defrule
+	(current-age == imperial-age)
+	(unit-type-count-total spearman-line > 5)
+	(can-research-with-escrow ri-blast-furnace)
+=>
+	(release-escrow food)
+	(release-escrow gold)
+	(research ri-blast-furnace)
+)
+(defrule
+	(unit-type-count-total spearman-line > 3)
+	(can-research ri-squires)
+=>
+	(research ri-squires)
+)
+(defrule
+	(unit-type-count-total spearman-line > 3)
+	(can-research ri-pikeman)
+=>
+	(research ri-pikeman)
+)
+(defrule
+	(current-age == imperial-age)
+	(unit-type-count-total spearman-line > 5)
+	(can-research-with-escrow ri-halberdier)
+=>
+	(release-escrow food)
+	(release-escrow gold)
+	(research ri-halberdier)
+)
+
+; ---------- Reclutamiento mas rapido ----------
+(defrule
+	(current-age == imperial-age)
+	(can-research-with-escrow ri-conscription)
+=>
+	(release-escrow food)
+	(release-escrow gold)
+	(research ri-conscription)
+)

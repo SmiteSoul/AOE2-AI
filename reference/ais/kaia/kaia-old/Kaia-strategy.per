@@ -1,0 +1,331 @@
+(defrule
+   (true)
+   =>
+   (set-strategic-number sn-enable-new-building-system 1)
+   (set-strategic-number sn-camp-max-distance 8)
+   (set-strategic-number sn-initial-exploration-required 0)
+   (set-strategic-number sn-food-dropsite-distance 100)
+   (set-strategic-number sn-wood-dropsite-distance 100)
+   (set-strategic-number sn-sentry-distance 1)
+   (set-strategic-number sn-minimum-defend-group-size 5)
+   (set-strategic-number sn-maximum-hunt-drop-distance 8)
+   (disable-self)
+)
+
+; Initial exploration for food before building can start.
+(defrule
+   (sheep-and-forage-too-far)
+   (not(resource-found food)) ;Haven't found the berries yet.
+   =>
+   (set-strategic-number sn-percent-civilian-explorers 100)
+   (set-strategic-number sn-minimum-civilian-explorers 100)
+   (set-strategic-number sn-cap-civilian-explorers 100)
+   (set-strategic-number sn-total-number-explorers 101)
+   (set-strategic-number sn-number-explore-groups 101)
+   (set-strategic-number sn-minimum-explore-group-size 1)
+   (set-strategic-number sn-maximum-explore-group-size 1)
+)
+
+; Food found, allow building.
+(defrule
+   (or(not(sheep-and-forage-too-far))
+      (resource-found food))
+   =>
+   (set-strategic-number sn-percent-civilian-explorers 0)
+   (set-strategic-number sn-percent-civilian-builders 50)
+   (set-strategic-number sn-percent-civilian-gatherers 50)
+   (set-strategic-number sn-cap-civilian-explorers 0)
+   (set-strategic-number sn-total-number-explorers 1)
+   (set-strategic-number sn-number-explore-groups 1)
+)
+
+; try to make gold camp first
+(defrule
+   (true)
+   =>
+   (set-strategic-number sn-stone-dropsite-distance 100)
+   (set-strategic-number sn-gold-dropsite-distance 35)
+   (disable-self)
+)
+
+; Mining Camp is created.
+(defrule
+   (building-type-count-total mining-camp > 0)
+   (dropsite-min-distance gold <= 5)
+   =>
+   (set-strategic-number sn-gold-dropsite-distance 100)
+   (set-strategic-number sn-stone-dropsite-distance 100)
+   (disable-self)
+)
+
+; Camp distance for building resource buildings.
+(defrule
+   (resource-found wood)
+   (strategic-number sn-camp-max-distance == 8)
+   (game-time < 4)
+   =>
+   (set-strategic-number sn-camp-max-distance 11)
+   (chat-local-to-self "Camp distance 11.")
+   (disable-self)
+)
+
+(defrule
+   (resource-found wood)
+   (strategic-number sn-camp-max-distance == 8)
+   (game-time < 7)
+   =>
+   (set-strategic-number sn-camp-max-distance 13)
+   (chat-local-to-self "Camp distance 13.")
+   (disable-self)
+)
+
+(defrule
+   (resource-found wood)
+   (strategic-number sn-camp-max-distance == 8)
+   (game-time < 12)
+   =>
+   (set-strategic-number sn-camp-max-distance 15)
+   (chat-local-to-self "Camp distance 15.")
+   (disable-self)
+)
+
+(defrule
+   (resource-found wood)
+   (strategic-number sn-camp-max-distance == 8)
+   (game-time < 16)
+   =>
+   (set-strategic-number sn-camp-max-distance 17)
+   (chat-local-to-self "Camp distance 17.")
+   (disable-self)
+)
+
+(defrule
+   (resource-found wood)
+   (strategic-number sn-camp-max-distance == 8)
+   (game-time < 25)
+   =>
+   (set-strategic-number sn-camp-max-distance 20)
+   (chat-local-to-self "Camp distance 20.")
+   (disable-self)
+)
+
+(defrule
+   (resource-found wood)
+   (strategic-number sn-camp-max-distance == 8)
+   (game-time > 25)
+   =>
+   (set-strategic-number sn-camp-max-distance 22)
+   (chat-local-to-self "Camp distance 22.")
+   (disable-self)
+)
+
+(defrule
+   (current-age == dark-age)
+   (wood-amount > 200)
+   (population > 15)
+   (building-type-count-total lumber-camp == 0)
+   =>
+   (set-strategic-number sn-camp-max-distance 35)
+   (chat-to-allies "Wood further away than 22 tiles!")
+   (chat-local-to-self "Camp distance 35.")
+   (disable-self)
+)
+
+(defrule
+   (current-age == dark-age)
+   (wood-amount > 200)
+   (population > 18)
+   (building-type-count-total lumber-camp == 0)
+   =>
+   (set-strategic-number sn-camp-max-distance 45)
+   (chat-to-allies "Wood further away than 35 tiles!")
+   (chat-local-to-self "Camp distance 45.")
+   (disable-self)
+)
+
+; Increase camp max distance once the game advances
+(defrule
+    (current-age == castle-age)
+    =>
+	 (set-strategic-number sn-maximum-fish-boat-drop-distance 0)
+	 (set-strategic-number sn-maximum-town-size 12)
+	 (set-strategic-number sn-maximum-hunt-drop-distance 1)
+	 (set-strategic-number sn-maximum-gold-drop-distance 6)
+	 (set-strategic-number sn-maximum-stone-drop-distance 6)
+    (set-strategic-number sn-maximum-food-drop-distance 6)
+	 (set-strategic-number sn-wood-dropsite-distance 15)
+    (set-strategic-number sn-camp-max-distance 40)
+    (chat-local-to-self "Max camp distance 35 (Castle age reached)")
+    (disable-self)
+)
+
+; Economy gatherer distributions.
+
+(defrule
+   (current-age == dark-age)
+   (unit-type-count-total villager < max-num-villager-start)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 100)
+   (set-strategic-number sn-wood-gatherer-percentage 0)
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+   (set-strategic-number sn-maximum-town-size 8)
+   (set-strategic-number sn-maximum-hunt-drop-distance 10)
+   (chat-local-to-self "Resources distribution: 100 0 0 0")
+   (disable-self)
+)
+
+(defrule
+   (current-age == dark-age)
+   (unit-type-count-total villager >= max-num-villager-start)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 60)
+   (set-strategic-number sn-wood-gatherer-percentage 40)
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 0)
+   (set-strategic-number sn-percent-civilian-explorers 0)
+   (set-strategic-number sn-percent-civilian-builders 50)
+   (set-strategic-number sn-percent-civilian-gatherers 50)
+   (set-strategic-number sn-maximum-town-size 10)
+   (set-strategic-number sn-maximum-hunt-drop-distance 1) ; disable hunting
+   (set-strategic-number sn-maximum-food-drop-distance 6) ; no fishing!
+   (chat-local-to-self "Resources distribution: 60 40 0 0")
+   (chat-local-to-self "Maximum town size: 10")
+   (disable-self)
+)
+
+(defrule
+   (current-age == feudal-age)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 49)
+   (set-strategic-number sn-wood-gatherer-percentage 49)
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 2)
+   (set-strategic-number sn-maximum-town-size 14)
+   (set-strategic-number sn-cap-civilian-builders 4) ; more builders
+   (chat-local-to-self "Resources distribution: 38 48 14 0")
+   (chat-local-to-self "Maximum town size: 14")
+   (disable-self)
+)
+
+(defrule
+   (goal g-age-status gv-advancing-to-castle)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 54)
+   (set-strategic-number sn-wood-gatherer-percentage 39)
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 2)
+   (chat-local-to-self "Resources distribution: 55 35 5 0")
+   (disable-self)
+)
+
+(defrule
+   (current-age == castle-age)
+   (not(goal g-multiple-town-centers gv-done))
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 20)
+   (set-strategic-number sn-wood-gatherer-percentage 60)
+   (set-strategic-number sn-gold-gatherer-percentage 0)
+   (set-strategic-number sn-stone-gatherer-percentage 20)  
+   (chat-local-to-self "Resources distribution: 20 60 0 20")
+   (chat-local-to-self "Focussing on gathering resources for building Town Center.") 
+   (disable-self)
+)
+
+(defrule
+   (current-age == castle-age)
+   (goal g-multiple-town-centers gv-done)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 40)
+   (set-strategic-number sn-wood-gatherer-percentage 35)
+   (set-strategic-number sn-gold-gatherer-percentage 20)
+   (set-strategic-number sn-stone-gatherer-percentage 5)
+   (set-strategic-number sn-maximum-town-size 18)
+   (set-strategic-number sn-cap-civilian-builders 6) ; more builders
+   (chat-local-to-self "Resources distribution: 30 35 25 10")
+   (chat-local-to-self "Maximum town size: 18")
+   (disable-self)
+)
+
+(defrule
+   (current-age == imperial-age)
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 33)
+   (set-strategic-number sn-wood-gatherer-percentage 30)
+   (set-strategic-number sn-gold-gatherer-percentage 22)
+   (set-strategic-number sn-stone-gatherer-percentage 15)
+   (set-strategic-number sn-maximum-town-size 22)
+   (chat-local-to-self "Resources distribution: 20 30 30 20")
+   (chat-local-to-self "Maximum town size: 22")
+   (set-strategic-number sn-camp-max-distance 60)
+   (disable-self)
+)
+
+;; balance in the imperial age 
+   ; gather wood if that is low
+(defrule
+   (current-age == imperial-age)
+   (wood-amount < 1000)
+   (food-amount > 3000)
+   (not(strategic-number sn-wood-gatherer-percentage == 40))
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 30)
+   (set-strategic-number sn-wood-gatherer-percentage 40)
+   (set-strategic-number sn-gold-gatherer-percentage 10)
+   (set-strategic-number sn-stone-gatherer-percentage 10)
+)
+   ; gather food if that is low
+(defrule
+   (current-age == imperial-age)
+   (food-amount < 1000)
+   (wood-amount > 3000)
+   (not(strategic-number sn-food-gatherer-percentage == 40))
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 40)
+   (set-strategic-number sn-wood-gatherer-percentage 30)
+   (set-strategic-number sn-gold-gatherer-percentage 10)
+   (set-strategic-number sn-stone-gatherer-percentage 10)
+)
+
+   ; if both resources, balance evenly
+(defrule
+   (current-age == imperial-age)
+   (food-amount > 3000)
+   (wood-amount > 3000)
+   (not(strategic-number sn-food-gatherer-percentage == 33))
+   =>
+   (set-strategic-number sn-food-gatherer-percentage 33)
+   (set-strategic-number sn-wood-gatherer-percentage 30)
+   (set-strategic-number sn-gold-gatherer-percentage 10)
+   (set-strategic-number sn-stone-gatherer-percentage 10)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (building-type-count-total castle > 2)
+    =>
+    (set-strategic-number sn-maximum-town-size 30)
+    (chat-local-to-self "Maximum town size: 30")
+    (set-strategic-number sn-camp-max-distance 120)
+    (chat-local-to-self "Maximum camp distance: 30")
+    (disable-self)
+)
+
+(defrule
+   (not(goal g-multiple-town-centers gv-done))
+   (building-type-count town-center >= max-num-of-town-centers-castle-age)
+   =>
+   (set-goal g-multiple-town-centers gv-done)
+   (chat-local-to-self "Multiple Town Centers goal completed.")
+   (disable-self)
+)
+
+; if we keep hanging on the town center but do have the resources
+(defrule
+   (not(goal g-multiple-town-centers gv-done))
+   (wood-amount > 2000)
+   =>
+   (set-goal g-multiple-town-centers gv-done)
+   (chat-local-to-self "Overriding TC goal, got too much spare wood.")
+   (disable-self)
+)

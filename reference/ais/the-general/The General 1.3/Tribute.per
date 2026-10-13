@@ -1,0 +1,197 @@
+(defrule
+(or
+    (goal g-town-under-attack YES)
+    (or
+        (up-research-status c: ri-coinage < research-complete)
+        (or
+            (up-compare-goal g-primary-unit-tech-progress < PRIORITY-IMPERIAL-COMPLETE)
+            (population < SEVENTY-PERCENT-POP))))
+=>
+(up-jump-rule 9)
+)
+    
+;----------------------------------------------
+;   Emergency Tribute for Training Villagers
+;----------------------------------------------
+
+    (defrule
+    (up-compare-goal g-difficulty >= HARDEST)
+    (player-in-game any-ally)
+    (up-allied-resource-amount any-ally food < 50)
+    =>
+    (set-strategic-number sn-focus-player-number 1)
+    )
+
+        (defrule
+        (up-compare-goal g-difficulty >= HARDEST)
+        (food-amount >= 300)
+		(player-in-game focus-player)
+        (stance-toward focus-player ally)
+        (strategic-number sn-focus-player-number != my-player-number)
+        (up-allied-resource-amount focus-player food < 50)
+        (players-population focus-player <= SIXTY-PERCENT-POP)
+        (players-building-type-count focus-player town-center > 0)
+        (or
+            (and
+                (up-allied-goal focus-player g-identity != THE-GENERAL)
+                (players-population focus-player > TEN-PERCENT-POP))
+            (up-allied-goal focus-player g-enemy-units-in-town < 4))
+        =>
+        (tribute-to-player focus-player food 100)
+        ; (up-chat-data-to-all "Sending food to player %d for villagers" s: sn-focus-player-number)
+        )
+
+        (defrule
+        (up-compare-goal g-difficulty >= HARDEST)
+        (player-in-game any-ally)
+        (up-allied-resource-amount any-ally food < 50)
+        (up-compare-sn sn-focus-player-number < MAX-PLAYERS)
+        =>
+        (up-modify-sn sn-focus-player-number c:+ 1)
+        (up-jump-rule -2)
+        )
+
+;---------------------------------------------------
+;   Emergency Tribute for Rebuilding Town Centers
+;---------------------------------------------------
+
+    ;Tribute wood
+    (defrule
+    (up-compare-goal g-difficulty >= HARDEST)
+    (player-in-game any-ally)
+    (up-allied-resource-amount any-ally wood < 275)
+    =>
+    (set-strategic-number sn-focus-player-number 1)
+    )
+
+        (defrule
+        (up-compare-goal g-difficulty >= HARDEST)
+        (wood-amount >= 160)
+        (or
+            (wood-amount >= 300)
+            (players-building-type-count focus-player town-center == 0))
+		(player-in-game focus-player)
+        (stance-toward focus-player ally)
+        (strategic-number sn-focus-player-number != my-player-number)
+        (up-allied-resource-amount focus-player wood < 275)
+        (players-building-type-count focus-player town-center < 3)
+        (players-unit-type-count focus-player villager > 0)
+        (or
+            (and
+                (up-allied-goal focus-player g-identity != THE-GENERAL)
+                (players-population focus-player > TEN-PERCENT-POP))
+            (up-allied-goal focus-player g-enemy-units-in-town < 4))
+        =>
+        (tribute-to-player focus-player wood 100)
+        ; (up-chat-data-to-all "Sending wood to player %d for TC" s: sn-focus-player-number)
+        )
+
+        (defrule
+        (up-compare-goal g-difficulty >= HARDEST)
+        (player-in-game any-ally)
+        (up-allied-resource-amount any-ally wood < 275)
+        (up-compare-sn sn-focus-player-number < MAX-PLAYERS)
+        =>
+        (up-modify-sn sn-focus-player-number c:+ 1)
+        (up-jump-rule -2)
+        )
+
+    ;Tribute stone
+    (defrule
+    (up-compare-goal g-difficulty >= HARDEST)
+    (player-in-game any-ally)
+    (up-allied-resource-amount any-ally stone < 100)
+    =>
+    (set-strategic-number sn-focus-player-number 1)
+    )
+
+        (defrule
+        (up-compare-goal g-difficulty >= HARDEST)
+        (stone-amount >= 100)
+        (or
+            (stone-amount >= 200)
+            (players-building-type-count focus-player town-center == 0))
+		(player-in-game focus-player)
+        (stance-toward focus-player ally)
+        (strategic-number sn-focus-player-number != my-player-number)
+        (up-allied-resource-amount focus-player stone < 100)
+        (players-building-type-count focus-player town-center < 3)
+        (players-unit-type-count focus-player villager > 0)
+        (or
+            (and
+                (up-allied-goal focus-player g-identity != THE-GENERAL)
+                (players-population focus-player > TEN-PERCENT-POP))
+            (up-allied-goal focus-player g-enemy-units-in-town < 4))
+        =>
+        (tribute-to-player focus-player stone 50)
+        ; (up-chat-data-to-all "Sending stone to player %d for TC" s: sn-focus-player-number)
+        )
+
+        (defrule
+        (up-compare-goal g-difficulty >= HARDEST)
+        (player-in-game any-ally)
+        (up-allied-resource-amount any-ally stone < 100)
+        (up-compare-sn sn-focus-player-number < MAX-PLAYERS)
+        =>
+        (up-modify-sn sn-focus-player-number c:+ 1)
+        (up-jump-rule -2)
+        )
+
+;--------------------------------
+;   Tribute for Rebooming Ally
+;--------------------------------
+
+    (defrule
+    (or
+        (goal g-town-under-attack YES)
+        (or
+            (up-research-status c: ri-coinage < research-complete)
+            (or
+                (up-compare-goal g-primary-unit-tech-progress < SECONDARY-IMPERIAL-COMPLETE)
+                (or
+                    (up-compare-goal g-support-unit-tech-progress < PRIORITY-IMPERIAL-COMPLETE)
+                    (or
+                        (population < SEVENTY-PERCENT-POP)
+                        (or
+                            (up-timer-status t-tribute == timer-running)
+                            (up-compare-goal g-difficulty < HARDEST)))))))
+    =>
+    (up-jump-rule 3)
+    )
+
+        (defrule
+        (player-in-game any-ally)
+        (players-population any-ally < SIXTY-PERCENT-POP)
+        =>
+        (set-strategic-number sn-focus-player-number 1)
+        )
+
+            (defrule
+            (food-amount >= 500)
+		    (player-in-game focus-player)
+            (stance-toward focus-player ally)
+            (strategic-number sn-focus-player-number != my-player-number)
+            (up-allied-resource-amount focus-player food < 200)
+            (players-population focus-player <= SIXTY-PERCENT-POP)
+            (players-building-type-count focus-player town-center > 0)
+            (or
+                (and
+                    (up-allied-goal focus-player g-identity != THE-GENERAL)
+                    (players-population focus-player > TEN-PERCENT-POP))
+                (or
+                    (up-allied-goal focus-player g-enemy-units-in-town < 4)
+                    (population > NINETY-FIVE-PERCENT-POP)))
+            =>
+            (tribute-to-player focus-player food 100)
+            (enable-timer t-tribute 30)
+            ; (up-chat-data-to-all "Sending food to player %d for booming" s: sn-focus-player-number)
+            )
+
+            (defrule
+            (player-in-game any-ally)
+            (up-allied-resource-amount any-ally food < 50)
+            (up-compare-sn sn-focus-player-number < MAX-PLAYERS)
+            =>
+            (up-modify-sn sn-focus-player-number c:+ 1)
+            (up-jump-rule -2)
+            )

@@ -1,0 +1,38 @@
+﻿v0.1
+
+Economy DONE
+Research DONE
+Buildings DONE
+Units DONE
+Attacking DONE
+BasicStrategy DONE
+AutoResearchEconomy DONE
+AutoProductionBuildings DONE
+AutoResearchMilitary DONE
+Units build army evenly DONE
+Buildings by TryImportantBuilding DONE
+Build houses properly DONE
+FoodEconomy DONE
+Units build army evenly by percentage DONE
+Units quaternary-unit -> siege-unit, train as last DONE
+Units build as possible rather than evenly DONE
+SitRep DONE
+AutoBalanceGatherers DONE
+Always trade food if needed for villager production or age up, irrespective of market settings DONE
+Attacking better local targeting/stance DONE
+Better attacking target selection, castle or tc DONE
+Auto attack when >90% of desired army or pop blocked or high superiority and >70% of desired army DONE
+Auto build mill DONE
+Build castles properly DONE
+
+v0.2
+
+Build camps properly DONE
+Improve basic strategy -> handle being flushed DONE
+Basic strategy all civs DONE
+AutoResearchEconomy tweak choices, less aggressive DONE
+AutoResearchMilitary tweak choices, unit upgrades -> formula based (SpiritOfTheLaw Paladin video) DONE
+Trade DONE
+Rewrite FoodEconomy properly DONE
+Handle stolen sheep DONE
+
