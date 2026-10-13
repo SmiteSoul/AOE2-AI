@@ -1,22 +1,30 @@
 #!/usr/bin/env python3
-"""Linter para scripts .per de este repositorio (siege y futuras IAs).
+"""Linter quirurgico para scripts .per de este repositorio (siege y futuras IAs).
 
-Comprobaciones (inspiradas en los errores reales del motor):
-  1. Parentesis balanceados y (load ...) que resuelven a ficheros reales.
-  2. Ninguna regla supera 16 elementos (ERR6002 Rule too long). Se cuentan
-     hechos, acciones y los operadores or/and/not, igual que Barbarian (su
-     maximo real es 16).
-  3. Toda regla tiene hechos, '=>' y acciones.
-  4. (goal g v) SOLO compara igualdad (el hecho goal no admite <, >...).
-  5. Espacios de nombres POR POSICION: cada argumento de (can-)research,
-     (can-)train, (can-)build, unit-type-count*, up-find-*, commodities...
-     debe existir en el corpus de referencia EN ESA MISMA POSICION de comando.
-     (Atrapo fallos como '(research loom)' — 'loom' existe en el corpus pero
-     no como argumento de research; el valido es 'ri-loom'.)
-  6. Aridad exacta por comando (esquemas conocidos del CPSB/UserPatch).
-  7. Comandos desconocidos (no aparecen en el corpus ni en UserPatchConst).
-  8. goals/timers usados sin defconst.
-  9. Commodity valido: food/wood/stone (oro NO se compra: es la moneda).
+Fundamento: en AoC/UserPatch TODO token que no sea numero, operador o cadena
+debe RESOLVER a un identificador definido. Un token puede resolver por:
+
+  (a) literal numerico;                       (p. ej. 3, -1)
+  (b) defconst de la cadena de carga;         (UserPatchConst.per + defconsts
+                                               del propio script en carga)
+  (c) builtin del motor (CPSB);               (enemy, feudal-age,
+                                               battering-ram-line, c:, g:...)
+
+LO QUE NO RESUELVE = ERR2005 en juego. El error clasico: copiar del corpus
+de referencia un alias que la IA ajena define y nosotros no
+(p. ej. Barbarian define (defconst aggressive 0) y usa
+(up-target-objects 0 action-default -1 aggressive); si tu script escribe
+'aggressive' sin definirlo -> ERR2005).
+
+Ademas valida:
+  - parentesis balanceados y (load ...) que resuelven a ficheros reales;
+  - limite de 16 elementos por regla (ERR6002; medido con el mismo recuento
+    que Barbarian: hecho/accion = 1, or/and/not = 1 + hijos);
+  - (goal g v) SOLO compara igualdad;
+  - aridad exacta por comando (esquemas del CPSB/UserPatch);
+  - espacios de nombres por POSICION de comando (research = ri-* o edad;
+    commodities de mercado = food/wood/stone — el oro es la moneda);
+  - goals/timers usados sin defconst; comandos desconocidos.
 
 Uso:  python3 tools/lint_siege.py [raiz_del_repo]
 """
@@ -33,6 +41,11 @@ SIEGE = [f for f in sorted(glob.glob(os.path.join(ROOT, 'siege/siege/*.per')))
          if 'UserPatchConst' not in f] + [os.path.join(ROOT, 'siege/siege.per')]
 UPC_PATH = os.path.join(ROOT, 'siege/siege/UserPatchConst.per')
 CPSB_TXT = '/tmp/cpsb.txt'  # opcional: texto extraido de reference/CPSB.pdf
+
+# --- tokens de sintaxis, no identificadores ---
+OPS = {'==', '<', '>', '<=', '>=', '!=', '=', '+', '-', '*', '/'}
+NUM_RE = re.compile(r'^-?\d+(\.\d+)?$')
+PREFIX_RE = re.compile(r'^[cgs]:')  # c: 3 | g:== | g:= | s:+ ...
 
 
 def strip(src: str) -> str:
@@ -88,6 +101,12 @@ def parse_rules(src):
     return rules
 
 
+def tokens_of(list_text):
+    """Tokens de una lista (sin parentesis), descartando cadenas."""
+    inner = re.sub(r'"[^"]*"', '', list_text.strip()[1:-1])
+    return [t for t in inner.split() if t]
+
+
 # ---- argumentos por posicion, extraidos del corpus de referencia ----
 POS = {
     'train': r'\(train ([^\s()]+)',
@@ -119,10 +138,9 @@ POS = {
     'up-target-objects-action': r'\(up-target-objects [^\s()]+ ([^\s()]+)',
     'up-target-objects-form': r'\(up-target-objects [^\s()]+ [^\s()]+ ([^\s()]+)',
     'up-target-objects-stance': r'\(up-target-objects [^\s()]+ [^\s()]+ [^\s()]+ ([^\s()]+)',
+    'stance-toward': r'\(stance-toward \S+ ([^\s()]+)',
 }
-# sufijos -> comando base para comparar con el set del corpus
-POS_BASE = {k: k.split('-action')[0].split('-form')[0].split('-stance')[0].split('-od')[0]
-            for k in POS}
+POS_BASE = {k: re.sub(r'-(action|form|stance|od)$', '', k) for k in POS}
 
 # aridad en TOKENS (los prefijos c:/g:/s: cuentan como token propio)
 SCHEMA = {
@@ -160,8 +178,11 @@ def main():
     upc = open(UPC_PATH, encoding='utf-8', errors='replace').read()
     upc_names = {m.lower() for m in re.findall(r'\(defconst ([A-Za-z0-9_-]+)', upc)}
 
-    corpus = '\n'.join(strip(open(f, encoding='utf-8', errors='replace').read()) for f in REF)
+    corpus_raw = '\n'.join(open(f, encoding='utf-8', errors='replace').read() for f in REF)
+    corpus = strip(corpus_raw)
     corpus_ns = re.sub(r'"[^"]*"', '""', corpus)
+
+    # ---- sets del corpus ----
     pos = defaultdict(set)
     cmd_names = set()
     for name, pat in POS.items():
@@ -170,11 +191,56 @@ def main():
                 pos[name].add(m.lower())
     for m in re.findall(r'\(([a-z][a-z0-9-]*)', corpus_ns):
         cmd_names.add(m)
-    ri_ok = {m.lower() for m in re.findall(r'\bri-[a-z0-9-]+', corpus_ns)}
-    if os.path.exists(CPSB_TXT):
-        cpsb = open(CPSB_TXT, encoding='utf-8', errors='replace').read()
-        ri_ok |= {m.lower() for m in re.findall(r'\bri-[a-z0-9-]+', cpsb)}
 
+    # identificadores usados en el corpus vs definidos con defconst en el corpus
+    corpus_used = {t.lower() for t in re.findall(r'\b[a-zA-Z][a-zA-Z0-9_-]*\b', corpus_ns)}
+    corpus_defined = {m.lower() for m in re.findall(r'\(defconst ([A-Za-z0-9_-]+)', corpus_ns)}
+
+    # builtin del motor = usado en el corpus pero NUNCA definido por el corpus,
+    # o presente en UserPatchConst, o keyword curado del motor.
+    # OJO: las palabras de la PROSA del CPSB no valen como prueba de builtin
+    # (de ahi salio el bug 'aggressive': la palabra aparece en el texto del
+    # CPSB como termino en ingles, pero NO es identificador valido en
+    # up-target-objects; los alias del corpus que alguien define con defconst
+    # quedan excluidos de builtin aunque aparezcan en el CPSB).
+    cpsb_ids = set()
+    cpsb_text = ''
+    if os.path.exists(CPSB_TXT):
+        cpsb_text = open(CPSB_TXT, encoding='utf-8', errors='replace').read()
+        cpsb_ids = {t.lower() for t in re.findall(r'\b[a-zA-Z][a-zA-Z0-9_-]+\b', cpsb_text)}
+    CURATED = {
+        # operadores y prefijos de operando (aunque se filtran antes)
+        'c', 'g', 's',
+        # player-facts / constantes de jugador (engine + UP)
+        'my-player-number', 'this-any-enemy', 'this-any-ally', 'this-any-computer',
+        'any-ally', 'any-enemy', 'any-computer', 'any-neutral',
+        'target-player', 'focus-player', 'my-target-object', 'target-object',
+        'commodity-selling-price', 'commodity-buying-price',
+        # stance-toward / set-stance
+        'ally', 'neutral', 'enemy',
+        # edades, recursos, tiempos
+        'dark-age', 'feudal-age', 'castle-age', 'imperial-age', 'post-imperial-age',
+        'food', 'wood', 'gold', 'stone', 'population-cap', 'mill',
+        # sn-especiales comunes (por si acaso)
+        'town-center', 'farm', 'mining-camp', 'lumber-camp', 'dock', 'monastery',
+        # edificios nativos del motor (CPSB los usa en sus ejemplos de codigo).
+        # OJO: que una IA del corpus los 'defconst-e' no los convierte en alias
+        # (The Horde redefine (defconst castle 82); castle sigue siendo builtin).
+        'castle', 'barracks', 'archery-range', 'stable', 'siege-workshop',
+        'market', 'blacksmith', 'house', 'watch-tower', 'guard-tower',
+        'bombard-tower', 'wonder', 'outpost', 'outpost', 'gate', 'wall',
+        'fortified-wall', 'farm', 'town-center',
+    }
+    BUILTIN = (corpus_used - corpus_defined) | upc_names | (cpsb_ids - corpus_defined) | CURATED
+
+    # alias locales del corpus (definidos por alguna IA pero no builtin):
+    # NUNCA validos en siege sin defconst propio. Clase del bug 'aggressive'.
+    ALIAS_CORPUS = corpus_defined - upc_names
+
+    ri_ok = {m.lower() for m in re.findall(r'\bri-[a-z0-9-]+', corpus_ns)} | \
+            {m.lower() for m in re.findall(r'\bri-[a-z0-9-]+', cpsb_text)}
+
+    # ---- cadena de carga de siege ----
     defconsts = set(); used_goals = set(); defined_goals = set()
     used_timers = set(); defined_timers = set()
     for f in SIEGE:
@@ -186,6 +252,11 @@ def main():
                 defined_goals.add(n)
             if n.startswith('t-'):
                 defined_timers.add(n)
+    CHAIN = defconsts | upc_names
+
+    def resolvable(tok: str) -> bool:
+        t = tok.lower()
+        return t in CHAIN or t in BUILTIN or t in cmd_names
 
     for f in SIEGE:
         raw = open(f, encoding='utf-8').read()
@@ -200,26 +271,26 @@ def main():
                 errors.append(f'{f}: load inexistente {m}')
         s_ns = re.sub(r'"[^"]*"', '""', s)
 
-        # comandos desconocidos
+        # --- comandos desconocidos ---
         for m in re.finditer(r'\(([a-z][a-z0-9-]*)', s_ns):
             c = m.group(1).lower()
             if c not in cmd_names and c not in SCHEMA and c not in defconsts and c != 'defrule':
                 errors.append(f"{f}: comando desconocido '({c}'")
 
-        # aridad
+        # --- aridad ---
         for m in re.finditer(r'\(([a-z][a-z0-9-]*)((?:\s+[^\s()]+)*)\s*\)', s_ns):
             c = m.group(1).lower(); args = m.group(2).split()
             if c in SCHEMA and len(args) != SCHEMA[c]:
                 errors.append(f'{f}: ({c} ...) con {len(args)} tokens, esperados {SCHEMA[c]}')
 
-        # argumentos posicionales
+        # --- argumentos posicionales ---
         for name, pat in POS.items():
             base = POS_BASE[name]
             for v in re.findall(pat, s_ns):
                 v = v.lower()
-                if re.match(r'^-?\d+$', v) or v in defconsts or v in upc_names:
+                if NUM_RE.match(v) or v in defconsts or v in upc_names:
                     continue
-                if base == 'research' or base == 'can-research' or base == 'can-research-with-escrow' or base == 'research-completed':
+                if base in ('research', 'can-research', 'can-research-with-escrow', 'research-completed'):
                     if v in ri_ok or v in AGES:
                         continue
                     errors.append(f"{f}: ({base} {v}) no es ri-* ni edad valida")
@@ -232,7 +303,48 @@ def main():
                     continue
                 errors.append(f"{f}: [{name}] argumento '{v}' no visto en esa posicion en el corpus")
 
-        # goals
+        # --- REGLA DE RESOLUCION: todo token identificador debe resolver ---
+        def check_list(lst, where):
+            head = lst[1:].lstrip()
+            if head.startswith('or ') or head.startswith('and ') or head.startswith('not ') \
+               or head.startswith('or)') or head.startswith('and)') or head.startswith('not)'):
+                for ch in paren_children(lst):
+                    check_list(ch, where)
+                return
+            if head.startswith('load '):
+                return
+            toks = []
+            for t in tokens_of(lst):
+                if PREFIX_RE.match(t):          # c: | g:== | s:+ ...
+                    continue
+                toks.append(t)
+            skip = 1 if toks else 0             # nombre de comando
+            if toks and toks[0] == 'defconst':
+                skip = 2                        # defconst + nombre propio
+            for t in toks[skip:]:
+                if t in ('c:', 'g:', 's:') or t in OPS or t == '=>':
+                    continue
+                if NUM_RE.match(t):
+                    continue
+                if not re.match(r'^[a-zA-Z][a-zA-Z0-9_-]*$', t):
+                    continue  # lo cubre aridad/otros checks
+                if resolvable(t):
+                    continue
+                extra = ''
+                if t in ALIAS_CORPUS:
+                    extra = (f" — es un alias LOCAL de alguna IA de referencia"
+                             f" (defconst propio alli); define tu (defconst {t} N)"
+                             f" o usa la constante nativa equivalente")
+                errors.append(f"{where}: identificador no resoluble '{t}'{extra}")
+
+        for r in parse_rules(s):
+            for kid in paren_children(r):
+                check_list(kid, f)
+        for m in re.finditer(r'\(defconst ([A-Za-z0-9_-]+) ((?:[^()]+))\)', s_ns):
+            if not NUM_RE.match(m.group(2).strip()) and not resolvable(m.group(2).strip()):
+                errors.append(f"{f}: (defconst {m.group(1)} {m.group(2).strip()}) valor no resoluble")
+
+        # --- goals ---
         for m in re.finditer(r'\((?:set-goal|goal) ([A-Za-z0-9_-]+) ([^ )]+)', s_ns):
             used_goals.add(m.group(1).lower())
             if m.group(2) in ('>', '<', '>=', '<=', '!=') or m.group(2).startswith('g:'):
@@ -240,7 +352,7 @@ def main():
         for m in re.finditer(r'\((?:enable-timer|timer-triggered) ([A-Za-z0-9_-]+)', s_ns):
             used_timers.add(m.group(1).lower())
 
-        # limites de reglas
+        # --- limites de reglas ---
         for r in parse_rules(s):
             if not re.search(r'=>', r):
                 errors.append(f'{f}: regla sin => :: {r[:50]!r}')
@@ -262,7 +374,7 @@ def main():
         if not re.match(r'^\d+$', t):
             errors.append(f'timer usado sin defconst: {t}')
 
-    print('=== LINT .per ===')
+    print('=== LINT .per (resolucion + gramatica) ===')
     if errors:
         for e in errors:
             print('ERROR:', e)

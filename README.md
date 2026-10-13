@@ -10,6 +10,7 @@ Este repositorio contiene una colección de scripts de Inteligencia Artificial (
 - **`/forty/`**: Contendrá la IA `forty.per`, una versión mejorada de una IA defensiva existente. *(en preparación)*
 - **`/siege/`**: **`siege`**, IA de asedio pura ya implementada (arietes cargados, brechas, TSA, evaluación de objetivos). Ver [`siege/README.md`](siege/README.md).
 - **`/tools/`**: Herramientas de validación — `lint_siege.py` (auditoría posicional de identificadores, aridad y límites de regla contra el corpus de referencia).
+- **`/docs/`**: Documentación quirúrgica — hechos del motor 100% confirmados, prevención de errores, pipeline para agentes de IA y arquitectura de las IAs de referencia. Ver [`docs/README.md`](docs/README.md).
 - **`/reference/`**:
     - `UserPatchConst.per`: Archivo de constantes de UserPatch. **Esencial** para que los comandos `up-` funcionen.
     - `CPSB.pdf`: La guía de scripting de AoE2 (opcional, pero muy útil).

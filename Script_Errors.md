@@ -14,6 +14,7 @@ Este documento recopila **todos los errores** que aparecieron durante el desarro
    - 2.2 [`ri-fire-ship`](#22-ri-fire-ship)
    - 2.3 [`ri-demolition-ship` y `ri-elite-cannon-galleon`](#23-ri-demolition-ship-y-ri-elite-cannon-galleon)
    - 2.4 [`scout-type`](#24-scout-type)
+   - 2.5 [`aggressive` vs `stance-aggressive`](#25-aggressive-vs-stance-aggressive)
 3. [Missing Closing Parenthesis — Comparadores en `goal`](#3-missing-closing-parenthesis--comparadores-en-goal)
 4. [Comparaciones inválidas sobre `goal` (fallbacks doctrinales)](#4-comparaciones-inválidas-sobre-goal-fallbacks-doctrinales)
 5. [`UserPatchConst` no cargado](#5-userpatchconst-no-cargado)
@@ -297,6 +298,58 @@ Y en el bloque 7, la parte de scouting queda como:
 #### Regla general
 - Definir **siempre** `scout-type` con variantes por civilización antes de usarlo.
 - No mezclar DUC con transiciones de estado ligeras.
+
+---
+
+### 2.5 `aggressive` vs `stance-aggressive`
+
+#### Síntoma
+```
+File siege/combat.per Line 103: ERR2005: Invalid identifier: aggressive
+```
+*(siege, segunda partida de prueba — error real de este repo)*
+
+#### Código problemático
+```perl
+(defrule
+    ...
+=>
+    (up-target-objects 0 action-default -1 aggressive)
+)
+```
+
+#### Origen
+Un identificador puede **existir en otra IA y no en la tuya**. En el corpus de
+referencia, `aggressive` funciona porque cada IA lo define a su manera:
+
+- `Barbarian.per:1184` → `(defconst aggressive 0)`
+- `The Horde.per:334` → `(defconst aggressive 0) ; Define AttackStance Constants`
+
+siege copió el **uso** del corpus sin copiar la **definición** → ERR2005. La
+palabra «aggressive» además aparece en la prosa del CPSB, lo que confunde a
+cualquier validación por vocabulario: no es un identificador del motor.
+
+#### Solución
+Usar las constantes nativas de `UserPatchConst.per` (líneas 145-148):
+
+```perl
+(defrule
+    ...
+=>
+    (up-target-objects 0 action-default -1 stance-aggressive)
+)
+```
+
+Constantes de stance nativas: `stance-aggressive 0`, `stance-defensive 1`,
+`stance-stand-ground 2`, `stance-no-attack 3`.
+
+#### Regla general
+- **Nunca** copiar un identificador del corpus sin verificar que resuelve en TU
+  cadena de carga (tus `defconst` + `UserPatchConst`) o es builtin del CPSB.
+- Los alias locales de otras IAs (`aggressive`, `stand-ground`, `no-attack`,
+  `no-attack`…) exigen `defconst` propio si se quieren usar.
+- El linter `tools/lint_siege.py` implementa esta «regla de resolución» y
+  distingue builtin de alias local.
 
 ---
 
@@ -698,6 +751,37 @@ Si alguno de estos genera `ERR2005`, es casi seguro que `UserPatchConst` no est�
 
 ---
 
-**Última actualización:** durante la depuración de `semiUtils.per` bloques 1–10.  
+## Apéndice: Códigos de error del parser (taxonomía)
+
+Recopilado del CPSB, de la extensión «AoE II AI Tools» (VS Marketplace) y de
+hilos de foros (aiscripters, aokh, Steam, forums.ageofempires.com). Ver
+[`docs/02_Prevencion_Errores.md`](docs/02_Prevencion_Errores.md) para la
+detección sin ejecutar el juego.
+
+| Código | Mensaje | Causa típica |
+|---|---|---|
+| ERR2001 | Missing opening parenthesis | `(` faltante |
+| ERR2002 | Missing keyword | Faltan parámetros o nombre de hecho/acción |
+| ERR2004/2005 | Invalid / Missing identifier | Token que no resuelve (alias ajeno, typo, constante de otra versión del juego) |
+| ERR2008 | Missing arrow | `defrule` sin `=>` |
+| ERR2011 | Missing closing parenthesis | `)` faltante; también lo dispara comparar `goal` con `<`/`>` |
+| ERR2012 | Constant already defined | `defconst` repetido con distinto valor (mismo valor: permitido) |
+| ERR5001 | File open failed | `(load ...)` con ruta/fichero incorrecto |
+| ERR6002 | Rule too long | Más de 16 elementos por regla |
+| ERR8001 | No rules | `.per` sin ninguna `defrule` |
+
+Casos de foro que enseñan trampas adicionales **[fuentes: Steam/forums AoE]**:
+identificadores acoplados a la versión de datos (renombraron `GIANT-MAP` →
+`HUGE-MAP` y las IAs oficiales rompieron), constantes perdidas entre updates
+(`rushprep-cost` → sustituir por el valor numérico de `customConstants.per`),
+colisiones de constantes entre ficheros cargados (prefijar nombres), y
+caracteres invisibles de editor que producen errores «irresolubles» (usar
+ASCII puro).
+
+---
+
+**Última actualización:** añadido caso 2.5 (`aggressive`/`stance-aggressive`,
+siege) y taxonomía ERR* (fuentes de foros + CPSB). Base original: depuración
+de `semiUtils.per` bloques 1–10.  
 **Autor:** sesión de depuración asistida.  
 **Uso:** referencia técnica para evitar repetir errores en futuras IAs de AoE2 UserPatch 1.5.

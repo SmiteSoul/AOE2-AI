@@ -98,13 +98,17 @@ Tras un test en partida, vuelve a ejecutarlo antes de commitear.
 
 Ademas, el registro historico de errores del motor (ERR6002, ERR2005,
 comparadores en `goal`, `UserPatchConst`...) con su solucion esta en
-[`../Script_Errors.md`](../Script_Errors.md).
+[`../Script_Errors.md`](../Script_Errors.md), y la documentacion completa
+(hechos confirmados, prevencion, pipeline para agentes, IAs de referencia) en
+[`../docs/README.md`](../docs/README.md).
 
 ## Limitaciones conocidas
 
 - El motor no permite ordenar reparaciones (`repair` no existe en el CPSB).
 - Con varios enemigos, el DUC de brechas/fuego usa `this-any-enemy` (un enemigo
   concreto); el TSA se encarga del resto.
-- Probada a nivel de sintaxis y patrones (linter + vocabulario de IAs de
-  referencia: Barbarian, The Horde, The General...). Pendiente de partidas de
-  prueba para afinar numeros.
+- Probada con dos partidas de prueba reales: la 1ª confirmó en runtime
+  `UserPatchConst/const/init` (falló `eco.per` con `loom`); la 2ª confirmó
+  además `eco/build/train` completos (falló `combat.per:103` con `aggressive`,
+  ya corregido a `stance-aggressive`). Pendiente de prueba completa de
+  `combat.per` y de los rearmes de timers.
