@@ -1,0 +1,16 @@
+; ==========================================================
+; SCOUT TYPE GENERICO
+; ==========================================================
+#load-if-defined AZTEC-CIV
+    (defconst scout-type -267)
+#else
+    #load-if-defined INCAN-CIV
+        (defconst scout-type -267)
+    #else
+        #load-if-defined MAYAN-CIV
+            (defconst scout-type -267)
+        #else
+            (defconst scout-type -286)
+        #end-if
+    #end-if
+#end-if
