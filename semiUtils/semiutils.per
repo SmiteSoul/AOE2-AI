@@ -1,0 +1,1549 @@
+; ==========================================================
+; IA ROLEPLAY - CONQUISTADOR DIPLOMATICO
+; UserPatch 1.5 / The Conquerors
+; Inicio neutral, alianza temporal, comercio, castillos y guerra
+; ==========================================================
+
+; ==========================================================
+; GOALS
+; ==========================================================
+(defconst gl-personality 1)
+(defconst gl-mode        2)
+(defconst gl-diplo       3)
+
+; ==========================================================
+; PERSONALIDADES PREPARADAS
+; ==========================================================
+(defconst p-conquistador 1)
+(defconst p-mercantil    2)
+(defconst p-defensivo    3)
+(defconst p-religioso    4)
+(defconst p-pacifista    5)
+(defconst p-barbaro      6)
+
+; ==========================================================
+; MODOS
+; ==========================================================
+(defconst m-boom   0)
+(defconst m-defend 1)
+(defconst m-attack 2)
+(defconst m-all-in 3)
+
+; ==========================================================
+; DIPLOMACIA
+; 0 = neutral / sin pacto
+; 1 = alianza temporal
+; 2 = guerra abierta
+; ==========================================================
+(defconst d-neutral 0)
+(defconst d-allied  1)
+(defconst d-war     2)
+
+; ==========================================================
+; TIMERS
+; ==========================================================
+(defconst t-director 1)
+(defconst t-pulse    2)
+(defconst t-diplo    3)
+
+; ==========================================================
+; INIT 1
+; ==========================================================
+(defrule
+    (true)
+=>
+    (set-goal gl-personality p-conquistador)
+    (set-goal gl-mode m-boom)
+    (set-goal gl-diplo d-neutral)
+    (enable-timer t-director 20)
+    (enable-timer t-pulse 15)
+    (enable-timer t-diplo 30)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 2 - economia y exploracion
+; ==========================================================
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-do-not-scale-for-difficulty-level 1)
+    (set-strategic-number sn-build-frequency 1)
+    (set-strategic-number sn-initial-exploration-required 0)
+    (set-strategic-number sn-percent-exploration-required 0)
+    (set-strategic-number sn-percent-civilian-explorers 1)
+    (set-strategic-number sn-cap-civilian-explorers 1)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 3 - eco base
+; ==========================================================
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-total-number-explorers 1)
+    (set-strategic-number sn-camp-max-distance 40)
+    (set-strategic-number sn-mill-max-distance 32)
+    (set-strategic-number sn-food-dropsite-distance 8)
+    (set-strategic-number sn-wood-dropsite-distance 10)
+    (set-strategic-number sn-gold-dropsite-distance 10)
+    (set-strategic-number sn-stone-dropsite-distance 10)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 4 - ataque conquistador reestructurado
+; Menos grupos, mas grandes, menos basura
+; ==========================================================
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-number-defend-groups 0)
+    (set-strategic-number sn-percent-attack-soldiers 60)
+    (set-strategic-number sn-number-attack-groups 4)
+    (set-strategic-number sn-minimum-attack-group-size 8)
+    (set-strategic-number sn-maximum-attack-group-size 14)
+    (set-strategic-number sn-group-form-distance 110)
+    (set-strategic-number sn-scale-minimum-attack-group-size 0)
+    (set-strategic-number sn-scale-maximum-attack-group-size 0)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 5 - target, builders y ritmo
+; ==========================================================
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-task-ungrouped-soldiers 0)
+    (set-strategic-number sn-garrison-rams 1)
+    (set-strategic-number sn-consecutive-idle-unit-limit 1)
+    (set-strategic-number sn-zero-priority-distance 255)
+    (set-strategic-number sn-attack-intelligence 0)
+    (set-strategic-number sn-enable-patrol-attack 1)
+    (set-strategic-number sn-cap-civilian-builders 200)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 6 - prioridad de puertas
+; ==========================================================
+(defrule
+    (true)
+=>
+    (set-strategic-number sn-special-attack-type1 663)
+    (set-strategic-number sn-special-attack-influence1 180)
+    (set-strategic-number sn-target-evaluation-distance 55)
+    (set-strategic-number sn-target-evaluation-continent 160)
+    (set-strategic-number sn-target-evaluation-siege-weapon 20)
+    (set-strategic-number sn-target-evaluation-in-progress 20)
+    (disable-self)
+)
+
+; ==========================================================
+; INIT 7 - saludo
+; ==========================================================
+(defrule
+    (true)
+=>
+    (chat-to-all "Conquistador diplomatico activo. Pactos, comercio y guerra.")
+    (disable-self)
+)
+
+; ==========================================================
+; ALDEANOS
+; En all-in deja de crecer la eco
+; ==========================================================
+
+(defrule
+    (current-age == dark-age)
+    (not (goal gl-mode m-all-in))
+    (can-train villager)
+    (civilian-population < 24)
+=>
+    (train villager)
+)
+
+(defrule
+    (current-age == feudal-age)
+    (not (goal gl-mode m-all-in))
+    (can-train villager)
+    (civilian-population < 42)
+=>
+    (train villager)
+)
+
+(defrule
+    (current-age == castle-age)
+    (not (goal gl-mode m-all-in))
+    (can-train villager)
+    (civilian-population < 90)
+=>
+    (train villager)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (not (goal gl-mode m-all-in))
+    (can-train villager)
+    (civilian-population < 105)
+=>
+    (train villager)
+)
+
+; ==========================================================
+; EDIFICIOS BASE
+; ==========================================================
+
+(defrule
+    (housing-headroom < 6)
+    (can-build house)
+=>
+    (build house)
+)
+
+(defrule
+    (building-type-count-total lumber-camp == 0)
+    (can-build lumber-camp)
+=>
+    (build lumber-camp)
+)
+
+(defrule
+    (building-type-count-total mill == 0)
+    (can-build mill)
+=>
+    (build mill)
+)
+
+(defrule
+    (civilian-population >= 7)
+    (building-type-count-total barracks == 0)
+    (can-build barracks)
+=>
+    (build barracks)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (building-type-count-total blacksmith == 0)
+    (can-build blacksmith)
+=>
+    (build blacksmith)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (building-type-count-total market == 0)
+    (can-build market)
+=>
+    (build market)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (building-type-count-total mining-camp == 0)
+    (can-build mining-camp)
+=>
+    (build mining-camp)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (building-type-count-total stable == 0)
+    (can-build stable)
+=>
+    (build stable)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (building-type-count-total archery-range == 0)
+    (can-build archery-range)
+=>
+    (build archery-range)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (building-type-count-total town-center < 2)
+    (can-build town-center)
+=>
+    (build town-center)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (building-type-count-total town-center < 3)
+    (can-build town-center)
+=>
+    (build town-center)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (building-type-count-total stable < 2)
+    (can-build stable)
+=>
+    (build stable)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (building-type-count-total stable < 3)
+    (can-build stable)
+=>
+    (build stable)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (building-type-count-total siege-workshop == 0)
+    (can-build siege-workshop)
+=>
+    (build siege-workshop)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (building-type-count-total university == 0)
+    (can-build university)
+=>
+    (build university)
+)
+
+; ==========================================================
+; MURALLAS Y PUERTAS
+; ==========================================================
+
+(defrule
+    (current-age >= feudal-age)
+    (wall-completed-percentage 1 < 100)
+    (can-build-wall 1 palisade-wall)
+=>
+    (build-wall 1 palisade-wall)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (wall-completed-percentage 1 < 100)
+    (can-build-wall 1 stone-wall)
+=>
+    (build-wall 1 stone-wall)
+)
+
+(defrule
+    (wall-completed-percentage 1 > 20)
+    (can-build-gate 1)
+=>
+    (build-gate 1)
+)
+
+; ==========================================================
+; CASTILLOS
+; ==========================================================
+
+(defrule
+    (current-age >= castle-age)
+    (stone-amount >= 650)
+    (building-type-count-total castle == 0)
+    (can-build castle)
+=>
+    (build castle)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (stone-amount >= 650)
+    (building-type-count-total castle < 2)
+    (can-build castle)
+=>
+    (build castle)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (stone-amount >= 650)
+    (building-type-count-total castle >= 1)
+    (building-type-count-total castle < 3)
+    (player-in-game any-enemy)
+    (can-build castle)
+=>
+    (build-forward castle)
+)
+
+; ==========================================================
+; GRANJAS
+; ==========================================================
+
+(defrule
+    (current-age >= feudal-age)
+    (food-amount < 300)
+    (wood-amount > 80)
+    (can-build farm)
+=>
+    (build farm)
+)
+
+; ==========================================================
+; REPARTO ECONOMICO
+; ==========================================================
+
+(defrule
+    (current-age == dark-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 75)
+    (set-strategic-number sn-wood-gatherer-percentage 25)
+    (set-strategic-number sn-gold-gatherer-percentage 0)
+    (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+    (current-age == feudal-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 50)
+    (set-strategic-number sn-wood-gatherer-percentage 35)
+    (set-strategic-number sn-gold-gatherer-percentage 15)
+    (set-strategic-number sn-stone-gatherer-percentage 0)
+)
+
+(defrule
+    (current-age == castle-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 38)
+    (set-strategic-number sn-wood-gatherer-percentage 27)
+    (set-strategic-number sn-gold-gatherer-percentage 25)
+    (set-strategic-number sn-stone-gatherer-percentage 10)
+)
+
+(defrule
+    (current-age == imperial-age)
+=>
+    (set-strategic-number sn-food-gatherer-percentage 35)
+    (set-strategic-number sn-wood-gatherer-percentage 25)
+    (set-strategic-number sn-gold-gatherer-percentage 30)
+    (set-strategic-number sn-stone-gatherer-percentage 10)
+)
+
+; ==========================================================
+; INVESTIGACION ECONOMICA
+; ==========================================================
+
+(defrule
+    (current-age == dark-age)
+    (civilian-population >= 20)
+    (can-research ri-loom)
+=>
+    (research ri-loom)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (can-research ri-double-bit-axe)
+=>
+    (research ri-double-bit-axe)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (can-research ri-horse-collar)
+=>
+    (research ri-horse-collar)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (can-research ri-wheel-barrow)
+=>
+    (research ri-wheel-barrow)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-bow-saw)
+=>
+    (research ri-bow-saw)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-heavy-plow)
+=>
+    (research ri-heavy-plow)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-gold-mining)
+=>
+    (research ri-gold-mining)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-stone-mining)
+=>
+    (research ri-stone-mining)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-two-man-saw)
+=>
+    (research ri-two-man-saw)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-gold-shaft-mining)
+=>
+    (research ri-gold-shaft-mining)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-hand-cart)
+=>
+    (research ri-hand-cart)
+)
+
+; ==========================================================
+; INVESTIGACION DE MERCADO / COMERCIO
+; ==========================================================
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-coinage)
+=>
+    (research ri-coinage)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-guilds)
+=>
+    (research ri-guilds)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-caravan)
+=>
+    (research ri-caravan)
+)
+
+; ==========================================================
+; INVESTIGACION DEFENSIVA
+; ==========================================================
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-masonry)
+=>
+    (research ri-masonry)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-stonecutting)
+=>
+    (research ri-stonecutting)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-architecture)
+=>
+    (research ri-architecture)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-fortified-wall)
+=>
+    (research ri-fortified-wall)
+)
+
+; ==========================================================
+; INVESTIGACION MILITAR
+; ==========================================================
+
+(defrule
+    (current-age >= feudal-age)
+    (can-research ri-man-at-arms)
+=>
+    (research ri-man-at-arms)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (can-research ri-squires)
+=>
+    (research ri-squires)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (can-research ri-forging)
+=>
+    (research ri-forging)
+)
+
+(defrule
+    (current-age >= feudal-age)
+    (can-research ri-scale-barding)
+=>
+    (research ri-scale-barding)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-bloodlines)
+=>
+    (research ri-bloodlines)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-husbandry)
+=>
+    (research ri-husbandry)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-iron-casting)
+=>
+    (research ri-iron-casting)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-chain-barding)
+=>
+    (research ri-chain-barding)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-cavalier)
+=>
+    (research ri-cavalier)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-plate-barding)
+=>
+    (research ri-plate-barding)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (can-research ri-capped-ram)
+=>
+    (research ri-capped-ram)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-siege-ram)
+=>
+    (research ri-siege-ram)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-onager)
+=>
+    (research ri-onager)
+)
+
+(defrule
+    (current-age >= imperial-age)
+    (can-research ri-siege-engineers)
+=>
+    (research ri-siege-engineers)
+)
+
+; ==========================================================
+; AJUSTE DE MERCADO PARA SUBIDAS / CASTILLOS
+; ==========================================================
+
+(defrule
+    (current-age == castle-age)
+    (gold-amount > 1400)
+    (food-amount < 900)
+    (can-buy-commodity food)
+=>
+    (buy-commodity food)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (gold-amount > 1600)
+    (stone-amount < 650)
+    (can-buy-commodity stone)
+=>
+    (buy-commodity stone)
+)
+
+; ==========================================================
+; SUBIDAS DE EDAD
+; ==========================================================
+
+(defrule
+    (current-age == dark-age)
+    (can-research feudal-age)
+=>
+    (research feudal-age)
+    (chat-to-all "Conquistador: avanzando a Feudal.")
+)
+
+(defrule
+    (current-age == feudal-age)
+    (can-research castle-age)
+=>
+    (research castle-age)
+    (chat-to-all "Conquistador: avanzando a Castillo.")
+)
+
+(defrule
+    (current-age == castle-age)
+    (can-research imperial-age)
+=>
+    (research imperial-age)
+    (chat-to-all "Conquistador: avanzando a Imperial.")
+)
+
+; ==========================================================
+; ALL-IN - ACTIVACION
+; Solo desde Castillo+ y con ejercito serio segun pop cap
+; ==========================================================
+
+; 75 pop
+(defrule
+    (not (goal gl-mode m-all-in))
+    (goal gl-diplo d-war)
+    (current-age >= castle-age)
+    (population-cap <= 75)
+    (soldier-count >= 18)
+=>
+    (set-goal gl-mode m-all-in)
+    (chat-to-all "Conquistador: guerra total. El reino entra en movilizacion.")
+)
+
+; 100 pop
+(defrule
+    (not (goal gl-mode m-all-in))
+    (goal gl-diplo d-war)
+    (current-age >= castle-age)
+    (population-cap > 75)
+    (population-cap <= 100)
+    (soldier-count >= 22)
+=>
+    (set-goal gl-mode m-all-in)
+    (chat-to-all "Conquistador: guerra total. El reino entra en movilizacion.")
+)
+
+; 150 pop
+(defrule
+    (not (goal gl-mode m-all-in))
+    (goal gl-diplo d-war)
+    (current-age >= castle-age)
+    (population-cap > 100)
+    (population-cap <= 150)
+    (soldier-count >= 28)
+=>
+    (set-goal gl-mode m-all-in)
+    (chat-to-all "Conquistador: guerra total. El reino entra en movilizacion.")
+)
+
+; 200 pop
+(defrule
+    (not (goal gl-mode m-all-in))
+    (goal gl-diplo d-war)
+    (current-age >= castle-age)
+    (population-cap > 150)
+    (soldier-count >= 34)
+=>
+    (set-goal gl-mode m-all-in)
+    (chat-to-all "Conquistador: guerra total. El reino entra en movilizacion.")
+)
+
+; Late-game forzado si la partida se alarga
+; 75/100 pop
+(defrule
+    (not (goal gl-mode m-all-in))
+    (current-age >= imperial-age)
+    (game-time > 3000)
+    (population-cap <= 100)
+    (soldier-count >= 16)
+=>
+    (set-goal gl-mode m-all-in)
+    (chat-to-all "Conquistador: se acabo la contencion. ¡Asalto total!")
+)
+
+; 150/200 pop
+(defrule
+    (not (goal gl-mode m-all-in))
+    (current-age >= imperial-age)
+    (game-time > 3000)
+    (population-cap > 100)
+    (soldier-count >= 24)
+=>
+    (set-goal gl-mode m-all-in)
+    (chat-to-all "Conquistador: se acabo la contencion. ¡Asalto total!")
+)
+
+; Configuracion real del all-in
+(defrule
+    (goal gl-mode m-all-in)
+    (not (strategic-number sn-number-attack-groups == 6))
+=>
+    (set-strategic-number sn-percent-attack-soldiers 100)
+    (set-strategic-number sn-number-attack-groups 6)
+    (set-strategic-number sn-minimum-attack-group-size 10)
+    (set-strategic-number sn-maximum-attack-group-size 18)
+    (set-strategic-number sn-group-form-distance 120)
+    (attack-now)
+)
+
+; ==========================================================
+; ALL-IN - REAJUSTE ECONOMICO
+; Corta boom, pero deja suficientes builders para castillos/talleres
+; ==========================================================
+
+(defrule
+    (goal gl-mode m-all-in)
+    (not (strategic-number sn-percent-civilian-explorers == 0))
+=>
+    (set-strategic-number sn-percent-civilian-explorers 0)
+    (set-strategic-number sn-cap-civilian-explorers 0)
+    (set-strategic-number sn-percent-civilian-builders 5)
+    (set-strategic-number sn-percent-civilian-gatherers 95)
+    (set-strategic-number sn-cap-civilian-builders 6)
+    (set-strategic-number sn-food-gatherer-percentage 30)
+    (set-strategic-number sn-wood-gatherer-percentage 18)
+    (set-strategic-number sn-gold-gatherer-percentage 42)
+    (set-strategic-number sn-stone-gatherer-percentage 10)
+)
+
+; ==========================================================
+; ALL-IN - COMPRAS DE MERCADO
+; ==========================================================
+
+(defrule
+    (goal gl-mode m-all-in)
+    (gold-amount > 900)
+    (food-amount < 350)
+    (can-buy-commodity food)
+=>
+    (buy-commodity food)
+)
+
+(defrule
+    (goal gl-mode m-all-in)
+    (gold-amount > 1200)
+    (stone-amount < 650)
+    (can-buy-commodity stone)
+=>
+    (buy-commodity stone)
+)
+
+(defrule
+    (goal gl-mode m-all-in)
+    (gold-amount > 800)
+    (wood-amount < 250)
+    (can-buy-commodity wood)
+=>
+    (buy-commodity wood)
+)
+
+; ==========================================================
+; EDIFICIOS MILITARES EXTRA EN ALL-IN
+; ==========================================================
+
+(defrule
+    (goal gl-mode m-all-in)
+    (current-age >= castle-age)
+    (building-type-count-total barracks < 2)
+    (can-build barracks)
+=>
+    (build barracks)
+)
+
+(defrule
+    (goal gl-mode m-all-in)
+    (current-age >= castle-age)
+    (building-type-count-total stable < 4)
+    (can-build stable)
+=>
+    (build stable)
+)
+
+(defrule
+    (goal gl-mode m-all-in)
+    (current-age >= imperial-age)
+    (building-type-count-total siege-workshop < 2)
+    (can-build siege-workshop)
+=>
+    (build siege-workshop)
+)
+
+; ==========================================================
+; EDIFICIOS MILITARES EXTRA EN ALL-IN
+; ==========================================================
+
+(defrule
+    (goal gl-mode m-all-in)
+    (current-age >= castle-age)
+    (building-type-count-total barracks < 2)
+    (can-build barracks)
+=>
+    (build barracks)
+)
+
+(defrule
+    (goal gl-mode m-all-in)
+    (current-age >= castle-age)
+    (building-type-count-total stable < 4)
+    (can-build stable)
+=>
+    (build stable)
+)
+
+(defrule
+    (goal gl-mode m-all-in)
+    (current-age >= imperial-age)
+    (building-type-count-total siege-workshop < 2)
+    (can-build siege-workshop)
+=>
+    (build siege-workshop)
+)
+
+; ==========================================================
+; PRODUCCION MILITAR - TEMPRANA
+; Poco spam, solo base militar inicial
+; ==========================================================
+
+(defrule
+    (current-age == dark-age)
+    (building-type-count-total barracks > 0)
+    (can-train militiaman-line)
+    (unit-type-count-total militiaman-line < 2)
+=>
+    (train militiaman-line)
+)
+
+(defrule
+    (current-age == feudal-age)
+    (goal gl-mode m-attack)
+    (can-train militiaman-line)
+    (unit-type-count-total militiaman-line < 4)
+=>
+    (train militiaman-line)
+)
+
+(defrule
+    (current-age == feudal-age)
+    (town-under-attack)
+    (can-train skirmisher-line)
+    (unit-type-count-total skirmisher-line < 5)
+=>
+    (train skirmisher-line)
+)
+
+; ==========================================================
+; PRODUCCION MILITAR - CASTILLO
+; Aqui empieza a armar ejercitos serios
+; ==========================================================
+
+(defrule
+    (current-age == castle-age)
+    (goal gl-mode m-boom)
+    (can-train knight-line)
+    (unit-type-count-total knight-line < 10)
+=>
+    (train knight-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (goal gl-mode m-attack)
+    (can-train knight-line)
+    (unit-type-count-total knight-line < 18)
+=>
+    (train knight-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (goal gl-mode m-all-in)
+    (can-train knight-line)
+    (unit-type-count-total knight-line < 26)
+=>
+    (train knight-line)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (town-under-attack)
+    (can-train spearman-line)
+    (unit-type-count-total spearman-line < 10)
+=>
+    (train spearman-line)
+)
+
+(defrule
+    (current-age >= castle-age)
+    (town-under-attack)
+    (can-train skirmisher-line)
+    (unit-type-count-total skirmisher-line < 10)
+=>
+    (train skirmisher-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (goal gl-mode m-attack)
+    (can-train battering-ram-line)
+    (unit-type-count-total battering-ram-line < 3)
+=>
+    (train battering-ram-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (goal gl-mode m-all-in)
+    (can-train battering-ram-line)
+    (unit-type-count-total battering-ram-line < 5)
+=>
+    (train battering-ram-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (goal gl-mode m-attack)
+    (can-train mangonel-line)
+    (unit-type-count-total mangonel-line < 2)
+=>
+    (train mangonel-line)
+)
+
+(defrule
+    (current-age == castle-age)
+    (goal gl-mode m-all-in)
+    (can-train mangonel-line)
+    (unit-type-count-total mangonel-line < 3)
+=>
+    (train mangonel-line)
+)
+
+; ==========================================================
+; PRODUCCION MILITAR - IMPERIAL
+; ==========================================================
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-mode m-attack)
+    (can-train knight-line)
+    (unit-type-count-total knight-line < 24)
+=>
+    (train knight-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-mode m-all-in)
+    (can-train knight-line)
+    (unit-type-count-total knight-line < 36)
+=>
+    (train knight-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-mode m-all-in)
+    (can-train militiaman-line)
+    (unit-type-count-total militiaman-line < 14)
+=>
+    (train militiaman-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-mode m-attack)
+    (can-train battering-ram-line)
+    (unit-type-count-total battering-ram-line < 4)
+=>
+    (train battering-ram-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-mode m-all-in)
+    (can-train battering-ram-line)
+    (unit-type-count-total battering-ram-line < 7)
+=>
+    (train battering-ram-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-mode m-attack)
+    (can-train mangonel-line)
+    (unit-type-count-total mangonel-line < 2)
+=>
+    (train mangonel-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-mode m-all-in)
+    (can-train mangonel-line)
+    (unit-type-count-total mangonel-line < 4)
+=>
+    (train mangonel-line)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-mode m-attack)
+    (can-train trebuchet)
+    (unit-type-count-total trebuchet < 2)
+=>
+    (train trebuchet)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (goal gl-mode m-all-in)
+    (can-train trebuchet)
+    (unit-type-count-total trebuchet < 4)
+=>
+    (train trebuchet)
+)
+
+; ==========================================================
+; COMERCIO
+; ==========================================================
+
+(defrule
+    (current-age >= castle-age)
+    (players-building-type-count any-ally market > 0)
+    (can-train trade-cart)
+    (unit-type-count-total trade-cart < 10)
+=>
+    (train trade-cart)
+)
+
+(defrule
+    (current-age == imperial-age)
+    (players-building-type-count any-ally market > 0)
+    (can-train trade-cart)
+    (unit-type-count-total trade-cart < 20)
+=>
+    (train trade-cart)
+)
+
+; ==========================================================
+; TRIBUTOS A ALIADOS
+; ==========================================================
+
+(defrule
+    (gold-amount > 1500)
+    (players-population any-ally > 20)
+=>
+    (tribute-to-player this-any-ally gold 100)
+)
+
+; ==========================================================
+; DIPLOMACIA AVANZADA - REGLAS DE TRAICION
+; ==========================================================
+(defrule
+    (true)
+=>
+    ; Si un neutral o aliado nos da 1 solo golpe, se vuelve enemigo automaticamente
+    (set-strategic-number sn-hits-before-alliance-change 1)
+    (disable-self)
+)
+
+; ==========================================================
+; SINCRONIZACION FAILSAFE: SI ME ODIAS, TE ODIO (GUERRA BILATERAL)
+; Sin chat para evitar el bucle de spam al iniciar partidas
+; ==========================================================
+
+(defrule
+    (players-stance any-computer enemy)
+    (not (stance-toward this-any-computer enemy))
+=>
+    (set-stance this-any-computer enemy)
+    (set-goal gl-diplo d-war)
+    (set-goal gl-mode m-attack)
+)
+
+(defrule
+    (players-stance any-human enemy)
+    (not (stance-toward this-any-human enemy))
+=>
+    (set-stance this-any-human enemy)
+    (set-goal gl-diplo d-war)
+    (set-goal gl-mode m-attack)
+)
+
+; ==========================================================
+; PROTOCOLO 1: PROPONER ALIANZA
+; Taunt 201 = Propongo alianza
+; ==========================================================
+
+(defrule
+    (timer-triggered t-diplo)
+    (goal gl-diplo d-neutral)
+    (current-age >= feudal-age)
+    (game-time > 600)
+    (not (players-stance any-ally ally)) ; Solo si no tenemos aliado ya
+    (player-in-game any-computer-neutral)
+    (stance-toward this-any-computer-neutral neutral)
+=>
+    (chat-to-all "Estoy buscando un aliado para gobernar estas tierras...")
+    (chat-to-player this-any-computer-neutral "201")
+    (disable-timer t-diplo)
+    (enable-timer t-diplo 45)
+)
+
+; ==========================================================
+; PROTOCOLO 2: ACEPTAR ALIANZA DE OTRA IA
+; Taunt 204 = Acepto tu alianza
+; ==========================================================
+
+(defrule
+    (taunt-detected any-computer 201)
+    (stance-toward this-any-computer neutral)
+    (not (players-stance any-ally ally))
+=>
+    (acknowledge-taunt this-any-computer 201)
+    (chat-to-all "Me parece justo. Acepto formar una alianza bilateral.")
+    (chat-to-player this-any-computer "204")
+    (set-stance this-any-computer ally)
+    (set-goal gl-diplo d-allied)
+)
+
+; ==========================================================
+; PROTOCOLO 3: CONFIRMAR ALIANZA INICIADA
+; La IA que envio el 201 recibe el 204 y oficializa el pacto
+; ==========================================================
+
+(defrule
+    (taunt-detected any-computer 204)
+    (stance-toward this-any-computer neutral)
+=>
+    (acknowledge-taunt this-any-computer 204)
+    (chat-to-all "¡Excelente! El pacto de sangre esta sellado.")
+    (set-stance this-any-computer ally)
+    (set-goal gl-diplo d-allied)
+)
+
+; ==========================================================
+; PROTOCOLO 4: ROMPER ALIANZA BILATERALMENTE
+; Taunt 202 = Rompo pacto, vuelvo a neutral
+; ==========================================================
+
+(defrule
+    (timer-triggered t-diplo)
+    (goal gl-diplo d-allied)
+    (current-age >= imperial-age)
+    (soldier-count >= 25)
+    (player-in-game any-ally)
+    (stance-toward this-any-ally ally)
+=>
+    (chat-to-all "Las alianzas son efimeras. Nuestro pacto termina aqui. Volvemos a ser neutrales.")
+    (chat-to-player this-any-ally "202")
+    (set-stance this-any-ally neutral)
+    (set-goal gl-diplo d-neutral)
+    (disable-timer t-diplo)
+    (enable-timer t-diplo 30)
+)
+
+(defrule
+    (taunt-detected any-computer 202)
+    (stance-toward this-any-computer ally)
+=>
+    (acknowledge-taunt this-any-computer 202)
+    (chat-to-all "Asi que rompes nuestra alianza... Muy bien, somos neutrales de nuevo.")
+    (set-stance this-any-computer neutral)
+    (set-goal gl-diplo d-neutral)
+)
+
+; ==========================================================
+; PROTOCOLO 5: DECLARAR GUERRA
+; Taunt 203 = Guerra
+; ==========================================================
+
+(defrule
+    (timer-triggered t-diplo)
+    (goal gl-diplo d-neutral)
+    (current-age >= castle-age)
+    (game-time > 1800)
+    (player-in-game any-computer-neutral)
+    (stance-toward this-any-computer-neutral neutral)
+=>
+    (chat-to-all "¡La paz es una ilusion! ¡He decidido declarar la guerra!")
+    (chat-to-player this-any-computer-neutral "203")
+    (set-stance this-any-computer-neutral enemy)
+    (set-goal gl-diplo d-war)
+    (set-goal gl-mode m-attack)
+    (disable-timer t-diplo)
+    (enable-timer t-diplo 30)
+)
+
+(defrule
+    (taunt-detected any-computer 203)
+    (not (stance-toward this-any-computer enemy))
+=>
+    (acknowledge-taunt this-any-computer 203)
+    (chat-to-all "¡Acepto el desafio! ¡No tendre piedad en la batalla!")
+    (set-stance this-any-computer enemy)
+    (set-goal gl-diplo d-war)
+    (set-goal gl-mode m-attack)
+)
+
+; ==========================================================
+; DIPLOMACIA CON JUGADORES HUMANOS
+; ==========================================================
+
+; Si el humano propone alianza (201) y somos neutrales
+(defrule
+    (taunt-detected any-human 201)
+    (stance-toward this-any-human neutral)
+    (not (players-stance any-ally ally))
+=>
+    (acknowledge-taunt this-any-human 201)
+    (chat-to-all "He aceptado la propuesta de alianza del jugador humano.")
+    (set-stance this-any-human ally)
+    (set-goal gl-diplo d-allied)
+)
+
+; Si el humano rompe la alianza (202)
+(defrule
+    (taunt-detected any-human 202)
+    (stance-toward this-any-human ally)
+=>
+    (acknowledge-taunt this-any-human 202)
+    (chat-to-all "El humano ha roto la alianza. Ahora somos neutrales.")
+    (set-stance this-any-human neutral)
+    (set-goal gl-diplo d-neutral)
+)
+
+; Si el humano declara guerra (203)
+(defrule
+    (taunt-detected any-human 203)
+    (not (stance-toward this-any-human enemy))
+=>
+    (acknowledge-taunt this-any-human 203)
+    (chat-to-all "¡El humano eligio la guerra! ¡Destruyanlo!")
+    (set-stance this-any-human enemy)
+    (set-goal gl-diplo d-war)
+    (set-goal gl-mode m-attack)
+)
+; ==========================================================
+; TAUNTS HUMANOS DE APOYO
+; 31 = ataca
+; 38 = dame recursos
+; ==========================================================
+
+(defrule
+    (taunt-detected any-human-ally 31)
+    (soldier-count >= 10)
+=>
+    (acknowledge-taunt this-any-human-ally 31)
+    (chat-to-player this-any-human-ally "Atacare pronto.")
+    (set-goal gl-mode m-attack)
+    (attack-now)
+)
+
+(defrule
+    (taunt-detected any-human-ally 38)
+    (gold-amount >= 300)
+=>
+    (acknowledge-taunt this-any-human-ally 38)
+    (chat-to-player this-any-human-ally "Te envio oro.")
+    (tribute-to-player this-any-human-ally gold 100)
+)
+
+; ==========================================================
+; DIRECTOR DE COMPORTAMIENTO
+; Nada de raids basura: desde Castillo exige masa segun pop cap
+; ==========================================================
+
+(defrule
+    (timer-triggered t-director)
+    (town-under-attack)
+    (soldier-count < 10)
+=>
+    (set-goal gl-mode m-defend)
+    (set-strategic-number sn-percent-attack-soldiers 60)
+    (disable-timer t-director)
+    (enable-timer t-director 15)
+)
+
+; Ataque normal en Castillo - 75 pop
+(defrule
+    (timer-triggered t-director)
+    (not (goal gl-mode m-all-in))
+    (player-in-game any-enemy)
+    (current-age == castle-age)
+    (population-cap <= 75)
+    (soldier-count >= 12)
+=>
+    (set-goal gl-mode m-attack)
+    (set-strategic-number sn-percent-attack-soldiers 85)
+    (attack-now)
+    (disable-timer t-director)
+    (enable-timer t-director 15)
+)
+
+; Ataque normal en Castillo - 100 pop
+(defrule
+    (timer-triggered t-director)
+    (not (goal gl-mode m-all-in))
+    (player-in-game any-enemy)
+    (current-age == castle-age)
+    (population-cap > 75)
+    (population-cap <= 100)
+    (soldier-count >= 16)
+=>
+    (set-goal gl-mode m-attack)
+    (set-strategic-number sn-percent-attack-soldiers 85)
+    (attack-now)
+    (disable-timer t-director)
+    (enable-timer t-director 15)
+)
+
+; Ataque normal en Castillo - 150/200 pop
+(defrule
+    (timer-triggered t-director)
+    (not (goal gl-mode m-all-in))
+    (player-in-game any-enemy)
+    (current-age == castle-age)
+    (population-cap > 100)
+    (soldier-count >= 20)
+=>
+    (set-goal gl-mode m-attack)
+    (set-strategic-number sn-percent-attack-soldiers 85)
+    (attack-now)
+    (disable-timer t-director)
+    (enable-timer t-director 15)
+)
+
+; Ataque normal en Imperial - 75/100 pop
+(defrule
+    (timer-triggered t-director)
+    (not (goal gl-mode m-all-in))
+    (player-in-game any-enemy)
+    (current-age == imperial-age)
+    (population-cap <= 100)
+    (soldier-count >= 18)
+=>
+    (set-goal gl-mode m-attack)
+    (set-strategic-number sn-percent-attack-soldiers 90)
+    (attack-now)
+    (disable-timer t-director)
+    (enable-timer t-director 12)
+)
+
+; Ataque normal en Imperial - 150/200 pop
+(defrule
+    (timer-triggered t-director)
+    (not (goal gl-mode m-all-in))
+    (player-in-game any-enemy)
+    (current-age == imperial-age)
+    (population-cap > 100)
+    (soldier-count >= 26)
+=>
+    (set-goal gl-mode m-attack)
+    (set-strategic-number sn-percent-attack-soldiers 90)
+    (attack-now)
+    (disable-timer t-director)
+    (enable-timer t-director 12)
+)
+
+(defrule
+    (timer-triggered t-director)
+    (not (goal gl-mode m-all-in))
+    (soldier-count < 8)
+=>
+    (set-goal gl-mode m-boom)
+    (set-strategic-number sn-percent-attack-soldiers 60)
+    (disable-timer t-director)
+    (enable-timer t-director 15)
+)
+
+(defrule
+    (goal gl-mode m-attack)
+    (attack-soldier-count == 0)
+    (soldier-count >= 10)
+=>
+    (attack-now)
+)
+
+(defrule
+    (goal gl-mode m-all-in)
+    (attack-soldier-count == 0)
+    (soldier-count >= 8)
+=>
+    (attack-now)
+)
+
+(defrule
+    (timer-triggered t-director)
+=>
+    (disable-timer t-director)
+    (enable-timer t-director 15)
+)
+
+; ==========================================================
+; PULSO DE REFUERZOS
+; Ataque normal = oleada mas lenta
+; All-in = refuerzos mas rapidos
+; ==========================================================
+
+(defrule
+    (timer-triggered t-pulse)
+    (goal gl-mode m-attack)
+    (player-in-game any-enemy)
+    (defend-soldier-count >= 2)
+=>
+    (attack-now)
+    (disable-timer t-pulse)
+    (enable-timer t-pulse 12)
+)
+
+(defrule
+    (timer-triggered t-pulse)
+    (goal gl-mode m-all-in)
+    (defend-soldier-count >= 1)
+=>
+    (attack-now)
+    (disable-timer t-pulse)
+    (enable-timer t-pulse 8)
+)
+
+(defrule
+    (timer-triggered t-pulse)
+=>
+    (disable-timer t-pulse)
+    (enable-timer t-pulse 12)
+)
+
+; ==========================================================
+; MANTENER TIMER DE DIPLOMACIA
+; ==========================================================
+
+(defrule
+    (timer-triggered t-diplo)
+=>
+    (disable-timer t-diplo)
+    (enable-timer t-diplo 30)
+)
