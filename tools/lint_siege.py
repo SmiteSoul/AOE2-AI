@@ -167,7 +167,7 @@ SCHEMA = {
     'up-full-reset-search': 0, 'up-find-local': 4, 'up-find-remote': 4,
     'up-remove-objects': 4, 'up-get-search-state': 1,
     'up-target-objects': 4, 'up-get-player-fact': 4,
-    'up-set-target-object': 2, 'up-filter-include': 4,
+    'up-set-target-object': 3, 'up-filter-include': 4,
 }
 AGES = {'feudal-age', 'castle-age', 'imperial-age', 'dark-age'}
 COMMODITIES = {'food', 'wood', 'stone'}  # oro NO es commodity de mercado
@@ -453,17 +453,23 @@ def main():
             has_work = bool(re.search(r'\((?!enable-timer)[a-z]', actions_part))
             trig[t][-1] = (pos, f, ds, has_work)
         for m in re.finditer(r'\(enable-timer ([^()\s]+)', s):
-            enab[m.group(1)].append((pos, f, ds))
+            tt = m.group(1)
+            facts_part = s.split('=>', 1)[0] if '=>' in s else s
+            # Ladrón de trigger = rearme en la MISMA regla que consume el timer,
+            # o enable en regla (true) sin disable-self (se ejecuta cada pase).
+            # Un enable ligado a un evento puntual (inicio de oleada...) NO roba.
+            stealer = (f'(timer-triggered {tt})' in s) or ('(true)' in facts_part and not ds)
+            enab[tt].append((pos, f, ds, stealer))
     for t in sorted(set(trig) | set(enab)):
         if trig[t] and not enab[t]:
             errors.append(f'timer {t}: timer-triggered sin enable-timer en todo el script (nunca rearma)')
         for pos, f, ds, has_work in trig[t]:
             if not has_work:
                 continue
-            prev = [p for p, ff, dds in enab[t] if p < pos and not dds]
+            prev = [p for p, ff, dds, st in enab[t] if p < pos and st]
             if prev:
                 errors.append(f'timer {t}: consumidor con trabajo en {f}@regla {pos} DESPUES de '
-                              f'rearme no-init @{prev[-1]} — el trigger le es robado en el pase')
+                              f'rearme que roba el trigger @{prev[-1]} — no verá el timer en el pase')
 
     print('=== LINT .per (resolucion + gramatica) ===')
     if errors:

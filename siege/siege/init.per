@@ -61,6 +61,7 @@
 	(set-strategic-number sn-task-ungrouped-soldiers 1)
 	(set-strategic-number sn-consecutive-idle-unit-limit 1)
 	(set-strategic-number sn-gather-defense-units 1)
+	(set-strategic-number sn-allow-civilian-defense 1)
 	(disable-self)
 )
 
@@ -101,11 +102,18 @@
 	(true)
 =>
 	(set-strategic-number sn-number-attack-groups 0)
-	(set-strategic-number sn-minimum-attack-group-size 3)
-	(set-strategic-number sn-maximum-attack-group-size 30)
-	(set-strategic-number sn-number-defend-groups 2)
-	(set-strategic-number sn-minimum-defend-group-size 3)
-	(set-strategic-number sn-maximum-defend-group-size 10)
+	; Oleadas ESCALONADAS: grupos pequenos y continuos en vez de un
+	; bloque unico (el "todos de golpe" de los escenarios de asedio).
+	(set-strategic-number sn-minimum-attack-group-size 2)
+	(set-strategic-number sn-maximum-attack-group-size 12)
+	(set-strategic-number sn-scale-minimum-attack-group-size 0)
+	(set-strategic-number sn-scale-maximum-attack-group-size 0)
+	; Formacion rapida: menos espera de reagrupacion = menos tropas
+	; rondando sin usar.
+	(set-strategic-number sn-group-form-distance 30)
+	(set-strategic-number sn-number-defend-groups 1)
+	(set-strategic-number sn-minimum-defend-group-size 2)
+	(set-strategic-number sn-maximum-defend-group-size 5)
 	(set-strategic-number sn-maximum-town-size ts-base)
 	(set-strategic-number sn-minimum-town-size 12)
 	(disable-self)

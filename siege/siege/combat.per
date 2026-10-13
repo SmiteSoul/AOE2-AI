@@ -20,8 +20,10 @@
 			(military-population >= 30)))
 =>
 	(set-goal gl-attack-state 1)
+	(set-goal gl-target-walls 1)
 	(set-strategic-number sn-number-attack-groups 200)
 	(attack-now)
+	(enable-timer t-walls 75)
 )
 (defrule
 	(goal gl-attack-state 1)
@@ -88,6 +90,7 @@
 	(up-full-reset-search)
 	(up-find-local c: battering-ram-line c: 2)
 	(up-find-remote c: wall-class c: 2)
+	(up-find-remote c: gate-class c: 1)
 	(up-get-search-state gl-local-total)
 )
 (defrule
@@ -103,7 +106,40 @@
 	(up-target-objects 0 action-default -1 stance-aggressive)
 )
 
-; ---------- Arietes cargados de tropas (DUC) ----------
+; ---------- Conciencia de brecha: dejar de pegar puertas que ya no importan ----------
+; Patron de pathfinding de The General (Army Control.per): se fija un objeto
+; propio con up-set-target-object y up-path-distance mide el camino hasta un
+; punto (65535 = sin camino). Si HAY camino corto hasta la base enemiga, la
+; brecha ya esta hecha: gl-target-walls pasa a 0 y los arietes dejan de
+; perseguir murallas/puertas irrelevantes.
+(defrule
+	(goal gl-attack-state 1)
+	(goal gl-target-walls 1)
+	(timer-triggered t-micro)
+	(unit-type-count battering-ram-line > 0)
+=>
+	(up-full-reset-search)
+	(up-find-local c: battering-ram-line c: 1)
+	(up-set-target-object search-local c: 0)
+	(up-get-point position-enemy gl-pt1)
+	(up-get-search-state gl-local-total)
+)
+(defrule
+	(goal gl-attack-state 1)
+	(goal gl-target-walls 1)
+	(up-compare-goal gl-local-total > 0)
+	(up-path-distance gl-pt1 0 < 220)
+=>
+	(set-goal gl-target-walls 0)
+)
+; Time-box de la fase de brecha: pase lo que pase (mapas grandes, rodeos,
+; pathfinding raro), a los 75s se deja de asediar murallas y se asalta.
+(defrule
+	(timer-triggered t-walls)
+	(goal gl-target-walls 1)
+=>
+	(set-goal gl-target-walls 0)
+)
 ; sn-garrison-rams (init) ya carga infanteria antes de salir;
 ; aqui rellenamos arietes que queden con hueco durante la campana.
 (defrule
@@ -129,10 +165,46 @@
 	(up-target-objects 0 action-garrison -1 -1)
 )
 
-; ---------- Unidades a distancia: fuego concentrado y formacion ----------
-; Solo cuando el TSA no esta bloqueado (ver nota arriba).
+; ---------- Escoltas: piqueros junto a los arietes, arqueros protegiendo ----------
+; Durante la fase de brecha el papel de los arqueros es PROTEGER la bateria
+; de asedio (no perseguir); los piqueros escoltan los arietes siempre que
+; haya oleada. action-guard: enum de UserPatchConst (L456, accion 3 = las
+; unidades locales custodian la lista remota; con target-point degrada a
+; action-move). Verificado en lint; comprobar en partida.
 (defrule
 	(goal gl-attack-state 1)
+	(timer-triggered t-micro)
+	(unit-type-count battering-ram-line > 0)
+	(unit-type-count spearman-line > 0)
+=>
+	(set-strategic-number sn-focus-player-number my-player-number)
+	(up-full-reset-search)
+	(up-find-local c: spearman-line c: 6)
+	(up-find-remote c: battering-ram-line c: 3)
+	(up-target-objects 0 action-guard -1 -1)
+)
+(defrule
+	(goal gl-attack-state 1)
+	(goal gl-target-walls 1)
+	(timer-triggered t-micro)
+	(unit-type-count battering-ram-line > 0)
+	(or	(unit-type-count archer-line > 0)
+		(unit-type-count skirmisher-line > 0))
+=>
+	(set-strategic-number sn-focus-player-number my-player-number)
+	(up-full-reset-search)
+	(up-find-local c: archer-line c: 8)
+	(up-find-local c: skirmisher-line c: 8)
+	(up-find-remote c: battering-ram-line c: 3)
+	(up-target-objects 0 action-guard -1 -1)
+)
+
+; ---------- Unidades a distancia: fuego concentrado y formacion ----------
+; Solo cuando el TSA no esta bloqueado (ver nota arriba) y NO estamos en
+; fase de brecha (alla protegen la bateria: ver escoltas).
+(defrule
+	(goal gl-attack-state 1)
+	(goal gl-target-walls 0)
 	(timer-triggered t-micro)
 	(not (enemy-buildings-in-town))
 	(or	(unit-type-count archer-line > 3)
@@ -149,6 +221,7 @@
 )
 (defrule
 	(goal gl-attack-state 1)
+	(goal gl-target-walls 0)
 	(timer-triggered t-micro)
 	(not (enemy-buildings-in-town))
 	(up-compare-goal gl-local-total > 0)

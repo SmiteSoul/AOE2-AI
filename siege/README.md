@@ -71,6 +71,29 @@ Todos en `siege/const.per` y `siege/init.per`:
   `ts-step`.
 - Mas defensivo: sube `sn-number-defend-groups` en `init.per`.
 
+## Micromanejo (importado de patrones de The General / corpus)
+
+Implementado en `combat.per` + `init.per`:
+
+- **Oleadas escalonadas**: grupos de 2-12 unidades (`sn-minimum/maximum-
+  attack-group-size`) en vez de un bloque unico; `sn-group-form-distance 30`
+  para que las tropas no se queden reagrupando sin usar.
+- **Recogida de tropas de escenario**: `sn-task-ungrouped-soldiers 1`,
+  `sn-allow-civilian-defense 1`, `sn-consecutive-idle-unit-limit 1`.
+- **Roles**: en la fase de brecha, los arietes solo buscan `wall-class` y
+  `gate-class`; los **piqueros escoltan los arietes** y los **arqueros
+  protegen la bateria** (accion `action-guard`); al abrirse el paso, los
+  arqueros pasan a fuego concentrado con `formation-stagger`.
+- **Conciencia de brecha / pathfinding**: patron de The General
+  (`up-set-target-object` + `up-path-distance`; 65535 = sin camino). Si hay
+  camino corto hasta la base enemiga, `gl-target-walls` -> 0 y **se deja de
+  tumbar puertas irrelevantes**; ademas la fase de brecha tiene time-box de
+  75s (`t-walls`) por si el pathfinding falla.
+
+Pendiente de prueba en partida (se confirmara o se ajustara): el comportamiento
+de `action-guard` con listas de objetos (enum documentado de UserPatchConst,
+pero sin usos en el corpus de referencia) y `up-get-point position-enemy`.
+
 ## Orden de carga (importante para los timers)
 
 `siege.per` carga los modulos en orden y **al final** rearma `t-eco` y
