@@ -4,10 +4,10 @@ Este repositorio contiene una colección de scripts de Inteligencia Artificial (
 
 ## 📂 Estructura del Repositorio
 
-- **`/semiUtils/`**: Contendrá la IA generalista `semiUtils.per` y sus módulos. *(en preparación)*
-    - `semiUtils.per`: Archivo principal que carga todos los módulos.
-    - `semiUtils-*.per`: Módulos especializados (const, init, eco, build, train, combat, etc.).
-- **`/forty/`**: Contendrá la IA `forty.per`, una versión mejorada de una IA defensiva existente. *(en preparación)*
+- **`agent.md`**: **Protocolo de trabajo del agente (LEER PRIMERO)** — reglas permanentes: nada se salta, todo se documenta, se revisa y se evalúa; lo que no se sabe se investiga (foros/fuentes) o se pregunta. Incluye el registro vivo de lecciones.
+- **`/semiUtils/`**: IA generalista `semiutils.per` (1549 líneas) con director de modos y timers. Ver [`semiUtils/README.md`](semiUtils/README.md).
+    - `semiutils.per`: Archivo principal autocontenido (const/init/eco/build/combat).
+- **`/forty/`**: **`forty`**, la ciudad-fortaleza medieval unificada (un solo `forty.ai`/`forty.per`): fases de ciudad, murallas de doble perímetro, director de modos, micro DUC. Ver [`forty/README.md`](forty/README.md) y [`docs/06_Forty_Feudo.md`](docs/06_Forty_Feudo.md).
 - **`/siege/`**: **`siege`**, IA de asedio pura ya implementada (arietes cargados, brechas, TSA, evaluación de objetivos). Ver [`siege/README.md`](siege/README.md).
 - **`/tools/`**: Herramientas de validación — `lint_siege.py` (auditoría posicional de identificadores, aridad y límites de regla contra el corpus de referencia).
 - **`/docs/`**: Documentación quirúrgica — hechos del motor 100% confirmados, prevención de errores, pipeline para agentes de IA y arquitectura de las IAs de referencia. Ver [`docs/README.md`](docs/README.md).

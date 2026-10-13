@@ -4,6 +4,10 @@ Documentación quirúrgica del proyecto: qué está **100% confirmado** del moto
 cómo prevenir errores **antes** de que ocurran, cómo deben trabajar los agentes
 de IA en este código, y cómo están construidas las IAs de referencia.
 
+> **Protocolo vinculante del agente:** [`../agent.md`](../agent.md) —
+> nada se salta; todo se documenta, se revisa y se evalúa; lo que no se
+> sabe se investiga (foros/fuentes) o se pregunta.
+
 | Documento | Qué contiene | Cuándo usarlo |
 |---|---|---|
 | [`01_Hechos_Del_Motor.md`](01_Hechos_Del_Motor.md) | Base de hechos del motor con **etiqueta de procedencia** (CPSB / RUNTIME / CORPUS / FORO). | Antes de escribir cualquier código: no afirmar nada que no esté aquí o en el CPSB. |
