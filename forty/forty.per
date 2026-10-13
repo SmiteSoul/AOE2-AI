@@ -945,6 +945,16 @@
 	(build castle)
 	(up-assign-builders c: castle c: 4)
 )
+; --- doctrina eco-expand: segundo centro urbano (patron corpus: can-build 40x)
+(defrule
+	(goal gl-city cty-plaza)
+	(current-age >= castle-age)
+	(building-type-count-total town-center < 2)
+	(can-build town-center)
+=>
+	(build town-center)
+	(up-assign-builders c: town-center-foundation c: 4)
+)
 (defrule
 	(goal gl-city cty-plaza)
 	(can-build siege-workshop)
@@ -952,12 +962,34 @@
 =>
 	(build siege-workshop)
 )
+; --- distrito militar ampliado (cuarteles/gremios de la plaza)
+(defrule
+	(goal gl-city cty-plaza)
+	(can-build barracks)
+	(building-type-count-total barracks < 3)
+=>
+	(build barracks)
+)
+(defrule
+	(goal gl-city cty-plaza)
+	(can-build archery-range)
+	(building-type-count-total archery-range < 3)
+=>
+	(build archery-range)
+)
 (defrule
 	(goal gl-city cty-plaza)
 	(can-build stable)
-	(building-type-count-total stable < 1)
+	(building-type-count-total stable < 2)
 =>
 	(build stable)
+)
+(defrule
+	(goal gl-city cty-plaza)
+	(can-build monastery)
+	(building-type-count-total monastery < 2)
+=>
+	(build monastery)
 )
 (defrule
 	(goal gl-city cty-plaza)
@@ -965,6 +997,15 @@
 	(building-type-count-total university < 1)
 =>
 	(build university)
+)
+; --- torres de bombardas en Imperial (corpus: can-build 18x)
+(defrule
+	(goal gl-city cty-plaza)
+	(current-age >= imperial-age)
+	(can-build bombard-tower)
+	(building-type-count-total bombard-tower < 4)
+=>
+	(build bombard-tower)
 )
 ; Ampliacion: mas torres y casas crecen con la plaza
 (defrule
@@ -1239,6 +1280,58 @@
 	(timer-triggered t-director)
 =>
 	(set-strategic-number sn-number-defend-groups 2)
+)
+
+; =====================================================================
+; DEFENSA COORDINADA (UserPatch: up-retreat-now / up-gather-inside)
+; Refugio de guarnicion, retirada al centro y punteria del asedio.
+; =====================================================================
+; La guarnicion se refugia en castillo, centro y torres mientras atacan
+; (up-gather-inside: los edificios de ese tipo retienen unidades [UP-docs]
+; y el corpus lo usa 87x)
+(defrule
+	(timer-triggered t-director)
+	(goal gl-mode m-defend)
+	(town-under-attack)
+=>
+	(up-gather-inside c: town-center c: 1)
+	(up-gather-inside c: castle c: 1)
+	(up-gather-inside c: watch-tower c: 1)
+)
+; Calmada la tormenta, la guarnicion vuelve a salir
+(defrule
+	(timer-triggered t-director)
+	(goal gl-mode m-grow)
+	(not (town-under-attack))
+=>
+	(up-gather-inside c: town-center c: 0)
+	(up-gather-inside c: castle c: 0)
+	(up-gather-inside c: watch-tower c: 0)
+)
+; Retirada al centro urbano si nos superan (patron corpus 22x: se retira
+; con ejercito escaso; up-retreat-now = "retreat all military to the
+; home town center" [UP-docs])
+(defrule
+	(goal gl-mode m-defend)
+	(town-under-attack)
+	(military-population < 12)
+=>
+	(up-retreat-now)
+)
+; Punteria del asedio por modo (Barbarian documenta el SN con comentarios:
+; default = "Trebs shoot only buildings", treb-value = "Trebs shoot units"
+; [CORPUS: Barbarian.per]). Asalto: solo edificios. Defensa: libre.
+(defrule
+	(timer-triggered t-director)
+	(goal gl-mode m-attack)
+=>
+	(set-strategic-number sn-free-siege-targeting 0)
+)
+(defrule
+	(timer-triggered t-director)
+	(goal gl-mode m-defend)
+=>
+	(set-strategic-number sn-free-siege-targeting 1)
 )
 
 ; =====================================================================

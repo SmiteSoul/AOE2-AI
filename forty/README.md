@@ -13,7 +13,7 @@ ciudades o pueblos**, y de **gestionarse y organizarse**: FORTY.
 
 | Archivo | Contenido |
 |---|---|
-| `forty.ai` + `forty.per` | **La IA** (1334 líneas): director de modos + fases de ciudad, economía del feudo, construcción por fases (aldea → villa → muralla → plaza), investigación rápida, milicia, defensa con aldeanos, asalto con oleadas + TSA + micro DUC (fuego concentrado, asedio a edificios), mercado. |
+| `forty.ai` + `forty.per` | **La IA** (1531 líneas): director de modos + fases de ciudad, economía del feudo, construcción por fases (aldea → villa → muralla → plaza), investigación rápida, milicia, defensa coordinada (guarniciones con `up-gather-inside`, retirada con `up-retreat-now`), asalto con oleadas + TSA + micro DUC (fuego concentrado, asedio a edificios), mercado. |
 | `legacy/forty-v1.per/.ai` | La primera identidad ("El Reino Fortificado", `gl-mode`), preservada. |
 | `legacy/fortyV2.per/.ai` | Los 6217 líneas de la rama mecánica (incl. módulo `feudalAgeDynamic`), preservadas como referencia. |
 | `legacy/fortyV2-included.per` | `fortyV2` + constantes UP (copia monolito para probar V2 tal cual). |

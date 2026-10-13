@@ -151,6 +151,9 @@ POS_BASE = {k: re.sub(r'-(action|form|stance|od)$', '', k) for k in POS}
 
 # aridad en TOKENS (los prefijos c:/g:/s: cuentan como token propio)
 SCHEMA = {
+    # --- defensa coordinada (UP-docs + corpus: up-retreat-now 22x, up-gather-inside 87x) ---
+    'up-retreat-now': 0,
+    'up-gather-inside': 4,
     # --- sistema de murallas (forty v1/v2 + corpus: build-wall 11x, build-gate 6x) ---
     'enable-wall-placement': 1,
     'can-build-wall': 2,

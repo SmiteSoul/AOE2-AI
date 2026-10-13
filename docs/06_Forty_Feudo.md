@@ -101,8 +101,11 @@ tipo. Corregido aquí y en el código.)*
      empalizada→piedra exterior + piedra interior, ver §1) + hasta 6
      `watch-tower` con cuadrilla de 3 + densificación de casas a 30
      (el anillo burgage);
-   - **plaza**: 2 `castle` con cuadrilla de 4 + `siege-workshop` +
-     `stable` + `university` + torres a 10 + casas a 42.
+   - **plaza**: 2 `castle` con cuadrilla de 4 + **2º `town-center`**
+     (doctrina eco-expand) + `siege-workshop` ×2 + distrito militar
+     ampliado (`barracks` ×3, `archery-range` ×3, `stable` ×2,
+     `monastery` ×2, `university`) + `bombard-tower` ×4 en Imperial +
+     torres a 10 + casas a 42.
 6. **Murallas: doble perímetro** (herencia forty v1/v2, ver §1):
    `enable-wall-placement 1/2`; perímetro exterior de **empalizada** en
    Feudal → **piedra** en Castillo; perímetro interior de piedra desde
@@ -118,7 +121,14 @@ tipo. Corregido aquí y en el código.)*
    `[CPSB][CORPUS: 56×/114× en el corpus]`.
 8. **Milicia** — piqueros (35), arqueros (45), hostigadores (15), unidad única del señor (20), arietes (6), trabucos (4).
 9. **Defensa** — `sn-number-defend-groups` por modo (6 defendiendo,
-   3 creciendo, 2 asaltando).
+   3 creciendo, 2 asaltando) + **defensa coordinada de UserPatch**:
+   la guarnición se refugia en TC/castillo/torres con
+   `up-gather-inside` mientras atacan y sale al calmarse;
+   `up-retreat-now` (retirada al centro) si el ejército < 12 con la
+   ciudad atacada; puntería del asedio por modo con
+   `sn-free-siege-targeting` (asalto: solo edificios; defensa: los
+   trabucos disparan unidades — valores documentados por Barbarian
+   `[CORPUS]`, SN clásico 282).
 10. **Asalto organizado** — oleada con `sn-number-attack-groups 200`,
    `attack-now`, TSA progresiva (`sn-maximum-town-size +10` cada `t-push`
    hasta 180) y repliegue a defensa si atacan nuestra ciudad.
@@ -140,7 +150,7 @@ tipo. Corregido aquí y en el código.)*
 | `cty-aldea` | edad ≥ Feudal | casas, granja, molino, campamentos |
 | `cty-villa` | edad ≥ Castillo + 22 casas | market, blacksmith, barracks, archery-range, monastery |
 | `cty-muralla` | castillo + 2 torres | torres ×6, casas a 30, murallas de piedra (perímetros 1 y 2) |
-| `cty-plaza` | — (estado final) | castillo ×2, siege-workshop, stable, university, torres ×10, casas a 42 |
+| `cty-plaza` | — (estado final) | castillo ×2, 2º TC, siege-workshop ×2, cuarteles/gremios ampliados, bombard-tower ×4 (Imperial), torres ×10, casas ×42 |
 
 ---
 
@@ -160,17 +170,56 @@ motor, tal como analizamos en `docs/05`.
 ## 4. Verificación y prueba
 
 - **Lint**: `python3 tools/lint_siege.py . forty` → OK sin errores
-  (mismo motor que validó siege; ahora parametrizado por proyecto).
+  (mismo motor que validó siege; parametrizado por proyecto).
   Regresión siege: `python3 tools/lint_siege.py . siege` → OK.
-- **Prueba funcional (la del usuario)**: forty vs forty en DE. Criterios
-  observables: ambas IAs pasan de aldea a villa, levantan plaza con
-  market/blacksmith, se amurallan con torres y casas, llegan al castillo,
-  y se atacan con oleadas escalonadas y arietes que van a por edificios.
-- **Paso 2 pendiente** (mejoras iterativas, documentadas): defensa
-  coordinada con `up-retreat-now`/`up-gather-inside`/`up-loop`,
-  `sn-free-siege-targeting`, más doctrinas de plaza, unidades de élite
-  (`ri-elite-cavalier`...), y ajuste de tiempos según las partidas de
-  prueba.
+
+### 4.1. Plan de prueba: forty vs forty `[RUNTIME-pendiente: el agente no
+puede ejecutar el juego aquí; la partida la corre el usuario]`
+
+**Configuración**: DE (o AoC+UP1.5), 1v1, Random Map (Arabia u
+ocasionalmente Arena/BF para ver las murallas cerras), recursos
+normales, victoria estándar.
+
+**Criterios observables (checklist de la partida):**
+
+| # | Momento | Qué debe verse |
+|---|---|---|
+| 1 | 0-10 min | Chat "el feudo despierta"; aldeanos a 25, granjas+campamentos, molino |
+| 2 | ~min 12-16 | Edad Feudal → chat "la aldea se convierte en villa"; market+blacksmith+cuarteles; **empalizada del perímetro 1 con puertas** |
+| 3 | ~min 20-28 | Edad de los Castillos; casas ≥22 → chat "la villa se amurallara"; **piedra reemplaza la empalizada; nace el perímetro 2**; torres |
+| 4 | Cuando hay castillo + 2 torres | Chat "la plaza fuerte esta en pie"; castillo, 2º TC, taller de asedio |
+| 5 | Ejército ≥35 o trabuco | Oleada: grupos de 2-12 avanzan con TSA; arietes van a castillo/TC/torres; arqueros con fuego concentrado |
+| 6 | Atacan la ciudad | Chat de defensa; guarnición dentro de TC/castillo/torres; retirada al centro si el ejército < 12; trabucos disparan a unidades |
+| 7 | Ambas murallas ≥100% | Constructores vuelven a la economía; `ri-fortified-wall` en Imperial |
+
+### 4.2. Tabla de tiempos y umbrales (para ajuste según partidas)
+
+| Parámetro | Valor actual | Dónde | Cómo ajustarla |
+|---|---|---|---|
+| `t-director` | 2 s inicial, luego 10 s | rearme al final | Si los modos tardan en reaccionar: bajar a 5-6 s |
+| `t-micro` | 3 s | rearme al final | Si el micro es tosco: 2 s (coste de CPU) |
+| `t-push` (TSA) | 8 s (+10 town-size) | oleada | Avance muy lento → 6 s; muy precipitado → 12 s |
+| `t-eco` | 20 s | mercado+reparto | Inerte → 15 s |
+| Edades (aldeanos) | 25 / 32 / 75 | investigación | Fast feudal → 22/28; boom → 28/36/85 |
+| Oleada: entrada / salida | ejército ≥35 o trabuco / <15 o ataque a la ciudad | director | Más agresivo → 28/12; más conservador → 45/20 |
+| Retirada (`up-retreat-now`) | ejército < 12 en defensa | defensa coordinada | Más valiente → 8; más cauto → 16 |
+| Puertas del perímetro 1 | muralla > 15 % | murallas | Si las puertas salen pronto/tarde: 10-25 % |
+| Inicio perímetro 2 | exterior > 45 % | murallas | Interior más temprano → 35 % |
+| Límites de tropas | 35 piqueros / 45 arqueros / 15 hostigadores / 20 UU / 6 arietes / 4 trabucos | milicia | Según composición que venza en tus partidas |
+
+**Procedimiento de ajuste**: cambiar UN parámetro por partida, anotar el
+resultado en esta tabla (columna "resultado"), y confirmar. Desarrollo
+medido: cada ajuste es un commit pequeño con la evidencia de la partida.
+
+### 4.3. Paso 2 — estado
+
+| Ítem | Estado | Evidencia |
+|---|---|---|
+| Defensa coordinada (`up-retreat-now` / `up-gather-inside`) | **Hecho** | corpus 22×/87× + semántica oficial UP-docs |
+| `up-loop` | **No existe** — excluido | 0 en corpus, ausente en la lista oficial de UserPatch y en el catálogo; la enumeración real usa `up-jump-rule` (no necesaria aquí). Regla `agent.md` §2.2 aplicada |
+| `sn-free-siege-targeting` | **Hecho** | SN clásico 282; semántica documentada por Barbarian `[CORPUS]` |
+| Más doctrinas de plaza | **Hecho (fase 1)** | 2º TC, distrito militar, bombard-towers; **pendiente**: doctrina front-creep (avanzar siege-workshops), unidades de élite (`ri-elite-cavalier`...) |
+| Ajuste de tiempos según partidas | **Tabla lista §4.2** | requiere las partidas forty vs forty del usuario |
 
 ## 5. Instalación
 
