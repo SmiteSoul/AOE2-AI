@@ -35,10 +35,17 @@ import os
 from collections import defaultdict
 
 ROOT = sys.argv[1] if len(sys.argv) > 1 else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROJ = sys.argv[2] if len(sys.argv) > 2 else 'siege'
 
 REF = glob.glob(os.path.join(ROOT, 'reference/ais/**/*.per'), recursive=True)
-SIEGE = [f for f in sorted(glob.glob(os.path.join(ROOT, 'siege/siege/*.per')))
-         if 'UserPatchConst' not in f] + [os.path.join(ROOT, 'siege/siege.per')]
+# Uso: python3 tools/lint_siege.py [raiz] [proyecto]
+#   proyecto 'siege' (por defecto): paquete siege/siege/*.per + siege/siege.per
+#   proyecto 'forty': forty/forty.per (unico archivo autocontenido)
+if PROJ == 'forty':
+    SIEGE = [os.path.join(ROOT, 'forty', 'forty.per')]
+else:
+    SIEGE = [f for f in sorted(glob.glob(os.path.join(ROOT, 'siege/siege/*.per')))
+             if 'UserPatchConst' not in f] + [os.path.join(ROOT, 'siege/siege.per')]
 UPC_PATH = os.path.join(ROOT, 'siege/siege/UserPatchConst.per')
 CPSB_TXT = '/tmp/cpsb.txt'  # opcional: texto extraido de reference/CPSB.pdf
 
@@ -306,7 +313,10 @@ def main():
                 if NUM_RE.match(v) or v in defconsts or v in upc_names:
                     continue
                 if base in ('research', 'can-research', 'can-research-with-escrow', 'research-completed'):
-                    if v in ri_ok or v in AGES:
+                    # my-unique-*: constantes de sistema CPSB, verificadas en corpus
+                    # ((research my-unique-research) 114x, (research my-unique-unit-upgrade) 56x)
+                    SYSTEM_RESEARCH = {'my-unique-research', 'my-unique-unit-upgrade'}
+                    if v in ri_ok or v in AGES or v in SYSTEM_RESEARCH:
                         continue
                     errors.append(f"{f}: ({base} {v}) no es ri-* ni edad valida")
                     continue

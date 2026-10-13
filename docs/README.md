@@ -11,6 +11,7 @@ de IA en este código, y cómo están construidas las IAs de referencia.
 | [`03_Pipeline_Agentes_IA.md`](03_Pipeline_Agentes_IA.md) | Pipeline de implementación paso a paso + skills/herramientas del agente. | Siempre que se cree o modifique una IA. |
 | [`04_Auditoria_Multiagente.md`](04_Auditoria_Multiagente.md) | Informe del panel de auditoría multiagente (5 agentes especializados, triage y patrones validados). | Tras cada auditoría completa o cambio grande. |
 | [`05_Unificacion_Forty.md`](05_Unificacion_Forty.md) | Análisis de forty/fortyV2/semiUtils y blueprint de unificación (núcleo director + doctrinas de construcción + reino fortificado). | Al trabajar en forty o semiUtils. |
+| [`06_Forty_Feudo.md`](06_Forty_Feudo.md) | Diseño de la ciudad-fortaleza medieval (feudo → muralla → plaza fuerte) y su traducción a `.per`; investigación histórica + estructura del `forty.per` unificado. | Para entender o extender la IA forty. |
 | [`referencia/`](referencia/README.md) | Arquitectura de Barbarian, The General, The Horde y Kaia: cómo se construyen y conectan. | Al diseñar módulos nuevos o investigar patrones. |
 
 Documentos relacionados en la raíz:
