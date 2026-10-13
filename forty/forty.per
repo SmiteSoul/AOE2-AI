@@ -653,12 +653,12 @@
 (defconst gl-wave 12)             ; 0 = sin oleada, 1 = oleada de asalto
 (defconst gl-first-chat 13)       ; chat de presentacion
 (defconst gl-temp 14)             ; temporal DUC
-(defconst gl-pt1 20)              ; punto DUC (x,y) = goals 20-21
-(defconst gl-pt1-y 21)
-(defconst gl-local-total 30)      ; estado de busqueda DUC
-(defconst gl-local-last 31)
-(defconst gl-remote-total 32)
-(defconst gl-remote-last 33)
+(defconst gl-pt1 100)             ; punto DUC extendido (x,y) = goals 100-101
+(defconst gl-pt1-y 101)
+(defconst gl-local-total 102)     ; up-get-search-state escribe goals 102-105
+(defconst gl-local-last 103)
+(defconst gl-remote-total 104)
+(defconst gl-remote-last 105)
 
 ; ---------- Valores del director ----------
 (defconst m-grow 0)               ; gestionar y crecer el feudo
@@ -687,6 +687,10 @@
 (defrule
 	(true)
 =>
+	(set-goal gl-mode m-grow)
+	(set-goal gl-city cty-aldea)
+	(set-goal gl-wave 0)
+	(set-goal gl-first-chat 0)
 	(set-strategic-number sn-initial-exploration-required 0)
 	(set-strategic-number sn-defer-dropsite-update 1)
 	(set-strategic-number sn-cap-civilian-builders 30)
@@ -811,11 +815,10 @@
 (defrule
 	(timer-triggered t-director)
 	(goal gl-city cty-muralla)
-	(building-type-count castle > 0)
 	(building-type-count-total watch-tower >= plaza-towers)
 =>
 	(set-goal gl-city cty-plaza)
-	(chat-to-all "FORTY: la plaza fuerte esta en pie.")
+	(chat-to-all "FORTY: comienza la construccion de la plaza fuerte.")
 )
 
 ; =====================================================================
@@ -1382,7 +1385,7 @@
 	(or	(unit-type-count archer-line > 3)
 		(unit-type-count skirmisher-line > 3))
 =>
-	(up-get-player-fact this-any-enemy player-number 0 gl-temp)
+	(up-find-player enemy find-closest gl-temp)
 	(up-modify-sn sn-focus-player-number g:= gl-temp)
 	(up-full-reset-search)
 	(up-find-local c: archer-line c: 20)
@@ -1407,7 +1410,7 @@
 	(timer-triggered t-micro)
 	(unit-type-count battering-ram-line > 0)
 =>
-	(up-get-player-fact this-any-enemy player-number 0 gl-temp)
+	(up-find-player enemy find-closest gl-temp)
 	(up-modify-sn sn-focus-player-number g:= gl-temp)
 	(up-full-reset-search)
 	(up-find-local c: battering-ram-line c: 2)

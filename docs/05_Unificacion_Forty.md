@@ -1,6 +1,11 @@
-# 05 — Unificación de forty / fortyV2 (análisis y blueprint)
+# 05 — Unificación de forty / fortyV2 (análisis y blueprint histórico)
 
-Fecha: 2026-10-12. Alcance: `forty/forty.per` (1.758 líneas), `forty/fortyV2.per`
+> **Estado:** este documento conserva la medición y la propuesta previas a la
+> implementación. El resultado eligió un monolito autocontenido, no el árbol
+> `src/` propuesto abajo. La arquitectura vigente está en [`docs/06`](06_Forty_Feudo.md)
+> y la auditoría posterior en [`docs/07`](07_Investigacion_AoC_UP15_y_Auditoria.md#83-forty).
+
+Fecha: 2026-10-12. Alcance histórico: `forty/forty.per` (1.758 líneas), `forty/fortyV2.per`
 (6.217 líneas), `semiUtils/semiutils.per` (1.549 líneas) — los tres subidos al
 repo. Objetivo declarado por la autora del proyecto:
 
@@ -80,9 +85,10 @@ diplomacia) y puede **compartir `core.per`** con forty (mismo director).
 - No copiar identificadores entre los tres ficheros sin verificar resolución
   (misma regla de oro que enseñó `aggressive` en siege).
 
-## 6. Siguiente paso inmediato
+## 6. Resultado posterior
 
-F1: partir `fortyV2.per` en `forty/src/` con el mismo patrón de módulos que
-siege (const/init/eco/build/train/combat + doctrine), ejecutando el lint en
-cada paso. La estructura de load de V2 ya existe (carga `UserPatchConst`);
-el resto es trasladar bloques sin tocar lógica.
+La implementación unificada se realizó como `forty/forty.per` autocontenido
+(1534 líneas y 101 reglas a 2026-10-13 `[REPO]`), manteniendo `fortyV2` en
+`legacy/` en vez de ejecutar F1. El blueprint modular queda como alternativa
+histórica; no es el siguiente paso vigente. Las correcciones y la prueba pendiente están en
+[`docs/07` §§8.3 y 11.2](07_Investigacion_AoC_UP15_y_Auditoria.md).

@@ -55,6 +55,7 @@
     (set-goal gl-personality p-conquistador)
     (set-goal gl-mode m-boom)
     (set-goal gl-diplo d-neutral)
+    (enable-wall-placement 1)
     (enable-timer t-director 20)
     (enable-timer t-pulse 15)
     (enable-timer t-diplo 30)
@@ -782,7 +783,7 @@
     (soldier-count >= 16)
 =>
     (set-goal gl-mode m-all-in)
-    (chat-to-all "Conquistador: se acabo la contencion. ¡Asalto total!")
+    (chat-to-all "Conquistador: se acabo la contencion. Asalto total!")
 )
 
 ; 150/200 pop
@@ -794,7 +795,7 @@
     (soldier-count >= 24)
 =>
     (set-goal gl-mode m-all-in)
-    (chat-to-all "Conquistador: se acabo la contencion. ¡Asalto total!")
+    (chat-to-all "Conquistador: se acabo la contencion. Asalto total!")
 )
 
 ; Configuracion real del all-in
@@ -859,37 +860,6 @@
     (can-buy-commodity wood)
 =>
     (buy-commodity wood)
-)
-
-; ==========================================================
-; EDIFICIOS MILITARES EXTRA EN ALL-IN
-; ==========================================================
-
-(defrule
-    (goal gl-mode m-all-in)
-    (current-age >= castle-age)
-    (building-type-count-total barracks < 2)
-    (can-build barracks)
-=>
-    (build barracks)
-)
-
-(defrule
-    (goal gl-mode m-all-in)
-    (current-age >= castle-age)
-    (building-type-count-total stable < 4)
-    (can-build stable)
-=>
-    (build stable)
-)
-
-(defrule
-    (goal gl-mode m-all-in)
-    (current-age >= imperial-age)
-    (building-type-count-total siege-workshop < 2)
-    (can-build siege-workshop)
-=>
-    (build siege-workshop)
 )
 
 ; ==========================================================
@@ -1177,7 +1147,6 @@
 
 (defrule
     (players-stance any-computer enemy)
-    (not (stance-toward this-any-computer enemy))
 =>
     (set-stance this-any-computer enemy)
     (set-goal gl-diplo d-war)
@@ -1186,7 +1155,6 @@
 
 (defrule
     (players-stance any-human enemy)
-    (not (stance-toward this-any-human enemy))
 =>
     (set-stance this-any-human enemy)
     (set-goal gl-diplo d-war)
@@ -1205,12 +1173,9 @@
     (game-time > 600)
     (not (players-stance any-ally ally)) ; Solo si no tenemos aliado ya
     (player-in-game any-computer-neutral)
-    (stance-toward this-any-computer-neutral neutral)
 =>
     (chat-to-all "Estoy buscando un aliado para gobernar estas tierras...")
     (chat-to-player this-any-computer-neutral "201")
-    (disable-timer t-diplo)
-    (enable-timer t-diplo 45)
 )
 
 ; ==========================================================
@@ -1220,7 +1185,6 @@
 
 (defrule
     (taunt-detected any-computer 201)
-    (stance-toward this-any-computer neutral)
     (not (players-stance any-ally ally))
 =>
     (acknowledge-taunt this-any-computer 201)
@@ -1237,10 +1201,9 @@
 
 (defrule
     (taunt-detected any-computer 204)
-    (stance-toward this-any-computer neutral)
 =>
     (acknowledge-taunt this-any-computer 204)
-    (chat-to-all "¡Excelente! El pacto de sangre esta sellado.")
+    (chat-to-all "Excelente! El pacto de sangre esta sellado.")
     (set-stance this-any-computer ally)
     (set-goal gl-diplo d-allied)
 )
@@ -1256,19 +1219,15 @@
     (current-age >= imperial-age)
     (soldier-count >= 25)
     (player-in-game any-ally)
-    (stance-toward this-any-ally ally)
 =>
     (chat-to-all "Las alianzas son efimeras. Nuestro pacto termina aqui. Volvemos a ser neutrales.")
     (chat-to-player this-any-ally "202")
     (set-stance this-any-ally neutral)
     (set-goal gl-diplo d-neutral)
-    (disable-timer t-diplo)
-    (enable-timer t-diplo 30)
 )
 
 (defrule
     (taunt-detected any-computer 202)
-    (stance-toward this-any-computer ally)
 =>
     (acknowledge-taunt this-any-computer 202)
     (chat-to-all "Asi que rompes nuestra alianza... Muy bien, somos neutrales de nuevo.")
@@ -1287,23 +1246,19 @@
     (current-age >= castle-age)
     (game-time > 1800)
     (player-in-game any-computer-neutral)
-    (stance-toward this-any-computer-neutral neutral)
 =>
-    (chat-to-all "¡La paz es una ilusion! ¡He decidido declarar la guerra!")
+    (chat-to-all "La paz es una ilusion! He decidido declarar la guerra!")
     (chat-to-player this-any-computer-neutral "203")
     (set-stance this-any-computer-neutral enemy)
     (set-goal gl-diplo d-war)
     (set-goal gl-mode m-attack)
-    (disable-timer t-diplo)
-    (enable-timer t-diplo 30)
 )
 
 (defrule
     (taunt-detected any-computer 203)
-    (not (stance-toward this-any-computer enemy))
 =>
     (acknowledge-taunt this-any-computer 203)
-    (chat-to-all "¡Acepto el desafio! ¡No tendre piedad en la batalla!")
+    (chat-to-all "Acepto el desafio! No tendre piedad en la batalla!")
     (set-stance this-any-computer enemy)
     (set-goal gl-diplo d-war)
     (set-goal gl-mode m-attack)
@@ -1316,7 +1271,6 @@
 ; Si el humano propone alianza (201) y somos neutrales
 (defrule
     (taunt-detected any-human 201)
-    (stance-toward this-any-human neutral)
     (not (players-stance any-ally ally))
 =>
     (acknowledge-taunt this-any-human 201)
@@ -1328,7 +1282,6 @@
 ; Si el humano rompe la alianza (202)
 (defrule
     (taunt-detected any-human 202)
-    (stance-toward this-any-human ally)
 =>
     (acknowledge-taunt this-any-human 202)
     (chat-to-all "El humano ha roto la alianza. Ahora somos neutrales.")
@@ -1339,10 +1292,9 @@
 ; Si el humano declara guerra (203)
 (defrule
     (taunt-detected any-human 203)
-    (not (stance-toward this-any-human enemy))
 =>
     (acknowledge-taunt this-any-human 203)
-    (chat-to-all "¡El humano eligio la guerra! ¡Destruyanlo!")
+    (chat-to-all "El humano eligio la guerra! Destruyanlo!")
     (set-stance this-any-human enemy)
     (set-goal gl-diplo d-war)
     (set-goal gl-mode m-attack)
@@ -1384,8 +1336,6 @@
 =>
     (set-goal gl-mode m-defend)
     (set-strategic-number sn-percent-attack-soldiers 60)
-    (disable-timer t-director)
-    (enable-timer t-director 15)
 )
 
 ; Ataque normal en Castillo - 75 pop
@@ -1400,8 +1350,6 @@
     (set-goal gl-mode m-attack)
     (set-strategic-number sn-percent-attack-soldiers 85)
     (attack-now)
-    (disable-timer t-director)
-    (enable-timer t-director 15)
 )
 
 ; Ataque normal en Castillo - 100 pop
@@ -1417,8 +1365,6 @@
     (set-goal gl-mode m-attack)
     (set-strategic-number sn-percent-attack-soldiers 85)
     (attack-now)
-    (disable-timer t-director)
-    (enable-timer t-director 15)
 )
 
 ; Ataque normal en Castillo - 150/200 pop
@@ -1433,8 +1379,6 @@
     (set-goal gl-mode m-attack)
     (set-strategic-number sn-percent-attack-soldiers 85)
     (attack-now)
-    (disable-timer t-director)
-    (enable-timer t-director 15)
 )
 
 ; Ataque normal en Imperial - 75/100 pop
@@ -1449,8 +1393,6 @@
     (set-goal gl-mode m-attack)
     (set-strategic-number sn-percent-attack-soldiers 90)
     (attack-now)
-    (disable-timer t-director)
-    (enable-timer t-director 12)
 )
 
 ; Ataque normal en Imperial - 150/200 pop
@@ -1465,19 +1407,16 @@
     (set-goal gl-mode m-attack)
     (set-strategic-number sn-percent-attack-soldiers 90)
     (attack-now)
-    (disable-timer t-director)
-    (enable-timer t-director 12)
 )
 
 (defrule
     (timer-triggered t-director)
     (not (goal gl-mode m-all-in))
+    (not (town-under-attack))
     (soldier-count < 8)
 =>
     (set-goal gl-mode m-boom)
     (set-strategic-number sn-percent-attack-soldiers 60)
-    (disable-timer t-director)
-    (enable-timer t-director 15)
 )
 
 (defrule
@@ -1496,10 +1435,17 @@
     (attack-now)
 )
 
+; Rearme al final: todos los consumidores de t-director ya se evaluaron.
 (defrule
     (timer-triggered t-director)
+    (current-age == imperial-age)
 =>
-    (disable-timer t-director)
+    (enable-timer t-director 12)
+)
+(defrule
+    (timer-triggered t-director)
+    (not (current-age == imperial-age))
+=>
     (enable-timer t-director 15)
 )
 
@@ -1516,8 +1462,6 @@
     (defend-soldier-count >= 2)
 =>
     (attack-now)
-    (disable-timer t-pulse)
-    (enable-timer t-pulse 12)
 )
 
 (defrule
@@ -1526,14 +1470,19 @@
     (defend-soldier-count >= 1)
 =>
     (attack-now)
-    (disable-timer t-pulse)
-    (enable-timer t-pulse 8)
 )
 
+; Rearme al final: frecuencia distinta para all-in y resto de modos.
 (defrule
     (timer-triggered t-pulse)
+    (goal gl-mode m-all-in)
 =>
-    (disable-timer t-pulse)
+    (enable-timer t-pulse 8)
+)
+(defrule
+    (timer-triggered t-pulse)
+    (not (goal gl-mode m-all-in))
+=>
     (enable-timer t-pulse 12)
 )
 
@@ -1541,9 +1490,22 @@
 ; MANTENER TIMER DE DIPLOMACIA
 ; ==========================================================
 
+; Rearme al final: el estado neutral espera mas antes del siguiente intento.
 (defrule
     (timer-triggered t-diplo)
+    (goal gl-diplo d-neutral)
 =>
-    (disable-timer t-diplo)
+    (enable-timer t-diplo 45)
+)
+(defrule
+    (timer-triggered t-diplo)
+    (goal gl-diplo d-allied)
+=>
+    (enable-timer t-diplo 30)
+)
+(defrule
+    (timer-triggered t-diplo)
+    (goal gl-diplo d-war)
+=>
     (enable-timer t-diplo 30)
 )

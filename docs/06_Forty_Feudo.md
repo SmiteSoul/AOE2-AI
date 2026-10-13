@@ -1,11 +1,12 @@
 # Diseño de FORTY: la ciudad-fortaleza como feudo medieval
 
-> **Tarea 8 (Paso 1).** Diseño del `forty.per` unificado a partir de la
-> investigación de asentamientos medievales (feudos, villas, plazas
-> fuertes). Etiquetas de procedencia de TODA afirmación: `[CPSB]`,
-> `[CORPUS]`, `[RUNTIME]`, `[FORO]`, `[FOLKLORE]`, `[INVESTIGACION]`
-> (historia medieval). El código implementado usa únicamente
-> identificadores verificables.
+> Diseño e implementación del `forty.per` unificado a partir de la
+> investigación de asentamientos medievales (feudos, villas, plazas fuertes).
+> **Actualizado tras la auditoría de 2026-10-13:** el lint pasa, pero la versión
+> corregida aún requiere prueba completa en AoC 1.0c + UP 1.5. Véase
+> [`docs/07`](07_Investigacion_AoC_UP15_y_Auditoria.md#83-forty). Etiquetas:
+> `[CPSB]`, `[UP]`, `[CORPUS]`, `[RUNTIME]`, `[FORO]`, `[FOLKLORE]`,
+> `[INVESTIGACION]` y `[REPO]`.
 
 ---
 
@@ -66,28 +67,31 @@ tipo. Corregido aquí y en el código.)*
 
 ## 2. Estructura del archivo único (`forty/forty.per`)
 
-1334 líneas autocontenidas: `.ai` (vacío) + `.per` con TODO dentro
-(constantes UP inlineadas — mismo diseño monolito que *The Horde*
-`[CORPUS]`). Orden de secciones:
+1534 líneas, 101 reglas y 624 `defconst` autocontenidos: `.ai` vacío + `.per`
+con todo dentro (medición 2026-10-13 `[REPO]`; constantes UP inlineadas, mismo
+diseño monolito que *The Horde* `[CORPUS]`). Orden de secciones:
 
 1. **Constantes propias** — namespaces:
    - `gl-mode` (herencia directa de `v1`): `m-grow` / `m-defend` / `m-attack`.
    - `gl-city`: fases urbanas `cty-aldea` → `cty-villa` → `cty-muralla` → `cty-plaza`.
    - `gl-wave`, `gl-first-chat`, `gl-temp`, `gl-pt1`, `gl-local-total` (DUC).
-2. **INIT de velocidad y respuesta** — SNs verificadas en corpus/foros:
+2. **INIT de estado, velocidad y respuesta** — asigna explícitamente
+   `m-grow`, `cty-aldea`, oleada 0 y chat 0 porque los goals UP empiezan en
+   `-1` `[UP][REPO]`; después configura SNs verificadas en corpus/foros:
    - `sn-initial-exploration-required 0` y `sn-defer-dropsite-update 1`:
      descubrimiento y campamentos sin esperas `[RUNTIME]`.
    - `sn-percent-enemy-sighted-response 100` + radio 100: respuesta
      táctica inmediata `[CPSB][RUNTIME]`.
    - `sn-allow-civilian-defense 1` + `sn-gather-defense-units 1`: los
      aldeanos huyen/luchan si atacan el feudo (patrón de `init.per`).
-   - Grupos escalonados 2-12 con `scale-*-attack-group-size 0` y
-     `group-form-distance 30` (la "oleada" que documentamos en Task 7).
+   - Grupos escalonados 2–12 con `scale-*-attack-group-size 0` y
+     `group-form-distance 30` para formar la oleada.
 3. **DIRECTOR** (`t-director`) — el bailiff: cambia `gl-mode` (defensa si
    atacan la ciudad; asalto si hay ejército ≥35 o trabuco; si no, crecer)
    y `gl-city` (aldea→villa al llegar a Edad Feudal; villa→muralla con
-   22 casas + Edad de los Castillos; muralla→plaza con castillo + 2
-   torres). Cada transición anuncia el estado por chat.
+   22 casas + Edad de los Castillos; muralla→plaza con 2 torres). El castillo
+   se habilita al entrar en plaza, evitando la dependencia circular anterior.
+   Cada transición anuncia el estado por chat. `[REPO]`
 4. **Economía** — aldeanos (hasta 110), casas, molino, campamentos con
    regla de distancia (`dropsite-min-distance`), granjas con reserva de
    madera >120 (anti-deadlock), reconstrucción del TC con
@@ -132,10 +136,12 @@ tipo. Corregido aquí y en el código.)*
 10. **Asalto organizado** — oleada con `sn-number-attack-groups 200`,
    `attack-now`, TSA progresiva (`sn-maximum-town-size +10` cada `t-push`
    hasta 180) y repliegue a defensa si atacan nuestra ciudad.
-11. **Micro DUC** (Task 7): fuego concentrado de arqueros/hostigadores
-    con `formation-stagger` sobre el enemigo con mejor
-    `player-number` (`this-any-enemy`, `sn-focus-player-number`) y
-    **asedio que prioriza edificios** (castillo → TC → torres → resto).
+11. **Micro DUC**: fuego concentrado de arqueros/hostigadores con
+    `formation-stagger`; cada rutina selecciona al enemigo más cercano con
+    `up-find-player enemy find-closest` y lo pasa a
+    `sn-focus-player-number`. El asedio prioriza edificios (castillo → TC →
+    torres → resto). Los puntos y el estado DUC usan goals extendidos
+    100–105. `[FORO: AIREf][REPO]`
 12. **Mercado y cuentas** (`t-eco`): comprar piedra para el castillo,
     vender madera de sobra, comprar comida si falta, y el reparto de
     aldeanos por fase (60/35/5/0 → 45/35/20/0 → 40/30/20/10 →
@@ -149,7 +155,7 @@ tipo. Corregido aquí y en el código.)*
 |---|---|---|
 | `cty-aldea` | edad ≥ Feudal | casas, granja, molino, campamentos |
 | `cty-villa` | edad ≥ Castillo + 22 casas | market, blacksmith, barracks, archery-range, monastery |
-| `cty-muralla` | castillo + 2 torres | torres ×6, casas a 30, murallas de piedra (perímetros 1 y 2) |
+| `cty-muralla` | 2 torres | torres ×6, casas a 30, murallas de piedra (perímetros 1 y 2) |
 | `cty-plaza` | — (estado final) | castillo ×2, 2º TC, siege-workshop ×2, cuarteles/gremios ampliados, bombard-tower ×4 (Imperial), torres ×10, casas ×42 |
 
 ---
@@ -158,7 +164,7 @@ tipo. Corregido aquí y en el código.)*
 
 | Modo | Entrada | Efecto |
 |---|---|---|
-| `m-grow` | default | ciudad crece; 3 grupos defensivos |
+| `m-grow` | init explícito | ciudad crece; 3 grupos defensivos |
 | `m-defend` | `town-under-attack` (o ejército <15) | 6 grupos defensivos; sin asalto |
 | `m-attack` | ejército ≥35 o trebuchet disponible | oleada + TSA + micro |
 
@@ -169,25 +175,26 @@ motor, tal como analizamos en `docs/05`.
 
 ## 4. Verificación y prueba
 
-- **Lint**: `python3 tools/lint_siege.py . forty` → OK sin errores
-  (mismo motor que validó siege; parametrizado por proyecto).
-  Regresión siege: `python3 tools/lint_siege.py . siege` → OK.
+- **Validación estática**: `python3 tools/lint_siege.py . forty` y las
+  regresiones de `siege`/`semiUtils` → `OK sin errores`; los nueve tests de
+  `python3 -m unittest -v tools.test_lint_siege` también pasan (2026-10-13).
+  `[REPO]`
 
 ### 4.1. Plan de prueba: forty vs forty `[RUNTIME-pendiente: el agente no
 puede ejecutar el juego aquí; la partida la corre el usuario]`
 
-**Configuración**: DE (o AoC+UP1.5), 1v1, Random Map (Arabia u
-ocasionalmente Arena/BF para ver las murallas cerras), recursos
+**Configuración objetivo**: AoC 1.0c + UserPatch 1.5, 1v1, Random Map
+(Arabia y después Arena/BF para observar el cierre de murallas), recursos
 normales, victoria estándar.
 
 **Criterios observables (checklist de la partida):**
 
 | # | Momento | Qué debe verse |
 |---|---|---|
-| 1 | 0-10 min | Chat "el feudo despierta"; aldeanos a 25, granjas+campamentos, molino |
-| 2 | ~min 12-16 | Edad Feudal → chat "la aldea se convierte en villa"; market+blacksmith+cuarteles; **empalizada del perímetro 1 con puertas** |
-| 3 | ~min 20-28 | Edad de los Castillos; casas ≥22 → chat "la villa se amurallara"; **piedra reemplaza la empalizada; nace el perímetro 2**; torres |
-| 4 | Cuando hay castillo + 2 torres | Chat "la plaza fuerte esta en pie"; castillo, 2º TC, taller de asedio |
+| 1 | 0–10 s | Chat "el feudo despierta"; comienza producción de aldeanos y economía |
+| 2 | ~min 12–16 | Edad Feudal → chat "la aldea se convierte en villa"; market+blacksmith+cuarteles; **empalizada del perímetro 1 con puertas** |
+| 3 | ~min 20–28 | Edad de los Castillos; casas ≥22 → chat "la villa se amurallara"; **piedra reemplaza la empalizada; nace el perímetro 2**; torres |
+| 4 | Cuando hay 2 torres | Chat "comienza la construccion de la plaza fuerte"; después castillo, 2º TC y taller de asedio |
 | 5 | Ejército ≥35 o trabuco | Oleada: grupos de 2-12 avanzan con TSA; arietes van a castillo/TC/torres; arqueros con fuego concentrado |
 | 6 | Atacan la ciudad | Chat de defensa; guarnición dentro de TC/castillo/torres; retirada al centro si el ejército < 12; trabucos disparan a unidades |
 | 7 | Ambas murallas ≥100% | Constructores vuelven a la economía; `ri-fortified-wall` en Imperial |

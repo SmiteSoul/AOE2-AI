@@ -100,8 +100,8 @@ concluir sobre el motor a partir de un solo comando sin probar variantes
   CPSB, corpus, o código existente del repo. **Si no se puede verificar,
   no se escribe** (o se pregunta).
 - Todo `.per` pasa el lint del proyecto:
-  `python3 tools/lint_siege.py . <siege|forty>` **+ regresión** de los
-  demás proyectos.
+  `python3 tools/lint_siege.py . <siege|forty|semiUtils>` **+ regresión** de
+  los demás proyectos y `python3 -m unittest -v tools.test_lint_siege`.
 - Estilo obligatorio (`docs/01`): ASCII estricto (sin acentos ni `ñ`),
   ≤16 elementos por lista, `disable-self` en init, **rearme de timers SIEMPRE al final del archivo** (los consumidores antes), nada de
   paréntesis en comentarios, line-endings consistentes.
@@ -193,7 +193,8 @@ concluir sobre el motor a partir de un solo comando sin probar variantes
 | 4 | 2026-10-13 | Varias ediciones `edit_file` en paralelo al mismo documento: una se perdió (numeración rota) | §3: ediciones al mismo archivo SERIADAS |
 | 5 | 2026-10-13 | El sandbox reseteó el historial git dos veces; se perdió trabajo no respaldado (`fortyV2-included.per`) | §1/§3: respaldar worktree antes de pausas; verificar `git log -1`; confiar en el remoto como fuente de verdad |
 | 6 | 2026-10-13 | Prometí contenido de docs/05 antes de escribirlo | §5: documentar en la misma tarea, y el resumen final solo describe lo que EXISTE en el repo |
-| 7 | — | _próxima lección_ | _regla nacida_ |
+| 7 | 2026-10-13 | Al ampliar el linter, un regex de `defconst` exigía exactamente un espacio y el esquema omitía los facts CPSB válidos `attack-soldier-count`/`defend-soldier-count`; produjo falsos positivos en SemiUtils | Toda ampliación del linter incluye proyecto limpio + defectos inyectados; una firma rechazada se contrasta con CPSB antes de clasificarla como error |
+| 8 | — | _próxima lección_ | _regla nacida_ |
 
 > Cada nueva fila se añade junto con su corrección. Antes de cerrar una
 > tarea, repasar esta tabla en busca de errores parecidos al trabajo

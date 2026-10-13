@@ -10,17 +10,17 @@
 (defconst gl-target-walls 2)      ; 1 si algun enemigo tiene murallas
 (defconst gl-first-push 3)        ; 1 tras el primer asalto (chat de presentacion)
 
-; ---------- Temporales DUC / puntos (punto = 2 goals consecutivos) ----------
+; ---------- Temporales DUC / puntos (punto = 2 goals extendidos) ----------
 (defconst gl-temp 10)
 (defconst gl-temp2 11)
-(defconst gl-pt1 20)              ; punto DUC (x,y) = goals 20-21
-(defconst gl-pt1-y 21)
+(defconst gl-pt1 100)             ; punto DUC (x,y) = goals 100-101
+(defconst gl-pt1-y 101)
 
-; ---------- Estado de busqueda (up-get-search-state escribe 4 goals) ----------
-(defconst gl-local-total 30)
-(defconst gl-local-last 31)
-(defconst gl-remote-total 32)
-(defconst gl-remote-last 33)
+; ---------- Estado de busqueda (4 goals extendidos consecutivos) ----------
+(defconst gl-local-total 102)     ; up-get-search-state escribe 102-105
+(defconst gl-local-last 103)
+(defconst gl-remote-total 104)
+(defconst gl-remote-last 105)
 
 ; ---------- Objetivos de produccion (los ajustan las reglas) ----------
 (defconst gl-villager-want 40)

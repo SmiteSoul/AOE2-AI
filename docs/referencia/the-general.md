@@ -19,10 +19,11 @@
 
 ## Cómo se conecta todo
 
-- **[CORPUS]** DUC.per centraliza el control directo: pruebas verificadas de
-  `up-get-search-state` → goals 30-33 (locale/remoto totales y «last»),
-  `up-set-target-object` + `up-target-objects` option 1 (exige target previo),
-  garrison con `action-garrison`.
+- **[CORPUS]** DUC.per centraliza el control directo:
+  `up-get-search-state g-local-total` escribe los goals extendidos 309–312
+  (local/remoto totales y «last», definidos en `Initialization.per:2061-2064`),
+  `up-set-target-object` + `up-target-objects` option 1 exige target previo, y
+  el garrison usa `action-garrison`.
 - **[CORPUS]** `Escrow.per` dedicado: el escrow (`set-escrow-percentage`,
   `release-escrow`) se trata como subsistema propio, no disperso.
 

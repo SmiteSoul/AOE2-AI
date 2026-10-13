@@ -17,14 +17,16 @@ menos obvias.
 | ERR2012 | Constant already defined | `defconst X` con **distinto** valor repetido (mismo valor: OK) | ✅ colisiones de `defconst` |
 | ERR5001 | File open failed | `(load ...)` que no resuelve a fichero real | ✅ comprobando rutas |
 | ERR6002 | Rule too long | > 16 elementos por regla | ✅ recuento de elementos |
-| ERR8001 | No rules | `.per` sin `defrule` | ✅ |
+| ERR8001 | No rules | El script expandido no contiene ningún `defrule` | ✅ |
 
 Fuentes: CPSB; extensión «AoE II AI Tools» (VS Marketplace) que replica estos
 códigos; hilos de Steam/foros.ageofempires.com **[FORO]**.
 
 ## 2. Checklist pre-vuelo (obligatoria antes de cada test en partida)
 
-1. `python3 tools/lint_siege.py` → debe decir `OK sin errores`.
+1. `python3 tools/lint_siege.py . <siege|forty|semiUtils>` → debe decir
+   `OK sin errores`; ejecutar también los otros dos proyectos y
+   `python3 -m unittest -v tools.test_lint_siege`.
 2. Todo token identificado resuelve: numérico / `defconst` de la cadena de
    carga / builtin del motor (ver [`01_Hechos_Del_Motor.md`](01_Hechos_Del_Motor.md) §1).
 3. Ningún alias copiado del corpus sin definir (`aggressive`, `stand-ground`…).
@@ -82,7 +84,8 @@ barras incorrectas o fichero movido.
 - Reglas duplicadas → comportamiento errático.
 - DUC mal encadenado (falta `up-set-target-object` antes de
   `up-target-objects 1`) → silencio, no error.
-- Orden de rearme de timers incorrecto → el timer nunca vuelve.
+- Rearmar un timer antes de todos sus consumidores → el nuevo `enable-timer`
+  limpia `triggered` y las reglas posteriores pierden ese pulso.
 - `players-unit-type-count` sobre GROUP-IDs que solo ve `cc-` **[FORO]**.
 
 Para esta clase: revisión de código + tests de comportamiento; el linter marca
@@ -93,7 +96,8 @@ los patrones peligrosos conocidos.
 1. Anotar **fichero + línea + código** exactos (el diálogo da los tres).
 2. Si es ERR2005: buscar el token exacto en esa línea → ¿está en la cadena de
    carga? ¿es alias de otra IA? ¿es de otra versión del juego?
-3. Corregir + `python3 tools/lint_siege.py`.
+3. Corregir + `python3 tools/lint_siege.py . <proyecto>` y ejecutar la
+   regresión de los otros proyectos.
 4. Registrar el caso en [`../Script_Errors.md`](../Script_Errors.md) con
    síntoma/origen/solución (disciplina del repo).
 5. Volver a probar: el parser se detiene en el **primer** error; puede haber

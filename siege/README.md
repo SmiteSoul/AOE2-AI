@@ -1,10 +1,12 @@
 # SIEGE — El Asediador Impenetrable
 
-IA de asedio pura para **Age of Empires II: The Conquerors + UserPatch 1.5**.
-Su unico objetivo es aplastar al enemigo con maquinaria de asedio: arietes
-cargados de infanteria, evaluacion de objetivos inteligente, economia
-obsesionada con el ejercito de asedio, unidades a distancia bien llevadas y
-apertura de brechas en las murallas.
+IA de asedio pura para **Age of Empires II: The Conquerors 1.0c + UserPatch
+1.5**. Su objetivo es aplastar al enemigo con maquinaria de asedio: arietes
+cargados de infantería, evaluación de objetivos, economía especializada,
+unidades a distancia y apertura de brechas en las murallas.
+
+> **Estado (2026-10-13):** lint y regresiones pasan; la auditoría estática no
+> sustituye la prueba completa en partida, que sigue pendiente.
 
 ## Instalacion
 
@@ -28,7 +30,7 @@ la dificultad Hardest del motor).
 | Modulo | Que hace |
 |---|---|
 | `siege.per` | Punto de entrada: carga `UserPatchConst` y todos los modulos. |
-| `siege/const.per` | Goals (1-33, 40-46), timers y parametros ajustables (`ts-*`, `ram-full`...). |
+| `siege/const.per` | Goals de estado/producción (1–46), punto DUC 100–101, estado de búsqueda 102–105, timers y parámetros ajustables (`ts-*`, `ram-full`...). |
 | `siege/init.per` | Numeros estrategicos: **`sn-garrison-rams 1`**, **`sn-wall-targeting-mode 1`**, perfil de `sn-target-evaluation-*`, `sn-special-attack-type1 town-center`. |
 | `siege/eco.per` | Reparto de aldeanos por edad (madera/oro altos), reajuste dinamico, escrow para mejoras de asedio, mercado y avance de edad. |
 | `siege/build.per` | Base economica + hasta 4 **talleres de asedio**, castillos (trebuchets), universidad, monasterio. |
@@ -85,40 +87,47 @@ Implementado en `combat.per` + `init.per`:
   protegen la bateria** (accion `action-guard`); al abrirse el paso, los
   arqueros pasan a fuego concentrado con `formation-stagger` y **los arietes
   priorizan edificios** por orden: castillo, centro urbano, torres, resto.
-- **Conciencia de brecha / pathfinding**: patron de The General
-  (`up-set-target-object` + `up-path-distance`; 65535 = sin camino). Si hay
-  camino corto hasta la base enemiga, `gl-target-walls` -> 0 y **se deja de
-  tumbar puertas irrelevantes**; ademas la fase de brecha tiene time-box de
-  75s (`t-walls`) por si el pathfinding falla.
+- **Selección de jugador**: cada rutina obtiene un enemigo válido con
+  `up-find-player enemy find-closest`; no depende de una variable
+  `this-any-enemy` sin wildcard asociado.
+- **Conciencia de brecha / pathfinding**: patrón de The General
+  (`up-set-target-object` + `up-path-distance`; 65535 = sin camino) sobre el
+  par extendido 100–101. Si hay camino corto hasta la base enemiga,
+  `gl-target-walls` -> 0 y **se deja de tumbar puertas irrelevantes**; además
+  la fase de brecha tiene time-box de 75s (`t-walls`).
 
-Pendiente de prueba en partida (se confirmara o se ajustara): el comportamiento
-de `action-guard` con listas de objetos (enum documentado de UserPatchConst,
-pero sin usos en el corpus de referencia) y `up-get-point position-enemy`.
+Pendiente de prueba en partida (se confirmará o se ajustará): el comportamiento
+de `action-guard` con listas de objetos y `up-get-point position-enemy`; la
+validación estática solo confirma firmas y enums, no su efecto táctico.
 
 ## Orden de carga (importante para los timers)
 
-`siege.per` carga los modulos en orden y **al final** rearma `t-eco` y
-`t-micro`: `enable-timer` deja el timer sin marcar dentro del pase actual,
-asi que las reglas de rearme deben ir *despues* de todos los consumidores
-del timer. Si editas los modulos, no muevas esas reglas de sitio.
+`siege.per` carga los módulos en orden y **al final** rearma `t-eco` y
+`t-micro`. Un timer agotado permanece en estado `triggered` hasta
+`disable-timer` o un nuevo `enable-timer`; rearmarlo antes limpiaría el trigger
+y las reglas posteriores no lo verían. Si editas los módulos, no muevas esos
+rearmes antes de sus consumidores.
 
 ## Auditoria (lint) — obligatoria tras cualquier edicion
 
-`tools/lint_siege.py` valida todo el proyecto con la gramatica real del
-motor (medida sobre los 360k tokens de referencia de `reference/ais/`):
+`tools/lint_siege.py` valida el proyecto contra CPSB, constantes UP y el corpus:
 
-- parentesis balanceados y `(load ...)` que resuelven a ficheros reales;
-- limite de **16 elementos por regla** (ERR6002; mi maximo: 15);
-- `(goal g v)` solo compara igualdad (el hecho goal no admite <, >...);
-- **argumentos validados por posicion de comando** contra el corpus
-  (atrapa fallos como `(research loom)` — lo valido es `ri-loom`;
-  y `(buy-commodity gold)` — el oro es la moneda, no un commodity:
-  solo `food/wood/stone`);
-- aridad exacta por comando, comandos desconocidos, goals/timers sin
-  `defconst`, colisiones de constantes con `UserPatchConst`.
+- paréntesis, loads, resolución, aridad y argumentos por posición;
+- límite de **16 elementos por regla** y semántica de `(goal g v)`;
+- goals extendidos de puntos/estado DUC (100–105 en Siege);
+- enlace y posición legal de `this-any-*`;
+- máquinas de estado sin entrada, duplicados, muros sin planificación;
+- slots DUC y orden global de consumidores/rearmes de timers.
 
-Ejecucion: `python3 tools/lint_siege.py` (desde la raiz del repo).
-Tras un test en partida, vuelve a ejecutarlo antes de commitear.
+Ejecución desde la raíz:
+
+```bash
+python3 tools/lint_siege.py . siege
+python3 -m unittest -v tools.test_lint_siege
+```
+
+Los dos comandos pasan. Tras una prueba en partida, vuelve a ejecutarlos antes
+de commitear.
 
 Ademas, el registro historico de errores del motor (ERR6002, ERR2005,
 comparadores en `goal`, `UserPatchConst`...) con su solucion esta en
@@ -128,11 +137,15 @@ comparadores en `goal`, `UserPatchConst`...) con su solucion esta en
 
 ## Limitaciones conocidas
 
-- El motor no permite ordenar reparaciones (`repair` no existe en el CPSB).
-- Con varios enemigos, el DUC de brechas/fuego usa `this-any-enemy` (un enemigo
-  concreto); el TSA se encarga del resto.
-- Probada con dos partidas de prueba reales: la 1ª confirmó en runtime
-  `UserPatchConst/const/init` (falló `eco.per` con `loom`); la 2ª confirmó
-  además `eco/build/train` completos (falló `combat.per:103` con `aggressive`,
-  ya corregido a `stance-aggressive`). Pendiente de prueba completa de
-  `combat.per` y de los rearmes de timers.
+- No existe una acción directa `repair`; la reparación automática sí puede
+  configurarse con `sn-object-repair-level` en UP. Evidencia y búsquedas:
+  [`docs/01` §11](../docs/01_Hechos_Del_Motor.md#11-lo-que-no-existe-comprobado).
+- En partidas con varios enemigos, las rutinas DUC eligen al enemigo más
+  cercano en cada pulso; la coordinación estratégica con `target-player`
+  todavía debe evaluarse en juego.
+- Dos partidas históricas confirmaron hasta `eco/build/train` y localizaron los
+  antiguos errores `loom`/`aggressive`. Las correcciones DUC de esta auditoría
+  y el combate completo aún no se han probado en runtime.
+- `action-guard` con listas y `up-get-point position-enemy` siguen siendo los
+  comportamientos prioritarios a observar. Plan detallado en
+  [`docs/07` §11.3](../docs/07_Investigacion_AoC_UP15_y_Auditoria.md#113-siege).

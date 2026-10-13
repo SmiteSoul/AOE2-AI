@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Linter quirurgico para scripts .per de este repositorio (siege y futuras IAs).
+"""Linter quirurgico para los scripts .per de este repositorio.
 
 Fundamento: en AoC/UserPatch TODO token que no sea numero, operador o cadena
 debe RESOLVER a un identificador definido. Un token puede resolver por:
@@ -24,9 +24,12 @@ Ademas valida:
   - aridad exacta por comando (esquemas del CPSB/UserPatch);
   - espacios de nombres por POSICION de comando (research = ri-* o edad;
     commodities de mercado = food/wood/stone — el oro es la moneda);
+  - goals extendidos de puntos/DUC y maquinas de estado sin entrada;
+  - enlace y posicion legal de variables de regla this-any-*;
+  - planificacion de murallas, reglas duplicadas y orden de timers;
   - goals/timers usados sin defconst; comandos desconocidos.
 
-Uso:  python3 tools/lint_siege.py [raiz_del_repo]
+Uso:  python3 tools/lint_siege.py [raiz_del_repo] [siege|forty|semiUtils]
 """
 import re
 import sys
@@ -35,18 +38,32 @@ import os
 from collections import defaultdict
 
 ROOT = sys.argv[1] if len(sys.argv) > 1 else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PROJ = sys.argv[2] if len(sys.argv) > 2 else 'siege'
+PROJ_ARG = sys.argv[2] if len(sys.argv) > 2 else 'siege'
+PROJ = PROJ_ARG.lower()
 
 REF = glob.glob(os.path.join(ROOT, 'reference/ais/**/*.per'), recursive=True)
 # Uso: python3 tools/lint_siege.py [raiz] [proyecto]
-#   proyecto 'siege' (por defecto): paquete siege/siege/*.per + siege/siege.per
-#   proyecto 'forty': forty/forty.per (unico archivo autocontenido)
-if PROJ == 'forty':
-    SIEGE = [os.path.join(ROOT, 'forty', 'forty.per')]
+#   siege (por defecto): paquete siege/siege/*.per + siege/siege.per
+#   forty: un unico archivo autocontenido
+#   semiUtils: monolito clasico sin comandos up-* (nombre no sensible a caja)
+if PROJ == 'siege':
+    # Orden de evaluacion real: los load del entrypoint se expanden aqui y los
+    # rearmes escritos tras ellos quedan al final.
+    FILES = [os.path.join(ROOT, 'siege', 'siege', f'{name}.per') for name in
+             ('const', 'init', 'eco', 'build', 'train', 'combat')]
+    FILES.append(os.path.join(ROOT, 'siege', 'siege.per'))
+    LOAD_BASE = os.path.join(ROOT, 'siege')
+elif PROJ == 'forty':
+    FILES = [os.path.join(ROOT, 'forty', 'forty.per')]
+    LOAD_BASE = os.path.join(ROOT, 'forty')
+elif PROJ == 'semiutils':
+    FILES = [os.path.join(ROOT, 'semiUtils', 'semiutils.per')]
+    LOAD_BASE = os.path.join(ROOT, 'semiUtils')
 else:
-    SIEGE = [f for f in sorted(glob.glob(os.path.join(ROOT, 'siege/siege/*.per')))
-             if 'UserPatchConst' not in f] + [os.path.join(ROOT, 'siege/siege.per')]
-UPC_PATH = os.path.join(ROOT, 'siege/siege/UserPatchConst.per')
+    print(f"Proyecto desconocido: {PROJ_ARG!r}. Usa siege, forty o semiUtils.", file=sys.stderr)
+    sys.exit(2)
+
+UPC_PATH = os.path.join(ROOT, 'reference', 'UserPatchConst.per')
 CPSB_TXT = '/tmp/cpsb.txt'  # opcional: texto extraido de reference/CPSB.pdf
 
 # --- tokens de sintaxis, no identificadores ---
@@ -165,6 +182,7 @@ SCHEMA = {
     'goal': 2, 'set-goal': 2, 'up-compare-goal': 3, 'up-modify-goal': 3,
     'timer-triggered': 1, 'enable-timer': 2, 'disable-timer': 1,
     'current-age': 2, 'game-time': 2, 'military-population': 2,
+    'attack-soldier-count': 2, 'defend-soldier-count': 2,
     'unit-type-count': 3, 'unit-type-count-total': 3,
     'building-type-count': 3, 'building-type-count-total': 3,
     'housing-headroom': 2, 'population-headroom': 2, 'idle-farm-count': 2,
@@ -182,6 +200,7 @@ SCHEMA = {
     'town-under-attack': 0, 'enemy-buildings-in-town': 0,
     'stance-toward': 2,
     'up-full-reset-search': 0, 'up-find-local': 4, 'up-find-remote': 4,
+    'up-find-player': 3,
     'up-remove-objects': 4, 'up-get-search-state': 1,
     'up-target-objects': 4, 'up-get-player-fact': 4,
     'up-set-target-object': 3, 'up-filter-include': 4,
@@ -198,8 +217,8 @@ def main():
     # porque UP 1.5 conoce esos nombres nativamente (runtime-proven); leerlos
     # tambien de los comentarios crea el catalogo explicito de nativos UP.
     upc = open(UPC_PATH, encoding='utf-8', errors='replace').read()
-    upc_names = {m.lower() for m in re.findall(r'\(defconst ([A-Za-z0-9_-]+)', upc)}
-    upc_active = {m.lower() for m in re.findall(r'\(defconst ([A-Za-z0-9_-]+)', strip(upc))}
+    upc_names = {m.lower() for m in re.findall(r'\(defconst\s+([A-Za-z0-9_-]+)', upc)}
+    upc_active = {m.lower() for m in re.findall(r'\(defconst\s+([A-Za-z0-9_-]+)', strip(upc))}
 
     corpus_raw = '\n'.join(open(f, encoding='utf-8', errors='replace').read() for f in REF)
     corpus = strip(corpus_raw)
@@ -217,7 +236,7 @@ def main():
 
     # identificadores usados en el corpus vs definidos con defconst en el corpus
     corpus_used = {t.lower() for t in re.findall(r'\b[a-zA-Z][a-zA-Z0-9_-]*\b', corpus_ns)}
-    corpus_defined = {m.lower() for m in re.findall(r'\(defconst ([A-Za-z0-9_-]+)', corpus_ns)}
+    corpus_defined = {m.lower() for m in re.findall(r'\(defconst\s+([A-Za-z0-9_-]+)', corpus_ns)}
 
     # builtin del motor = usado en el corpus pero NUNCA definido por el corpus,
     # o presente en UserPatchConst, o keyword curado del motor.
@@ -267,9 +286,9 @@ def main():
     defconsts = set(); used_goals = set(); defined_goals = set()
     used_timers = set(); defined_timers = set()
     const_vals = {}   # nombre -> (valor, fichero) para ERR2012
-    for f in SIEGE:
+    for f in FILES:
         s = strip(open(f, encoding='utf-8').read())
-        for m in re.finditer(r'\(defconst ([A-Za-z0-9_-]+) ([^();\s]+)', s):
+        for m in re.finditer(r'\(defconst\s+([A-Za-z0-9_-]+)\s+([^();\s]+)', s):
             n = m.group(1).lower(); v = m.group(2)
             if n in const_vals and const_vals[n][0] != v:
                 errors.append(f"{f}: ERR2012 {n} redefinido con distinto valor "
@@ -286,7 +305,20 @@ def main():
         t = tok.lower()
         return t in CHAIN or t in BUILTIN or t in cmd_names
 
-    for f in SIEGE:
+    def int_value(tok: str):
+        """Resuelve literales/defconsts numericos; None si no es constante."""
+        value = tok.lower()
+        seen = set()
+        while value in const_vals and value not in seen:
+            seen.add(value)
+            value = const_vals[value][0].lower()
+        return int(value) if re.match(r'^-?\d+$', value) else None
+
+    all_rules = []
+    project_text = []
+    seen_rule = {}
+
+    for f in FILES:
         raw = open(f, encoding='utf-8').read()
         s = strip(raw)
         # ASCII estricto: simbolos ocultos de editor = errores in-game irresolubles
@@ -296,12 +328,23 @@ def main():
         if s.count('(') != s.count(')'):
             errors.append(f'{f}: parentesis desbalanceados')
         for m in re.findall(r'\(load "([^"]+)"\)', raw):
-            p = os.path.join(ROOT, 'siege', m.replace('\\', '/'))
+            p = os.path.join(LOAD_BASE, m.replace('\\', '/'))
             if not p.endswith('.per'):
                 p += '.per'
             if not os.path.exists(p):
                 errors.append(f'{f}: load inexistente {m}')
         s_ns = re.sub(r'"[^"]*"', '""', s)
+        project_text.append(s_ns)
+        file_rules = parse_rules(s)
+        for local_pos, rule in enumerate(file_rules, 1):
+            all_rules.append((f, local_pos, rule))
+            normalized = ' '.join(rule.split()).lower()
+            if normalized in seen_rule:
+                prev_f, prev_pos = seen_rule[normalized]
+                errors.append(f'{f}: regla {local_pos} duplicada exactamente; '
+                              f'primera aparicion en {prev_f}@regla {prev_pos}')
+            else:
+                seen_rule[normalized] = (f, local_pos)
 
         # --- comandos desconocidos ---
         for m in re.finditer(r'\(([a-z][a-z0-9-]*)', s_ns):
@@ -372,10 +415,10 @@ def main():
                              f" o usa la constante nativa equivalente")
                 errors.append(f"{where}: identificador no resoluble '{t}'{extra}")
 
-        for r in parse_rules(s):
+        for r in file_rules:
             for kid in paren_children(r):
                 check_list(kid, f)
-        for m in re.finditer(r'\(defconst ([A-Za-z0-9_-]+) ((?:[^()]+))\)', s_ns):
+        for m in re.finditer(r'\(defconst\s+([A-Za-z0-9_-]+)\s+((?:[^()]+))\)', s_ns):
             if not NUM_RE.match(m.group(2).strip()) and not resolvable(m.group(2).strip()):
                 errors.append(f"{f}: (defconst {m.group(1)} {m.group(2).strip()}) valor no resoluble")
 
@@ -387,8 +430,66 @@ def main():
         for m in re.finditer(r'\((?:enable-timer|timer-triggered) ([A-Za-z0-9_-]+)', s_ns):
             used_timers.add(m.group(1).lower())
 
+        # --- goals extendidos de UserPatch 1.5 ---
+        # UP dispone de goals 1-512, pero los pares/cuaternas automaticos no
+        # pueden usar los goals vanilla 1-40. Se aplican los topes conservadores
+        # de la documentacion original: pares 41-510, cuaternas 41-508.
+        def check_extended(command, token, upper, allow_zero=False):
+            value = int_value(token)
+            if allow_zero and value == 0:
+                return
+            if value is None:
+                errors.append(f'{f}: {command} requiere un goal-id constante; recibido {token}')
+            elif not 41 <= value <= upper:
+                errors.append(f'{f}: {command} usa goal {token}={value}; rango UP seguro 41-{upper}')
+
+        for m in re.finditer(r'\(up-get-point\s+[^()\s]+\s+([^()\s]+)', s_ns):
+            check_extended('up-get-point', m.group(1), 510)
+        for m in re.finditer(r'\(up-path-distance\s+([^()\s]+)', s_ns):
+            check_extended('up-path-distance', m.group(1), 510, allow_zero=True)
+        for m in re.finditer(r'\(up-set-target-point\s+([^()\s]+)', s_ns):
+            check_extended('up-set-target-point', m.group(1), 510)
+        for m in re.finditer(r'\(up-get-search-state\s+([^()\s]+)', s_ns):
+            check_extended('up-get-search-state', m.group(1), 508)
+
+        # --- variables de regla this-any-* ---
+        # CPSB: solo las enlaza el wildcard any-* de ESTA regla y no son facts.
+        # AIREf amplia la lista de acciones legales, pero mantiene esa semantica.
+        this_any_actions = {
+            'acknowledge-taunt', 'chat-to-player', 'chat-to-player-using-id',
+            'chat-to-player-using-range', 'clear-tribute-memory', 'set-stance',
+            'tribute-to-player', 'up-chat-data-to-player', 'up-get-player-color',
+            'up-get-player-fact', 'up-get-upgrade-id', 'up-set-placement-data',
+            'up-store-player-chat', 'up-store-player-name', 'up-tribute-to-player',
+        }
+        for local_pos, rule in enumerate(file_rules, 1):
+            rule_ns = re.sub(r'"[^"]*"', '""', rule)
+            if '=>' not in rule_ns:
+                continue
+            facts, actions = rule_ns.split('=>', 1)
+            facts_tokens = set(re.findall(r'[A-Za-z][A-Za-z0-9_-]*', facts.lower()))
+            variables = set(re.findall(r'\bthis-(any-[a-z0-9-]+)\b', rule_ns.lower()))
+            for wildcard in sorted(variables):
+                variable = 'this-' + wildcard
+                if variable in facts_tokens:
+                    errors.append(f'{f}: regla {local_pos} usa {variable} como hecho; '
+                                  'las variables this-any-* solo son validas en acciones')
+                first_use = actions.lower().find(variable)
+                before_use = actions.lower()[:first_use] if first_use >= 0 else actions.lower()
+                action_binds = re.search(
+                    rf'\(up-get-fact-(?:max|min)\s+{re.escape(wildcard)}\b', before_use)
+                if wildcard not in facts_tokens and not action_binds:
+                    errors.append(f'{f}: regla {local_pos} usa {variable} sin enlazar '
+                                  f'{wildcard} en un hecho de la misma regla')
+                for call in re.finditer(r'\(([a-z][a-z0-9-]*)[^()]*\)', actions.lower()):
+                    if variable in set(re.findall(r'[A-Za-z][A-Za-z0-9_-]*', call.group(0))):
+                        command = call.group(1)
+                        if command not in this_any_actions:
+                            errors.append(f'{f}: regla {local_pos} usa {variable} en '
+                                          f'accion no compatible ({command})')
+
         # --- limites de reglas ---
-        for r in parse_rules(s):
+        for r in file_rules:
             if not re.search(r'=>', r):
                 errors.append(f'{f}: regla sin => :: {r[:50]!r}')
                 continue
@@ -401,6 +502,42 @@ def main():
             n = sum(count_el(k) for k in kids)
             if n > 16:
                 errors.append(f'{f}: regla con {n} elementos > 16 :: {r[:50]!r}')
+
+    # --- maquinas de estado sin entrada explicita ---
+    # Los goals empiezan en -1 en UP. Si TODA escritura de un goal esta
+    # condicionada por leer antes ese mismo goal (y no existe estado -1), la
+    # maquina nunca puede arrancar por si sola.
+    for goal_name in sorted(defined_goals):
+        writers = []
+        reads_default = False
+        own_goal = re.escape(goal_name)
+        for f, local_pos, rule in all_rules:
+            if '=>' not in rule:
+                continue
+            facts, actions = rule.split('=>', 1)
+            if re.search(rf'\(goal\s+{own_goal}\s+-1\s*\)', facts, re.I):
+                reads_default = True
+            if re.search(rf'\((?:set-goal|up-modify-goal)\s+{own_goal}\b', actions, re.I):
+                gated = bool(re.search(
+                    rf'\((?:goal|up-compare-goal)\s+{own_goal}\b', facts, re.I))
+                writers.append((f, local_pos, gated))
+        if writers and not reads_default and all(gated for _, _, gated in writers):
+            locations = ', '.join(f'{os.path.basename(f)}@{pos}' for f, pos, _ in writers[:4])
+            errors.append(f'{goal_name}: maquina de estado sin entrada: goals UP empiezan en -1 '
+                          f'y todas sus escrituras dependen de su propio estado ({locations})')
+
+    # --- planificacion de murallas ---
+    whole_project = '\n'.join(project_text)
+    enabled_walls = set()
+    used_walls = set()
+    for m in re.finditer(r'\(enable-wall-placement\s+([^()\s]+)', whole_project):
+        enabled_walls.add(int_value(m.group(1)) if int_value(m.group(1)) is not None
+                          else m.group(1).lower())
+    for m in re.finditer(r'\(build-(?:wall|gate)\s+([^()\s]+)', whole_project):
+        used_walls.add(int_value(m.group(1)) if int_value(m.group(1)) is not None
+                       else m.group(1).lower())
+    for perimeter in sorted(used_walls - enabled_walls, key=str):
+        errors.append(f'perimetro {perimeter}: build-wall/build-gate sin enable-wall-placement')
 
     for g in sorted(used_goals - defined_goals):
         if not re.match(r'^\d+$', g):
@@ -421,7 +558,7 @@ def main():
     def rules_seq():
         """(fichero, indice_global, texto_regla) en orden global de carga."""
         pos = 0
-        for f in SIEGE:
+        for f in FILES:
             s = strip(open(f, encoding='utf-8').read())
             for r in parse_rules(s):
                 pos += 1

@@ -3,7 +3,7 @@
 Cómo debe trabajar un agente (o un humano) en este repo. Cada fase tiene su
 criterio de salida; **no se salta ninguna**.
 
-## Pipeline (7 fases)
+## Pipeline (8 fases)
 
 ### F0 — Investigar (antes de tocar código)
 - Leer: [`01_Hechos_Del_Motor.md`](01_Hechos_Del_Motor.md),
@@ -29,16 +29,20 @@ criterio de salida; **no se salta ninguna**.
 
 ### F3 — Lint (obligatorio y automatizado)
 ```bash
-python3 tools/lint_siege.py
+python3 tools/lint_siege.py . <siege|forty|semiUtils>
 ```
-Cubre: resolución de identificadores, aridad, posiciones de comando, dominios
-cerrados (commodities, `ri-*`), 16 elementos, paréntesis, `goal` solo
-igualdad, `defconst`/timers usados sin definir, `load` inexistentes.
+Ejecutar el proyecto tocado **y los otros dos**. Cubre resolución, aridad,
+posiciones y dominios cerrados; 16 elementos, paréntesis, igualdad de `goal`,
+loads, goals DUC, variables `this-any-*`, estados, muros, duplicados y orden de
+timers. La cobertura y sus límites están en [`docs/07` §9](07_Investigacion_AoC_UP15_y_Auditoria.md#9-linter-cobertura-real-y-límites).
 
 ### F4 — Regresión del validador
-Tras cualquier cambio del linter, re-inyectar bugs conocidos en copias
-temporales y confirmar que los caza (familia `loom`, `gold`, `aggressive`,
-typos). Un linter no probado no es una garantía.
+```bash
+python3 -m unittest -v tools.test_lint_siege
+```
+La suite usa proyectos limpios y defectos inyectados en copias temporales. Al
+incorporar una familia nueva al linter se añade su fixture; un linter no probado
+no es una garantía.
 
 ### F5 — Test en juego incremental
 - Instalar en `AI/` del juego (ver `siege/README.md`).
@@ -66,19 +70,20 @@ typos). Un linter no probado no es una garantía.
 | **Minería de corpus** | Extraer usos reales de IAs de primer nivel | dominio de commodities, aridades |
 | **Disciplina de procedencia** | Etiquetar CPSB/RUNTIME/CORPUS/FORO | `docs/01` |
 | **Forensia de runtime** | fichero+línea del error → causa raíz + alcance probado | módulos ya validados al vuelo |
-| **Regresión del validador** | El linter se prueba con bugs inyectados | test `loom/gold/aggressive/typo` |
+| **Regresión del validador** | El linter se prueba con bugs inyectados | goals DUC, wildcards, estados, muros y duplicados |
 | **Extracción del CPSB** | `pypdf` sobre `reference/CPSB.pdf` a texto para greps | verificación `ri-*`, citas ERR2012 |
 | **Investigación web triageada** | Foros/Steam/changelogs como evidencia etiquetada | casos GIANT-MAP, rushprep-cost |
 | **Higiene git** | Commits atómicos por problema, ASCII, sin artefactos | historial de `arena/...` |
 
 ## Herramientas
 
-- **`tools/lint_siege.py`** (este repo): el linter principal.
+- **`tools/lint_siege.py`** + **`tools/test_lint_siege.py`** (este repo):
+  linter principal y regresiones ejecutables.
 - **Extensión VS Code «AoE II AI Tools»** (KnightThyme): linter con los
   códigos ERR* del juego, contador de reglas, signatures. Complemento válido
   para quien edite en VS Code **[FORO: Marketplace]**.
 - **`reference/CPSB.pdf`** + `reference/UserPatchConst.per` + corpus
-  `reference/ais/`**: la triple fuente de verdad.
+  **`reference/ais/`**: la triple fuente de verdad.
 - **UserPatch 1.5** en el juego de destino (1.0c + UP).
 
 ## Anti-patrones (prohibidos)

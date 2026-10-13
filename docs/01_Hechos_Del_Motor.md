@@ -1,7 +1,9 @@
-# 01 — Hechos del motor (base 100% confirmada)
+# 01 — Hechos del motor (base con evidencia etiquetada)
 
-Todo lo que aparece aquí lleva etiqueta de procedencia. Si algo no está en este
-documento ni en el CPSB, **no existe**: no se escribe código con ello.
+Todo lo que aparece aquí lleva etiqueta de procedencia. Este documento no es un
+catálogo exhaustivo: si algo no está aquí ni en CPSB, se contrasta además con
+`UserPatchConst.per`, AIREf y el corpus siguiendo `agent.md` §2; nunca se
+concluye que “no existe” a partir de una sola búsqueda.
 
 ## 1. El modelo de resolución de identificadores (la regla más importante)
 
@@ -66,14 +68,22 @@ tech única del castillo) — nunca `ri-my-unique-elite-unit`.
   («Missing closing parenthesis»). Para rangos: reglas separadas por valor o
   `up-compare-goal`.
 - **[RUNTIME]** `defconst` y `load` **no** van dentro de reglas.
-- **[RUNTIME]** Cada `.per` necesita ≥ 1 regla (`ERR8001`).
+- **[RUNTIME]** El script expandido debe contener ≥1 regla (`ERR8001`); un
+  módulo cargado que solo declara constantes sí es válido (`siege/const.per` y
+  `UserPatchConst.per` se cargaron en partidas reales).
 
-## 5. Timers **[RUNTIME] [CORPUS]**
+## 5. Timers **[CPSB] [FORO: AIREf] [CORPUS]**
 
-- `enable-timer` deja el timer **sin marcar** dentro del pase actual: las reglas
-  de rearme deben ir **después** de todos sus consumidores en el orden global
-  (= orden de carga de ficheros). Invariante de `siege.per`.
-- `(timer-triggered t)` dispara y el timer queda apagado hasta rearmarlo.
+- Un timer está en uno de tres estados: disabled, running o triggered. Al
+  agotarse queda en **triggered**, no en disabled.
+- `(timer-triggered t)` puede ser verdadero en varias reglas y en varios pases,
+  hasta que un `disable-timer` o un nuevo `enable-timer` cambie su estado.
+- `enable-timer` reinicia el intervalo y limpia el trigger. Si varias reglas
+  deben consumir el mismo pulso, el rearme debe ir **después** de todos sus
+  consumidores en el orden global (= expansión de la cadena de `load`). Este
+  es el invariante de `siege.per`, `forty.per` y `semiutils.per`.
+- AoC 1.0c dispone de 10 timers por jugador; UserPatch, de 50.
+  **[CPSB] [FORO: AIREf data-limits]**
 
 ## 6. Carga de ficheros **[RUNTIME]**
 
@@ -95,6 +105,17 @@ tech única del castillo) — nunca `ri-my-unique-elite-unit`.
 
 ## 8. UserPatch (`up-`)
 
+- **[UP: changelog 2012-05-02]** Goals y timers comienzan en `-1`; toda máquina
+  de estado debe inicializar su entrada explícitamente.
+- **[FORO: AIREf data-limits]** UP ofrece goals 1–512. Los comandos que
+  escriben pares/cuaternas automáticas no admiten los goals vanilla 1–40. El
+  rango conservador del repo es 41–510 para puntos y 41–508 para
+  `up-get-search-state`/cost data/guard state.
+- **[FORO: AIREf]** `up-get-search-state G` escribe, en `G..G+3`, total local,
+  último local, total remoto y último remoto.
+- **[CPSB] [FORO: AIREf PlayerNumber]** Un fact con `any-*` enlaza
+  `this-any-*` solo durante esa regla. La variable se usa en acciones
+  compatibles, no como fact, y queda inválida fuera de la regla.
 - **[RUNTIME]** UP 1.5 conoce nativamente los SNs extendidos (el bloque
   comentado de `UserPatchConst.per` no hace falta activarlo): `init.per` de
   siege carga SNs extendidos sin error.
@@ -133,8 +154,11 @@ producen errores in-game «imposibles de resolver». **Ficheros ASCII puros.**
 
 ## 11. Lo que NO existe (comprobado)
 
-- Acciones `repair` / `can-repair`: **no están** en el CPSB — una IA no puede
-  ordenar reparaciones. **[CPSB: ausencia verificada]**
+- Acciones directas `repair` / `can-repair`: **no están** en CPSB ni en el
+  catálogo UP tras búsquedas por `repair`, `can-repair` y variantes. La IA sí
+  puede reparar mediante su comportamiento automático, configurable en UP con
+  `sn-object-repair-level`; lo que no existe es esa orden directa.
+  **[CPSB] [FORO: AIREf SN 246]**
 - `ri-fire-ship`, `ri-demolition-ship`, `ri-elite-cannon-galleon`: son
   unidades, no techs (ver `Script_Errors.md` §2.2–2.3).
 - Comparadores en `(goal ...)`.
