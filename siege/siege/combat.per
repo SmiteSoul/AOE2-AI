@@ -165,6 +165,38 @@
 	(up-target-objects 0 action-garrison -1 -1)
 )
 
+; ---------- Asalto: el asedio prioriza EDIFICIOS ----------
+; Con el paso franco (gl-target-walls 0) los arietes se asignan a edificios
+; enemigos por prioridad (el orden de up-find-remote acumula la lista:
+; castillo, centro urbano, torres y luego el resto), en vez de vagar o
+; perseguir unidades.
+(defrule
+	(goal gl-attack-state 1)
+	(goal gl-target-walls 0)
+	(timer-triggered t-micro)
+	(unit-type-count battering-ram-line > 0)
+=>
+	(up-get-player-fact this-any-enemy player-number 0 gl-temp)
+	(up-modify-sn sn-focus-player-number g:= gl-temp)
+	(up-full-reset-search)
+	(up-find-local c: battering-ram-line c: 2)
+	(up-find-remote c: castle c: 1)
+	(up-find-remote c: town-center c: 1)
+	(up-find-remote c: tower-class c: 1)
+	(up-find-remote c: building-class c: 2)
+	(up-get-search-state gl-local-total)
+)
+(defrule
+	(goal gl-attack-state 1)
+	(goal gl-target-walls 0)
+	(timer-triggered t-micro)
+	(up-compare-goal gl-local-total > 0)
+	(up-compare-goal gl-remote-total > 0)
+	(stance-toward focus-player enemy)
+=>
+	(up-target-objects 0 action-default -1 stance-aggressive)
+)
+
 ; ---------- Escoltas: piqueros junto a los arietes, arqueros protegiendo ----------
 ; Durante la fase de brecha el papel de los arqueros es PROTEGER la bateria
 ; de asedio (no perseguir); los piqueros escoltan los arietes siempre que

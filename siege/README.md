@@ -83,7 +83,8 @@ Implementado en `combat.per` + `init.per`:
 - **Roles**: en la fase de brecha, los arietes solo buscan `wall-class` y
   `gate-class`; los **piqueros escoltan los arietes** y los **arqueros
   protegen la bateria** (accion `action-guard`); al abrirse el paso, los
-  arqueros pasan a fuego concentrado con `formation-stagger`.
+  arqueros pasan a fuego concentrado con `formation-stagger` y **los arietes
+  priorizan edificios** por orden: castillo, centro urbano, torres, resto.
 - **Conciencia de brecha / pathfinding**: patron de The General
   (`up-set-target-object` + `up-path-distance`; 65535 = sin camino). Si hay
   camino corto hasta la base enemiga, `gl-target-walls` -> 0 y **se deja de
